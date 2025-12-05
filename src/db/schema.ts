@@ -1,0 +1,8 @@
+import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+
+export const profiles = pgTable("profiles", {
+  id: serial("id").primaryKey(),
+  fullName: text("full_name"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
