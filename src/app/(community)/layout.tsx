@@ -18,7 +18,9 @@ export default function CommunityLayout({ children }: { children: ReactNode }) {
           <span style={{ fontWeight: 700 }}>N.18 Inanam Community Hub</span>
         </div>
         <div className={styles.topbarActions}>
-          <Button className={styles.reportBtn}>Report a New Issue</Button>
+          <Button asChild className={styles.reportBtn}>
+            <Link href="/community/report">Report a New Issue</Link>
+          </Button>
           <Image className={styles.avatar} alt="User" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC37nveW1T8IydQRZz7GWQBGOzblpUWT-dPtz4nkMGvR2BAvAUq1Ik6BRj-oOpg2Wm5-bSk9V6_SBkSzj0FZuG2L_mghpwLdxgUqTBo7Bi0vx0k9mbMno3RivnhWx-XbNi4VH-5GZsmfFC6fI4kDr-VwmmaQzuOKVTFlO-EIAQSpr71dE96KVj7C_V66UQSOy1WxDRgQ0xEqcnkKnWIhNr8wiqRClc5tVCtdn6rTi2COCjBJXlZHmxIvDgBxgYVFu_Ezm6OsGDAwR0" width={40} height={40} />
         </div>
       </header>
@@ -35,13 +37,13 @@ export default function CommunityLayout({ children }: { children: ReactNode }) {
             </div>
             <div className={styles.sideNav}>
               <Link className={`${styles.sideLink} ${styles.sideLinkActive}`} href="/community/dashboard">Dashboard</Link>
-              <Link className={styles.sideLink} href="#">Report a New Issue</Link>
+              <Link className={styles.sideLink} href="/community/report">Report a New Issue</Link>
               <Link className={styles.sideLink} href="#">Community Updates</Link>
-              <Link className={styles.sideLink} href="#">My Profile</Link>
+              <Link className={styles.sideLink} href="/community/profile">My Profile</Link>
             </div>
             <div className={styles.sideMeta}>
-              <Link className={styles.sideLink} href="#">FAQ</Link>
-              <Link className={styles.sideLink} href="#">Contact Support</Link>
+              <Link className={styles.sideLink} href="/community/faq">FAQ</Link>
+              <Link className={styles.sideLink} href="/community/support">Contact Support</Link>
               <Link className={styles.sideLink} href="#">Logout</Link>
             </div>
           </div>

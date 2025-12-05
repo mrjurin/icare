@@ -42,7 +42,7 @@ export default function CommunityDashboardPage() {
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
         <table className="w-full text-sm">
           <thead className="hidden sm:table-header-group">
             <tr className="bg-gray-50">

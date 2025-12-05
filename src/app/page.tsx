@@ -1,3 +1,4 @@
+import Button from "@/components/ui/Button";
 export default function Home() {
   return (
     <div className="font-display bg-background-light dark:bg-background-dark">
@@ -21,7 +22,9 @@ export default function Home() {
             </div>
             <div className="flex gap-2">
               <button className="rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold">Report an Issue</button>
-              <a href="/community/login" className="rounded-lg h-10 px-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-sm font-bold">Login / Register</a>
+              <Button asChild variant="outline" className="h-10 px-4">
+                <a href="/community/login">Login / Register</a>
+              </Button>
             </div>
           </div>
         </header>

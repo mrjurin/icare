@@ -40,7 +40,7 @@ export default function CommunityLoginPage() {
 
               <div className="flex flex-col gap-4">
                 <Button className="h-14 w-full">Login</Button>
-                <p className="text-[#617589] dark:text-gray-400 text-center text-sm">Don&apos;t have an account? <a className="font-medium text-primary underline hover:text-primary/80" href="#">Register here</a></p>
+                <p className="text-[#617589] dark:text-gray-400 text-center text-sm">Don&apos;t have an account? <a className="font-medium text-primary underline hover:text-primary/80" href="/community/register">Register here</a></p>
               </div>
             </div>
           </div>
