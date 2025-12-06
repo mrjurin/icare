@@ -1,5 +1,59 @@
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import { redirect } from "next/navigation";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
+import LocationCapture from "./LocationCapture";
+import MediaUploader from "./MediaUploader";
+
+async function createIssue(formData: FormData) {
+  "use server";
+  const supabase = await getSupabaseServerClient();
+
+  const title = String(formData.get("title") || "").trim();
+  const description = String(formData.get("description") || "").trim();
+  const category = String(formData.get("category") || "").trim();
+  const address = String(formData.get("address") || "").trim();
+  const latStr = String(formData.get("lat") || "").trim();
+  const lngStr = String(formData.get("lng") || "").trim();
+  const mediaJson = String(formData.get("mediaJson") || "").trim();
+  const lat = latStr ? Number(latStr) : undefined;
+  const lng = lngStr ? Number(lngStr) : undefined;
+
+  if (!title || !description || !category || !address) {
+    throw new Error("Missing required fields");
+  }
+
+  const { data: inserted, error: insertErr } = await supabase
+    .from("issues")
+    .insert({ title, description, category, address, lat, lng })
+    .select("id")
+    .single();
+
+  if (insertErr) {
+    throw new Error(insertErr.message);
+  }
+
+  try {
+    const items: Array<{ url: string; type?: string; size_bytes?: number }> = mediaJson ? JSON.parse(mediaJson) : [];
+    if (inserted?.id && items.length > 0) {
+      await supabase
+        .from("issue_media")
+        .insert(
+          items.map((m) => ({
+            issue_id: inserted.id,
+            url: m.url,
+            type: (m.type ?? "image").slice(0, 16),
+            size_bytes: m.size_bytes ?? null,
+          }))
+        );
+    }
+  } catch {
+    // ignore media insert errors for now
+  }
+
+  redirect("/community/dashboard");
+}
+
 
 export default function CommunityReportIssuePage() {
   return (
@@ -33,24 +87,28 @@ export default function CommunityReportIssuePage() {
 
         <section className="md:col-span-2">
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">
-            <div className="space-y-8">
+            <form className="space-y-8" action={createIssue}>
               <div>
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Step 1: Issue Details</h3>
                 <div className="mt-3 space-y-4">
                   <div>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
+                    <Input name="title" placeholder="Short title, e.g., Pothole near school" className="mt-1 w-full" />
+                  </div>
+                  <div>
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Type of Issue</label>
-                    <select className="mt-1 h-10 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 text-sm text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary">
+                    <select name="category" className="mt-1 h-10 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 text-sm text-gray-900 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary">
                       <option value="">Select an issue type</option>
-                      <option>Road Maintenance</option>
-                      <option>Drainage</option>
-                      <option>Public Safety</option>
-                      <option>Sanitation</option>
-                      <option>Other</option>
+                      <option value="road_maintenance">Road Maintenance</option>
+                      <option value="drainage">Drainage</option>
+                      <option value="public_safety">Public Safety</option>
+                      <option value="sanitation">Sanitation</option>
+                      <option value="other">Other</option>
                     </select>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Description of Issue</label>
-                    <textarea rows={5} placeholder="Please provide as much detail as possible. What happened? When? What is the impact?" className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-primary focus:ring-1 focus:ring-primary" />
+                    <textarea name="description" rows={5} placeholder="Please provide as much detail as possible. What happened? When? What is the impact?" className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-primary focus:ring-1 focus:ring-primary" />
                   </div>
                 </div>
               </div>
@@ -60,14 +118,11 @@ export default function CommunityReportIssuePage() {
                 <div className="mt-3 space-y-4">
                   <div>
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Address or Landmark</label>
-                    <Input placeholder="e.g., Jalan Inanam, near the community hall" className="mt-1 w-full" />
+                    <Input name="address" placeholder="e.g., Jalan Inanam, near the community hall" className="mt-1 w-full" />
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Pinpoint on Map</label>
-                    <div className="mt-2 flex items-start gap-3">
-                      <div className="h-32 w-40 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center text-sm text-gray-500">Map loading...</div>
-                      <Button variant="outline" className="h-10">Use Current Location</Button>
-                    </div>
+                    <LocationCapture />
                     <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Drag the pin to the exact location of the issue for fastest response.</p>
                   </div>
                 </div>
@@ -75,24 +130,16 @@ export default function CommunityReportIssuePage() {
 
               <div>
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Step 3: Attach Media</h3>
-                <div className="mt-3">
-                  <div className="rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 text-center">
-                    <p className="text-sm text-gray-700 dark:text-gray-300">
-                      <span className="text-primary font-semibold">Upload files</span> or drag and drop
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Supports multiple images & videos (up to 25MB total)</p>
-                  </div>
-                </div>
+                <MediaUploader />
               </div>
 
               <div className="flex justify-end">
-                <Button className="h-12 px-6">Submit Report</Button>
+                <Button type="submit" className="h-12 px-6">Submit Report</Button>
               </div>
-            </div>
+            </form>
           </div>
         </section>
       </div>
     </div>
   );
 }
-
