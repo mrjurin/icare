@@ -1,12 +1,235 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import * as Switch from "@radix-ui/react-switch";
 import * as Select from "@radix-ui/react-select";
-import { UploadCloud, Save } from "lucide-react";
+import { UploadCloud, Save, Image as ImageIcon, X, Loader2, UserCheck, Shield, Users } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import { getSetting, updateSetting, uploadImage } from "@/lib/actions/settings";
+import { useRouter } from "next/navigation";
+
+type LoginPageType = "staff" | "admin" | "community";
 
 export default function AdminSettingsPage() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<LoginPageType>("staff");
+  const [adminHeaderTitle, setAdminHeaderTitle] = useState("");
+  const [appName, setAppName] = useState("");
+  
+  // Login image states for each page type
+  const [loginImages, setLoginImages] = useState<Record<LoginPageType, {
+    url: string;
+    input: string;
+    preview: string | null;
+  }>>({
+    staff: { url: "", input: "", preview: null },
+    admin: { url: "", input: "", preview: null },
+    community: { url: "", input: "", preview: null },
+  });
+  
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    async function loadSettings() {
+      const [titleResult, appNameResult, staffImageResult, adminImageResult, communityImageResult] = await Promise.all([
+        getSetting("admin_header_title"),
+        getSetting("app_name"),
+        getSetting("staff_login_image_url"),
+        getSetting("admin_login_image_url"),
+        getSetting("community_login_image_url"),
+      ]);
+      if (titleResult.success) {
+        setAdminHeaderTitle(titleResult.data || "N.18 Inanam Community Watch");
+      }
+      if (appNameResult.success) {
+        setAppName(appNameResult.data || "Community Watch");
+      }
+      
+      // Load login images
+      setLoginImages({
+        staff: {
+          url: staffImageResult.success && staffImageResult.data ? staffImageResult.data : "",
+          input: staffImageResult.success && staffImageResult.data ? staffImageResult.data : "",
+          preview: staffImageResult.success && staffImageResult.data ? staffImageResult.data : null,
+        },
+        admin: {
+          url: adminImageResult.success && adminImageResult.data ? adminImageResult.data : "",
+          input: adminImageResult.success && adminImageResult.data ? adminImageResult.data : "",
+          preview: adminImageResult.success && adminImageResult.data ? adminImageResult.data : null,
+        },
+        community: {
+          url: communityImageResult.success && communityImageResult.data ? communityImageResult.data : "",
+          input: communityImageResult.success && communityImageResult.data ? communityImageResult.data : "",
+          preview: communityImageResult.success && communityImageResult.data ? communityImageResult.data : null,
+        },
+      });
+      
+      setLoading(false);
+    }
+    loadSettings();
+  }, []);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, pageType: LoginPageType) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    setError(null);
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setError("Please select an image file");
+      setUploadingImage(false);
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image size must be less than 5MB");
+      setUploadingImage(false);
+      return;
+    }
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setLoginImages(prev => ({
+        ...prev,
+        [pageType]: {
+          ...prev[pageType],
+          preview: reader.result as string,
+        },
+      }));
+    };
+    reader.readAsDataURL(file);
+
+    // Upload image
+    const formData = new FormData();
+    formData.append("file", file);
+    const result = await uploadImage(formData, "login-images");
+    
+    if (result.success && result.data) {
+      setLoginImages(prev => ({
+        ...prev,
+        [pageType]: {
+          url: result.data!,
+          input: result.data!,
+          preview: result.data!,
+        },
+      }));
+    } else {
+      setError(result.error || "Failed to upload image");
+    }
+
+    setUploadingImage(false);
+    // Reset input
+    e.target.value = "";
+  };
+
+  const handleImageUrlChange = (url: string, pageType: LoginPageType) => {
+    setLoginImages(prev => ({
+      ...prev,
+      [pageType]: {
+        ...prev[pageType],
+        input: url,
+      },
+    }));
+    
+    // Validate URL format
+    try {
+      new URL(url);
+      setLoginImages(prev => ({
+        ...prev,
+        [pageType]: {
+          ...prev[pageType],
+          preview: url,
+        },
+      }));
+      setError(null);
+    } catch {
+      // Invalid URL, but allow user to continue typing
+      if (url === "") {
+        setLoginImages(prev => ({
+          ...prev,
+          [pageType]: {
+            ...prev[pageType],
+            preview: null,
+          },
+        }));
+      }
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    setSuccess(false);
+
+    // Validate login image URLs if provided
+    for (const [pageType, imageData] of Object.entries(loginImages)) {
+      if (imageData.input && imageData.input.trim() !== "") {
+        try {
+          new URL(imageData.input);
+        } catch {
+          setError(`Please enter a valid image URL for ${pageType} login page`);
+          setSaving(false);
+          return;
+        }
+      }
+    }
+
+    const [titleResult, appNameResult, staffImageResult, adminImageResult, communityImageResult] = await Promise.all([
+      updateSetting(
+        "admin_header_title",
+        adminHeaderTitle || "N.18 Inanam Community Watch",
+        "The title displayed in the admin header"
+      ),
+      updateSetting(
+        "app_name",
+        appName || "Community Watch",
+        "The application name displayed in the sidebar"
+      ),
+      updateSetting(
+        "staff_login_image_url",
+        loginImages.staff.input.trim() || "",
+        "The image URL displayed on the staff login page"
+      ),
+      updateSetting(
+        "admin_login_image_url",
+        loginImages.admin.input.trim() || "",
+        "The image URL displayed on the admin login page"
+      ),
+      updateSetting(
+        "community_login_image_url",
+        loginImages.community.input.trim() || "",
+        "The image URL displayed on the community login page"
+      ),
+    ]);
+
+    if (titleResult.success && appNameResult.success && staffImageResult.success && adminImageResult.success && communityImageResult.success) {
+      // Update local state
+      setLoginImages(prev => ({
+        staff: { ...prev.staff, url: prev.staff.input.trim() },
+        admin: { ...prev.admin, url: prev.admin.input.trim() },
+        community: { ...prev.community, url: prev.community.input.trim() },
+      }));
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+        router.refresh();
+      }, 2000);
+    } else {
+      setError(titleResult.error || appNameResult.error || staffImageResult.error || adminImageResult.error || communityImageResult.error || "Failed to save settings");
+    }
+
+    setSaving(false);
+  };
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-2">
@@ -14,43 +237,227 @@ export default function AdminSettingsPage() {
         <p className="text-sm text-gray-600 dark:text-gray-400">Manage global application settings for the Community Watch platform.</p>
       </div>
 
-      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-800">
-          <h3 className="text-lg font-semibold">Branding</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Customize the look and feel of the application.</p>
-        </div>
-        <div className="p-6">
-          <div className="flex items-start gap-6">
-            <div className="flex flex-col items-center gap-2">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">App Logo</p>
-              <div className="w-24 h-24 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center bg-gray-50 dark:bg-gray-800/50">
-                <div className="size-12 text-primary">
-                  <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                    <path clipRule="evenodd" d="M39.475 21.6262C40.358 21.4363 40.6863 21.5589 40.7581 21.5934C40.7876 21.655 40.8547 21.857 40.8082 22.3336C40.7408 23.0255 40.4502 24.0046 39.8572 25.2301C38.6799 27.6631 36.5085 30.6631 33.5858 33.5858C30.6631 36.5085 27.6632 38.6799 25.2301 39.8572C24.0046 40.4502 23.0255 40.7407 22.3336 40.8082C21.8571 40.8547 21.6551 40.7875 21.5934 40.7581C21.5589 40.6863 21.4363 40.358 21.6262 39.475C21.8562 38.4054 22.4689 36.9657 23.5038 35.2817C24.7575 33.2417 26.5497 30.9744 28.7621 28.762C30.9744 26.5497 33.2417 24.7574 35.2817 23.5037C36.9657 22.4689 38.4054 21.8562 39.475 21.6262ZM4.41189 29.2403L18.7597 43.5881C19.8813 44.7097 21.4027 44.9179 22.7217 44.7893C24.0585 44.659 25.5148 44.1631 26.9723 43.4579C29.9052 42.0387 33.2618 39.5667 36.4142 36.4142C39.5667 33.2618 42.0387 29.9052 43.4579 26.9723C44.1631 25.5148 44.659 24.0585 44.7893 22.7217C44.9179 21.4027 44.7097 19.8813 43.5881 18.7597L29.2403 4.41187C27.8527 3.02428 25.8765 3.02573 24.2861 3.36776C22.6081 3.72863 20.7334 4.58419 18.8396 5.74801C16.4978 7.18716 13.9881 9.18353 11.5858 11.5858C9.18354 13.988 7.18717 16.4978 5.74802 18.8396C4.58421 20.7334 3.72865 22.6081 3.36778 24.2861C3.02574 25.8765 3.02429 27.8527 4.41189 29.2403Z" fill="currentColor" fillRule="evenodd"></path>
-                  </svg>
+      <form onSubmit={handleSave}>
+        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+            <h3 className="text-lg font-semibold">Branding</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Customize the look and feel of the application.</p>
+          </div>
+          <div className="p-6 space-y-6">
+            <div>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="app-name">
+                App Name
+              </label>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-2">
+                The application name displayed in the sidebar.
+              </p>
+              {loading ? (
+                <Input id="app-name" disabled className="mt-1 w-full" placeholder="Loading..." />
+              ) : (
+                <Input
+                  id="app-name"
+                  value={appName || ""}
+                  onChange={(e) => setAppName(e.target.value)}
+                  className="mt-1 w-full"
+                  placeholder="Community Watch"
+                />
+              )}
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="admin-header-title">
+                Admin Header Title
+              </label>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-2">
+                The title displayed in the admin header at the top of the page.
+              </p>
+              {loading ? (
+                <Input id="admin-header-title" disabled className="mt-1 w-full" placeholder="Loading..." />
+              ) : (
+                <Input
+                  id="admin-header-title"
+                  value={adminHeaderTitle || ""}
+                  onChange={(e) => setAdminHeaderTitle(e.target.value)}
+                  className="mt-1 w-full"
+                  placeholder="N.18 Inanam Community Watch"
+                />
+              )}
+            </div>
+            {/* Login Page Images Section */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 block">
+                Login Page Images
+              </label>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                Manage images for different login pages. You can upload an image or use an image URL.
+              </p>
+              
+              {/* Tabs */}
+              <div className="mb-6">
+                <div className="flex gap-2 border-b border-gray-200 dark:border-gray-800">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("staff")}
+                    className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+                      activeTab === "staff"
+                        ? "border-primary text-primary"
+                        : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <UserCheck className="size-4" />
+                      <span>Staff</span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("admin")}
+                    className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+                      activeTab === "admin"
+                        ? "border-primary text-primary"
+                        : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Shield className="size-4" />
+                      <span>Admin</span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("community")}
+                    className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+                      activeTab === "community"
+                        ? "border-primary text-primary"
+                        : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Users className="size-4" />
+                      <span>Community</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Tab Content */}
+              <div className="flex flex-col gap-4">
+                {/* Image Preview */}
+                {loginImages[activeTab].preview && (
+                  <div className="relative w-full max-w-md">
+                    <div className="relative rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-50 dark:bg-gray-800/50 aspect-video">
+                      <img
+                        src={loginImages[activeTab].preview!}
+                        alt={`${activeTab} login image preview`}
+                        className="w-full h-full object-cover"
+                        onError={() => {
+                          setLoginImages(prev => ({
+                            ...prev,
+                            [activeTab]: {
+                              ...prev[activeTab],
+                              preview: null,
+                            },
+                          }));
+                          setError("Failed to load image. Please check the URL.");
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginImages(prev => ({
+                          ...prev,
+                          [activeTab]: {
+                            url: "",
+                            input: "",
+                            preview: null,
+                          },
+                        }));
+                      }}
+                      className="absolute top-2 right-2 p-1.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
+                      aria-label="Remove image"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Upload Section */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <label className="block w-full cursor-pointer rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700 p-6 text-center hover:border-primary dark:hover:border-primary transition-colors">
+                      {uploadingImage ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <Loader2 className="size-8 text-primary animate-spin" />
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Uploading...</p>
+                        </div>
+                      ) : (
+                        <>
+                          <UploadCloud className="mx-auto size-8 text-gray-400" />
+                          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="font-semibold text-primary">Click to upload</span> or drag and drop
+                          </p>
+                          <p className="text-xs text-gray-500">PNG, JPG, GIF or WebP (max. 5MB)</p>
+                        </>
+                      )}
+                      <input
+                        className="sr-only"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e, activeTab)}
+                        disabled={uploadingImage || loading}
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {/* URL Input */}
+                <div>
+                  <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2 block">
+                    Or enter image URL:
+                  </label>
+                  <Input
+                    id={`${activeTab}-login-image-url`}
+                    type="url"
+                    value={loginImages[activeTab].input || ""}
+                    onChange={(e) => handleImageUrlChange(e.target.value, activeTab)}
+                    placeholder="https://example.com/image.jpg"
+                    className="w-full"
+                    disabled={loading || uploadingImage}
+                  />
                 </div>
               </div>
             </div>
-            <div className="flex-1">
-              <label className="block w-full cursor-pointer rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700 p-6 text-center hover:border-primary dark:hover:border-primary">
-                <UploadCloud className="mx-auto size-8 text-gray-400" />
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  <span className="font-semibold text-primary">Click to upload</span> or drag and drop
-                </p>
-                <p className="text-xs text-gray-500">SVG, PNG, JPG or GIF (max. 800x400px)</p>
-                <input className="sr-only" type="file" />
-              </label>
+            
+            {error && (
+              <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-4">
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              </div>
+            )}
+            {success && (
+              <div className="rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 p-4">
+                <p className="text-sm text-green-600 dark:text-green-400">Settings saved successfully!</p>
+              </div>
+            )}
+            
+            <div className="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-800">
+              <Button variant="outline" type="button" onClick={() => router.refresh()}>
+                <span>Cancel</span>
+              </Button>
+              <Button type="submit" disabled={loading || saving}>
+                <Save className="size-5" />
+                <span>{saving ? "Saving..." : "Save Changes"}</span>
+              </Button>
             </div>
           </div>
         </div>
-      </div>
+      </form>
 
       <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark">
         <div className="p-6 border-b border-gray-200 dark:border-gray-800">
           <h3 className="text-lg font-semibold">General Information</h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Update general contact and support information.</p>
         </div>
-        <form className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="careline-number">CARELINE Phone Number</label>
             <Input id="careline-number" type="tel" placeholder="+60 12-345 6789" defaultValue="+60 18-181 8181" className="mt-1 w-full" />
@@ -59,7 +466,7 @@ export default function AdminSettingsPage() {
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="whatsapp-link">WhatsApp Link</label>
             <Input id="whatsapp-link" type="url" placeholder="https://wa.me/..." defaultValue="https://wa.me/60181818181" className="mt-1 w-full" />
           </div>
-        </form>
+        </div>
       </div>
 
       <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark">
@@ -67,7 +474,7 @@ export default function AdminSettingsPage() {
           <h3 className="text-lg font-semibold">Issue Management</h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Set default settings for new issue reports.</p>
         </div>
-        <form className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="default-status">Default Status for New Issues</label>
             <Select.Root defaultValue="Open">
@@ -101,7 +508,7 @@ export default function AdminSettingsPage() {
               </Select.Content>
             </Select.Root>
           </div>
-        </form>
+        </div>
       </div>
 
       <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark">
@@ -138,16 +545,6 @@ export default function AdminSettingsPage() {
             </Switch.Root>
           </div>
         </div>
-      </div>
-
-      <div className="flex justify-end gap-4">
-        <Button variant="outline" type="button">
-          <span>Cancel</span>
-        </Button>
-        <Button type="submit">
-          <Save className="size-5" />
-          <span>Save Changes</span>
-        </Button>
       </div>
     </div>
   );

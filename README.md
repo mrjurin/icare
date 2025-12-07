@@ -16,6 +16,20 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+### Automatic Superadmin Setup
+
+When running locally (`npm run dev`), the app automatically creates a superadmin account for easy login:
+
+- **Email**: `administrator@n18inanam.gov.my`
+- **Password**: `123456`
+- **Login URL**: `/admin/login`
+
+This only runs in development mode and won't affect production. If you need to manually ensure the superadmin exists, you can run:
+
+```bash
+npm run ensure-superadmin
+```
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

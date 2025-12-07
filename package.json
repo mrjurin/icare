@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "npm run ensure-superadmin && next dev",
+    "dev:only": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -12,6 +13,8 @@
     "drizzle:studio": "drizzle-kit studio",
     "db:seed": "npx tsx src/db/seed.ts",
     "db:create-admin": "npx tsx src/db/create-admin-user.ts",
+    "db:ensure-superadmin": "npx tsx src/db/ensure-superadmin.ts",
+    "ensure-superadmin": "npx tsx src/db/ensure-superadmin.ts",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {

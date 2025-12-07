@@ -546,3 +546,20 @@ export const staffPermissionsRelations = relations(staffPermissions, ({ one }) =
     references: [staff.id],
   }),
 }));
+
+// Application settings table - stores global application configuration
+export const appSettings = pgTable(
+  "app_settings",
+  {
+    id: serial("id").primaryKey(),
+    key: varchar("key", { length: 100 }).notNull().unique(), // e.g., "admin_header_title"
+    value: text("value"), // JSON or plain text value
+    description: text("description"), // Human-readable description
+    updatedBy: integer("updated_by").references(() => staff.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("app_settings_key_idx").on(table.key),
+  ]
+);

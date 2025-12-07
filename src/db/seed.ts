@@ -41,7 +41,7 @@ const pool = new Pool({
 
 const db = drizzle(pool);
 
-import { profiles, staff, issues, issueMedia, issueFeedback, announcements, notifications, issueAssignments, supportRequests, duns, zones, households, householdMembers, householdIncome, aidDistributions, roles, roleAssignments, permissions, staffPermissions } from "./schema";
+import { profiles, staff, issues, issueMedia, issueFeedback, announcements, notifications, issueAssignments, supportRequests, duns, zones, households, householdMembers, householdIncome, aidDistributions, roles, roleAssignments, permissions, staffPermissions, appSettings } from "./schema";
 import { sql } from "drizzle-orm";
 
 async function seed() {
@@ -265,6 +265,54 @@ async function seed() {
     ]).returning();
 
     console.log(`✅ Inserted ${insertedStaff.length} staff members`);
+
+    // 4.5. Insert App Settings (including login page images)
+    console.log("⚙️  Inserting app settings...");
+    const defaultLoginImageUrl = "https://lh3.googleusercontent.com/aida-public/AB6AXuDmv2CVtuNASMwZdMSvemNUs8M8rpPOUmfvweQGpyAeoi8ItTn569RZolM1Y1n9js1J7O4y7UbaCdnWdtS8rJyU_7SVoXf6f3yNc8Eg88c10upP-BjUC0TthPe2m3a-7wXiV_uUg5V7pUxTVdwYe_wnXOsdB15QYP6J-SMJLVepYX-j2kYCLoc-ilIv6uTqKe47siL52mxK_jOr1qnfC7Jd2fAsGRpWw0tqo1Uu4VlM4LygeNDgS0gKAyfJHsoFwiyMaH2Aj48qBc0";
+    
+    // Use ADUN (first staff member) as the updater, or first available staff if ADUN doesn't exist
+    const settingsUpdatedBy = insertedStaff.length > 0 ? insertedStaff[0].id : null;
+    
+    // Delete existing settings for these keys (in case they were created by migrations)
+    await db.execute(sql`
+      DELETE FROM app_settings 
+      WHERE key IN ('admin_header_title', 'app_name', 'staff_login_image_url', 'admin_login_image_url', 'community_login_image_url')
+    `);
+    
+    await db.insert(appSettings).values([
+      {
+        key: "admin_header_title",
+        value: "N.18 Inanam Community Watch",
+        description: "The title displayed in the admin header",
+        updatedBy: settingsUpdatedBy,
+      },
+      {
+        key: "app_name",
+        value: "Community Watch",
+        description: "The application name displayed in the sidebar",
+        updatedBy: settingsUpdatedBy,
+      },
+      {
+        key: "staff_login_image_url",
+        value: defaultLoginImageUrl,
+        description: "The image URL displayed on the staff login page",
+        updatedBy: settingsUpdatedBy,
+      },
+      {
+        key: "admin_login_image_url",
+        value: defaultLoginImageUrl,
+        description: "The image URL displayed on the admin login page",
+        updatedBy: settingsUpdatedBy,
+      },
+      {
+        key: "community_login_image_url",
+        value: defaultLoginImageUrl,
+        description: "The image URL displayed on the community login page",
+        updatedBy: settingsUpdatedBy,
+      },
+    ]);
+    
+    console.log("✅ Inserted app settings (including login page images)");
 
     // 5. Insert Issues
     console.log("📋 Inserting issues...");
