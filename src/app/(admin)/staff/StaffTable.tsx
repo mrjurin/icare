@@ -9,7 +9,7 @@ import DataTable, { DataTableEmpty } from "@/components/ui/DataTable";
 import type { PaginationProps } from "@/components/ui/Pagination";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import { deleteStaff, toggleStaffStatus, type Staff, type StaffRole } from "@/lib/actions/staff";
-import StaffPermissionsModal from "./";
+import StaffPermissionsModal from "./StaffPermissionsModal";
 import StaffFormModal from "./StaffFormModal";
 
 const ROLE_CONFIG: Record<StaffRole, { label: string; icon: typeof Crown; cls: string }> = {
