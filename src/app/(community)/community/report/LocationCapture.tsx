@@ -88,8 +88,8 @@ export default function LocationCapture() {
     }
   }
   return (
-    <div className="mt-2 flex items-start gap-3">
-      <div className="h-32 w-56 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 overflow-hidden">
+    <div className="mt-2 flex flex-col sm:flex-row items-stretch sm:items-start gap-3">
+      <div className="w-full sm:w-56 h-48 sm:h-32 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 overflow-hidden flex-shrink-0">
         {lat !== null && lng !== null ? (
           <iframe
             src={mapSrc}
@@ -99,15 +99,15 @@ export default function LocationCapture() {
             title="Location Map"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-xs text-gray-500">Pin will appear here</div>
+          <div className="w-full h-full flex items-center justify-center text-xs text-gray-500 px-2 text-center">Pin will appear here</div>
         )}
       </div>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 flex-1 sm:flex-initial">
         <div className="flex gap-2">
           <Button
             type="button"
             variant="outline"
-            className="!h-12 !w-12 !px-0 !gap-0"
+            className="!h-12 !w-12 sm:!w-12 !px-0 !gap-0 flex-shrink-0"
             aria-label="Use Current Location"
             onClick={capture}
             disabled={loading}
@@ -117,7 +117,7 @@ export default function LocationCapture() {
           <Button
             type="button"
             variant="outline"
-            className="!h-12 !w-12 !px-0 !gap-0"
+            className="!h-12 !w-12 sm:!w-12 !px-0 !gap-0 flex-shrink-0"
             aria-label="Use Address"
             onClick={useAddress}
             disabled={loading}
@@ -125,7 +125,7 @@ export default function LocationCapture() {
             <MapPin className="size-5" />
           </Button>
         </div>
-        <span className="text-xs text-gray-500 dark:text-gray-400">{status}</span>
+        <span className="text-xs text-gray-500 dark:text-gray-400 break-words">{status || "Ready to capture location"}</span>
       </div>
       <input type="hidden" name="lat" value={lat ?? ""} />
       <input type="hidden" name="lng" value={lng ?? ""} />

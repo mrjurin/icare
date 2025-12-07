@@ -5,8 +5,17 @@ import { relations } from "drizzle-orm";
 export const profiles = pgTable("profiles", {
   id: serial("id").primaryKey(),
   fullName: text("full_name"),
+  email: text("email"),
+  phone: varchar("phone", { length: 20 }),
+  address: text("address"),
+  avatarUrl: text("avatar_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+// Enums for staff
+export const staffRoleEnum = pgEnum("staff_role", ["adun", "super_admin", "zone_leader", "staff_manager", "staff"]);
+export const staffStatusEnum = pgEnum("staff_status", ["active", "inactive"]);
 
 // Enums for issues
 export const issueStatusEnum = pgEnum("issue_status", ["pending", "in_progress", "resolved", "closed"]);
@@ -17,6 +26,48 @@ export const issueCategoryEnum = pgEnum("issue_category", [
   "sanitation",
   "other",
 ]);
+
+// DUN (Dewan Undangan Negeri) table
+export const duns = pgTable(
+  "duns",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(), // e.g., "N.18 Inanam"
+    code: varchar("code", { length: 20 }), // e.g., "N18"
+    description: text("description"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("duns_name_idx").on(table.name),
+    index("duns_code_idx").on(table.code),
+  ]
+);
+
+// Staff table for ADUN and their staff members
+export const staff = pgTable(
+  "staff",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email"), // Nullable - staff can use IC number instead
+    icNumber: varchar("ic_number", { length: 20 }), // IC number for login (Sabah context)
+    phone: varchar("phone", { length: 20 }),
+    role: staffRoleEnum("role").default("staff").notNull(),
+    position: text("position"),
+    zoneId: integer("zone_id").references(() => zones.id, { onDelete: "set null" }), // For zone leaders
+    status: staffStatusEnum("status").default("active").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("staff_role_idx").on(table.role),
+    index("staff_status_idx").on(table.status),
+    index("staff_email_idx").on(table.email),
+    index("staff_ic_number_idx").on(table.icNumber),
+    index("staff_zone_idx").on(table.zoneId),
+  ]
+);
 
 export const issues = pgTable(
   "issues",
@@ -131,7 +182,7 @@ export const issueAssignments = pgTable(
   {
     id: serial("id").primaryKey(),
     issueId: integer("issue_id").references(() => issues.id, { onDelete: "cascade" }).notNull(),
-    assigneeId: integer("assignee_id").references(() => profiles.id, { onDelete: "set null" }),
+    staffId: integer("staff_id").references(() => staff.id, { onDelete: "set null" }),
     status: varchar("status", { length: 16 }).default("assigned").notNull(),
     assignedAt: timestamp("assigned_at").defaultNow().notNull(),
     dueDate: timestamp("due_date"),
@@ -139,7 +190,7 @@ export const issueAssignments = pgTable(
   },
   (table) => [
     index("issue_assignments_issue_idx").on(table.issueId),
-    index("issue_assignments_assignee_idx").on(table.assigneeId),
+    index("issue_assignments_staff_idx").on(table.staffId),
     index("issue_assignments_status_idx").on(table.status),
   ]
 );
@@ -154,5 +205,344 @@ export const issuesRelations = relations(issues, ({ many }) => ({
 export const profilesRelations = relations(profiles, ({ many }) => ({
   issues: many(issues),
   notifications: many(notifications),
+}));
+
+export const staffRelations = relations(staff, ({ one, many }) => ({
+  zone: one(zones, {
+    fields: [staff.zoneId],
+    references: [zones.id],
+  }),
   assignments: many(issueAssignments),
+  roleAssignments: many(roleAssignments, {
+    relationName: "staff_role_assignments",
+  }),
+  appointmentsMade: many(roleAssignments, {
+    relationName: "appointed_by_staff",
+  }),
+  permissions: many(staffPermissions),
+}));
+
+// Enums for households
+export const memberRelationshipEnum = pgEnum("member_relationship", [
+  "head",
+  "spouse",
+  "child",
+  "parent",
+  "sibling",
+  "other",
+]);
+export const memberStatusEnum = pgEnum("member_status", ["at_home", "away", "deceased"]);
+export const dependencyStatusEnum = pgEnum("dependency_status", ["dependent", "independent"]);
+export const votingSupportStatusEnum = pgEnum("voting_support_status", ["white", "black", "red"]);
+
+// Zones table for managing zones
+export const zones = pgTable(
+  "zones",
+  {
+    id: serial("id").primaryKey(),
+    dunId: integer("dun_id").references(() => duns.id, { onDelete: "cascade" }).notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("zones_name_idx").on(table.name),
+    index("zones_dun_idx").on(table.dunId),
+  ]
+);
+
+// Villages table for managing villages within zones
+export const villages = pgTable(
+  "villages",
+  {
+    id: serial("id").primaryKey(),
+    zoneId: integer("zone_id").references(() => zones.id, { onDelete: "cascade" }).notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("villages_name_idx").on(table.name),
+    index("villages_zone_idx").on(table.zoneId),
+  ]
+);
+
+// Roles table - defines the roles available in the system
+export const roles = pgTable(
+  "roles",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(), // e.g., "Ketua Cawangan", "Ketua Kampung"
+    description: text("description"), // e.g., "Handles aids and household registration"
+    responsibilities: text("responsibilities"), // Detailed responsibilities
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("roles_name_idx").on(table.name),
+  ]
+);
+
+// Role assignments table - links staff to roles within zones (appointed by ADUN)
+export const roleAssignments = pgTable(
+  "role_assignments",
+  {
+    id: serial("id").primaryKey(),
+    staffId: integer("staff_id").references(() => staff.id, { onDelete: "cascade" }).notNull(),
+    roleId: integer("role_id").references(() => roles.id, { onDelete: "cascade" }).notNull(),
+    zoneId: integer("zone_id").references(() => zones.id, { onDelete: "cascade" }).notNull(),
+    appointedBy: integer("appointed_by").references(() => staff.id, { onDelete: "set null" }), // ADUN who made the appointment
+    status: varchar("status", { length: 20 }).default("active").notNull(), // active, inactive
+    appointedAt: timestamp("appointed_at").defaultNow().notNull(),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("role_assignments_staff_idx").on(table.staffId),
+    index("role_assignments_role_idx").on(table.roleId),
+    index("role_assignments_zone_idx").on(table.zoneId),
+    index("role_assignments_appointed_by_idx").on(table.appointedBy),
+    index("role_assignments_status_idx").on(table.status),
+  ]
+);
+
+// Households table - Head of household information
+export const households = pgTable(
+  "households",
+  {
+    id: serial("id").primaryKey(),
+    headOfHouseholdId: integer("head_of_household_id").references(() => profiles.id, { onDelete: "set null" }),
+    headName: text("head_name").notNull(),
+    headIcNumber: varchar("head_ic_number", { length: 20 }),
+    headPhone: varchar("head_phone", { length: 20 }),
+    address: text("address").notNull(),
+    zoneId: integer("zone_id").references(() => zones.id, { onDelete: "set null" }),
+    area: text("area"), // Legacy field - kept for backward compatibility, use zoneId instead
+    notes: text("notes"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("households_head_idx").on(table.headOfHouseholdId),
+    index("households_zone_idx").on(table.zoneId),
+    index("households_area_idx").on(table.area),
+  ]
+);
+
+// Household members table
+export const householdMembers = pgTable(
+  "household_members",
+  {
+    id: serial("id").primaryKey(),
+    householdId: integer("household_id").references(() => households.id, { onDelete: "cascade" }).notNull(),
+    name: text("name").notNull(),
+    icNumber: varchar("ic_number", { length: 20 }),
+    relationship: memberRelationshipEnum("relationship").notNull(),
+    dateOfBirth: timestamp("date_of_birth"),
+    locality: text("locality"), // Voting place/locality for eligible voters
+    status: memberStatusEnum("status").default("at_home").notNull(),
+    dependencyStatus: dependencyStatusEnum("dependency_status").default("dependent").notNull(),
+    votingSupportStatus: votingSupportStatusEnum("voting_support_status"), // White: full support, Black: not supporting, Red: not determined
+    notes: text("notes"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("household_members_household_idx").on(table.householdId),
+    index("household_members_status_idx").on(table.status),
+    index("household_members_dependency_idx").on(table.dependencyStatus),
+    index("household_members_locality_idx").on(table.locality),
+  ]
+);
+
+// Income information table
+export const householdIncome = pgTable(
+  "household_income",
+  {
+    id: serial("id").primaryKey(),
+    householdId: integer("household_id").references(() => households.id, { onDelete: "cascade" }).notNull(),
+    monthlyIncome: doublePrecision("monthly_income"), // Total monthly income in RM
+    incomeSource: text("income_source"), // e.g., "Employment", "Business", "Pension", "Government Aid"
+    numberOfIncomeEarners: integer("number_of_income_earners").default(0).notNull(),
+    lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("household_income_household_idx").on(table.householdId),
+  ]
+);
+
+// Aid distribution tracking table
+export const aidDistributions = pgTable(
+  "aid_distributions",
+  {
+    id: serial("id").primaryKey(),
+    householdId: integer("household_id").references(() => households.id, { onDelete: "cascade" }).notNull(),
+    aidType: varchar("aid_type", { length: 100 }).notNull(), // e.g., "Food Basket", "Cash Aid", "Medical Supplies"
+    quantity: integer("quantity").default(1).notNull(),
+    distributedTo: integer("distributed_to").notNull(), // Number of people this aid was distributed to
+    distributedBy: integer("distributed_by").references(() => staff.id, { onDelete: "set null" }),
+    distributionDate: timestamp("distribution_date").defaultNow().notNull(),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("aid_distributions_household_idx").on(table.householdId),
+    index("aid_distributions_date_idx").on(table.distributionDate),
+    index("aid_distributions_type_idx").on(table.aidType),
+  ]
+);
+
+// Permissions table - defines available permissions in the system
+export const permissions = pgTable(
+  "permissions",
+  {
+    id: serial("id").primaryKey(),
+    code: varchar("code", { length: 100 }).notNull(), // e.g., "register_household", "manage_staff"
+    name: text("name").notNull(), // e.g., "Register Household", "Manage Staff"
+    description: text("description"), // Detailed description of what this permission allows
+    category: varchar("category", { length: 50 }), // e.g., "households", "staff", "zones"
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("permissions_code_idx").on(table.code),
+    index("permissions_category_idx").on(table.category),
+  ]
+);
+
+// Staff permissions table - links staff to permissions
+export const staffPermissions = pgTable(
+  "staff_permissions",
+  {
+    id: serial("id").primaryKey(),
+    staffId: integer("staff_id").references(() => staff.id, { onDelete: "cascade" }).notNull(),
+    permissionId: integer("permission_id").references(() => permissions.id, { onDelete: "cascade" }).notNull(),
+    grantedBy: integer("granted_by").references(() => staff.id, { onDelete: "set null" }), // Who granted this permission
+    grantedAt: timestamp("granted_at").defaultNow().notNull(),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("staff_permissions_staff_idx").on(table.staffId),
+    index("staff_permissions_permission_idx").on(table.permissionId),
+    index("staff_permissions_granted_by_idx").on(table.grantedBy),
+  ]
+);
+
+// Relations for DUNs
+export const dunsRelations = relations(duns, ({ many }) => ({
+  zones: many(zones),
+}));
+
+// Relations for zones
+export const zonesRelations = relations(zones, ({ one, many }) => ({
+  dun: one(duns, {
+    fields: [zones.dunId],
+    references: [duns.id],
+  }),
+  households: many(households),
+  leaders: many(staff),
+  roleAssignments: many(roleAssignments),
+  villages: many(villages),
+}));
+
+// Relations for villages
+export const villagesRelations = relations(villages, ({ one }) => ({
+  zone: one(zones, {
+    fields: [villages.zoneId],
+    references: [zones.id],
+  }),
+}));
+
+// Relations for roles
+export const rolesRelations = relations(roles, ({ many }) => ({
+  assignments: many(roleAssignments),
+}));
+
+// Relations for role assignments
+export const roleAssignmentsRelations = relations(roleAssignments, ({ one }) => ({
+  staff: one(staff, {
+    fields: [roleAssignments.staffId],
+    references: [staff.id],
+    relationName: "staff_role_assignments",
+  }),
+  role: one(roles, {
+    fields: [roleAssignments.roleId],
+    references: [roles.id],
+  }),
+  zone: one(zones, {
+    fields: [roleAssignments.zoneId],
+    references: [zones.id],
+  }),
+  appointedByStaff: one(staff, {
+    fields: [roleAssignments.appointedBy],
+    references: [staff.id],
+    relationName: "appointed_by_staff",
+  }),
+}));
+
+// Relations for households
+export const householdsRelations = relations(households, ({ one, many }) => ({
+  headProfile: one(profiles, {
+    fields: [households.headOfHouseholdId],
+    references: [profiles.id],
+  }),
+  zone: one(zones, {
+    fields: [households.zoneId],
+    references: [zones.id],
+  }),
+  members: many(householdMembers),
+  income: many(householdIncome),
+  aidDistributions: many(aidDistributions),
+}));
+
+export const householdMembersRelations = relations(householdMembers, ({ one }) => ({
+  household: one(households, {
+    fields: [householdMembers.householdId],
+    references: [households.id],
+  }),
+}));
+
+export const householdIncomeRelations = relations(householdIncome, ({ one }) => ({
+  household: one(households, {
+    fields: [householdIncome.householdId],
+    references: [households.id],
+  }),
+}));
+
+export const aidDistributionsRelations = relations(aidDistributions, ({ one }) => ({
+  household: one(households, {
+    fields: [aidDistributions.householdId],
+    references: [households.id],
+  }),
+  distributedByStaff: one(staff, {
+    fields: [aidDistributions.distributedBy],
+    references: [staff.id],
+  }),
+}));
+
+// Relations for permissions
+export const permissionsRelations = relations(permissions, ({ many }) => ({
+  staffPermissions: many(staffPermissions),
+}));
+
+// Relations for staff permissions
+export const staffPermissionsRelations = relations(staffPermissions, ({ one }) => ({
+  staff: one(staff, {
+    fields: [staffPermissions.staffId],
+    references: [staff.id],
+  }),
+  permission: one(permissions, {
+    fields: [staffPermissions.permissionId],
+    references: [permissions.id],
+  }),
+  grantedByStaff: one(staff, {
+    fields: [staffPermissions.grantedBy],
+    references: [staff.id],
+  }),
 }));

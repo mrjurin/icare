@@ -1,0 +1,235 @@
+"use client";
+
+import { useState, useTransition, useEffect, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import * as Dialog from "@radix-ui/react-dialog";
+import { X, Loader2, Home, Save } from "lucide-react";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import {
+  createHousehold,
+  updateHousehold,
+  type Household,
+  type CreateHouseholdInput,
+} from "@/lib/actions/households";
+import { getZones, type Zone } from "@/lib/actions/zones";
+
+type Props = {
+  trigger: ReactNode;
+  household?: Household;
+};
+
+export default function HouseholdFormModal({ trigger, household }: Props) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [zones, setZones] = useState<Zone[]>([]);
+
+  const isEdit = !!household;
+
+  const [formData, setFormData] = useState<CreateHouseholdInput>({
+    headName: household?.head_name || "",
+    headIcNumber: household?.head_ic_number || "",
+    headPhone: household?.head_phone || "",
+    address: household?.address || "",
+    area: household?.area || "",
+    zoneId: (household as any)?.zone_id || undefined,
+    notes: household?.notes || "",
+  });
+
+  // Fetch zones when modal opens
+  useEffect(() => {
+    if (open) {
+      getZones().then((result) => {
+        if (result.success && result.data) {
+          setZones(result.data);
+        }
+      });
+    }
+  }, [open]);
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (newOpen) {
+      setFormData({
+        headName: household?.head_name || "",
+        headIcNumber: household?.head_ic_number || "",
+        headPhone: household?.head_phone || "",
+        address: household?.address || "",
+        area: household?.area || "",
+        zoneId: (household as any)?.zone_id || undefined,
+        notes: household?.notes || "",
+      });
+      setError(null);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    startTransition(async () => {
+      let result;
+      if (isEdit && household) {
+        result = await updateHousehold({
+          id: household.id,
+          ...formData,
+        });
+      } else {
+        result = await createHousehold(formData);
+      }
+
+      if (result.success) {
+        setOpen(false);
+        router.refresh();
+      } else {
+        setError(result.error || "An error occurred");
+      }
+    });
+  };
+
+  return (
+    <Dialog.Root open={open} onOpenChange={handleOpenChange}>
+      <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 rounded-xl shadow-xl z-50 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
+              {isEdit ? "Edit Household" : "Add New Household"}
+            </Dialog.Title>
+            <Dialog.Close asChild>
+              <button className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+                <X className="size-5" />
+              </button>
+            </Dialog.Close>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            {error && (
+              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-sm">
+                {error}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Head of Household Name <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="text"
+                  placeholder="e.g., Ahmad bin Abdullah"
+                  value={formData.headName}
+                  onChange={(e) => setFormData({ ...formData, headName: e.target.value })}
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  IC Number
+                </label>
+                <Input
+                  type="text"
+                  placeholder="e.g., 850101-01-1234"
+                  value={formData.headIcNumber}
+                  onChange={(e) => setFormData({ ...formData, headIcNumber: e.target.value })}
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Phone Number
+                </label>
+                <Input
+                  type="tel"
+                  placeholder="e.g., +60 12-345 6789"
+                  value={formData.headPhone}
+                  onChange={(e) => setFormData({ ...formData, headPhone: e.target.value })}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Address <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="text"
+                  placeholder="Full address"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Zone
+                </label>
+                <select
+                  value={formData.zoneId || ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      zoneId: e.target.value ? parseInt(e.target.value, 10) : undefined,
+                    })
+                  }
+                  className="w-full h-10 px-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark text-gray-900 dark:text-white"
+                >
+                  <option value="">Select Zone</option>
+                  {zones.map((zone) => (
+                    <option key={zone.id} value={zone.id}>
+                      {zone.name}
+                    </option>
+                  ))}
+                </select>
+                {zones.length === 0 && (
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    No zones available. Create zones first.
+                  </p>
+                )}
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark text-gray-900 dark:text-white"
+                  placeholder="Additional notes about this household..."
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <Dialog.Close asChild>
+                <Button type="button" variant="outline" disabled={isPending}>
+                  Cancel
+                </Button>
+              </Dialog.Close>
+              <Button type="submit" disabled={isPending} className="gap-2">
+                {isPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : isEdit ? (
+                  <Save className="size-4" />
+                ) : (
+                  <Home className="size-4" />
+                )}
+                {isEdit ? "Save Changes" : "Add Household"}
+              </Button>
+            </div>
+          </form>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}

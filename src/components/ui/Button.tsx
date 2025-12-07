@@ -5,7 +5,7 @@ import { Slot } from "@radix-ui/react-slot";
 
 type ButtonProps = React.ComponentProps<"button"> & { asChild?: boolean; variant?: "primary" | "outline" };
 
-const base = "inline-flex items-center justify-center gap-2 rounded-lg h-10 px-4 text-sm font-bold";
+const base = "inline-flex items-center justify-center gap-2 rounded-lg min-h-[44px] h-10 sm:h-10 px-4 text-sm font-bold touch-manipulation";
 const variants: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary: "bg-primary text-white hover:bg-primary/90",
   outline: "border border-gray-300 bg-transparent text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800",
