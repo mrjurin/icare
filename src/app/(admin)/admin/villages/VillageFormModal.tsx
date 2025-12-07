@@ -96,9 +96,14 @@ export default function VillageFormModal({ trigger, village, defaultZoneId }: Pr
         <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
         <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 rounded-xl shadow-xl z-50 w-full max-w-lg max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-            <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
-              {isEdit ? "Edit Village" : "Add New Village"}
-            </Dialog.Title>
+            <div>
+              <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
+                {isEdit ? "Edit Village" : "Add New Village"}
+              </Dialog.Title>
+              <Dialog.Description className="sr-only">
+                {isEdit ? "Edit village information" : "Create a new village in the selected zone"}
+              </Dialog.Description>
+            </div>
             <Dialog.Close asChild>
               <button className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
                 <X className="size-5" />

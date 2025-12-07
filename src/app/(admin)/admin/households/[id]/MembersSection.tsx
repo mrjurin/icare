@@ -280,7 +280,13 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
                   </td>
                   <td className="px-4 py-3">
                     {member.date_of_birth
-                      ? new Date(member.date_of_birth).toLocaleDateString()
+                      ? (() => {
+                          const date = new Date(member.date_of_birth);
+                          const day = String(date.getDate()).padStart(2, '0');
+                          const month = String(date.getMonth() + 1).padStart(2, '0');
+                          const year = date.getFullYear();
+                          return `${day}/${month}/${year}`;
+                        })()
                       : "—"}
                     {member.date_of_birth && isEligibleToVote(member.date_of_birth) && (
                       <div className="text-xs text-green-600 mt-1">✓ Eligible to vote</div>

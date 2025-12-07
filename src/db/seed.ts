@@ -41,7 +41,7 @@ const pool = new Pool({
 
 const db = drizzle(pool);
 
-import { profiles, staff, issues, issueMedia, issueFeedback, announcements, notifications, issueAssignments, supportRequests, duns, zones, households, householdMembers, householdIncome, aidDistributions, roles, roleAssignments, permissions, staffPermissions, appSettings } from "./schema";
+import { profiles, staff, issues, issueMedia, issueFeedback, announcements, notifications, issueAssignments, supportRequests, duns, zones, villages, households, householdMembers, householdIncome, aidDistributions, roles, roleAssignments, permissions, staffPermissions, appSettings, aidsPrograms, aidsProgramZones, aidsProgramAssignments, aidsDistributionRecords } from "./schema";
 import { sql } from "drizzle-orm";
 
 async function seed() {
@@ -66,12 +66,17 @@ async function seed() {
     // Clear existing data (in reverse order of dependencies)
     // Use DELETE instead of TRUNCATE for better compatibility with Supabase
     console.log("🧹 Clearing existing data...");
+    await db.execute(sql`DELETE FROM aids_distribution_records`);
+    await db.execute(sql`DELETE FROM aids_program_assignments`);
+    await db.execute(sql`DELETE FROM aids_program_zones`);
+    await db.execute(sql`DELETE FROM aids_programs`);
     await db.execute(sql`DELETE FROM aid_distributions`);
     await db.execute(sql`DELETE FROM household_income`);
     await db.execute(sql`DELETE FROM household_members`);
     await db.execute(sql`DELETE FROM households`);
     await db.execute(sql`DELETE FROM staff_permissions`);
     await db.execute(sql`DELETE FROM role_assignments`);
+    await db.execute(sql`DELETE FROM villages`);
     await db.execute(sql`DELETE FROM zones`);
     await db.execute(sql`DELETE FROM duns`);
     await db.execute(sql`DELETE FROM issue_assignments`);
@@ -87,7 +92,7 @@ async function seed() {
 
     // 1. Insert Profiles
     console.log("👥 Inserting profiles...");
-    const insertedProfiles = await db.insert(profiles).values([
+    const insertedProfiles = (await db.insert(profiles).values([
       {
         fullName: "Amelia Tan",
         email: "amelia.tan@example.com",
@@ -120,7 +125,7 @@ async function seed() {
         phone: "+60 15-678 9012",
         address: "654 Jalan Inanam, N.18 Inanam",
       },
-    ]).returning();
+    ]).returning()) as Array<{ id: number; [key: string]: any }>;
 
     console.log(`✅ Inserted ${insertedProfiles.length} profiles`);
 
@@ -658,7 +663,44 @@ async function seed() {
 
     console.log(`✅ Inserted ${zoneLeaders.length} zone leaders`);
 
-    // 12c. Insert Role Assignments (ADUN appoints people to roles in zones)
+    // 12b. Insert Villages
+    console.log("🏘️  Inserting villages...");
+    const insertedVillages = await db.insert(villages).values([
+      {
+        zoneId: insertedZones[0].id, // Zone A
+        name: "Kampung Inanam",
+        description: "Main village in Zone A",
+      },
+      {
+        zoneId: insertedZones[0].id, // Zone A
+        name: "Kampung Likas",
+        description: "Secondary village in Zone A",
+      },
+      {
+        zoneId: insertedZones[1].id, // Zone B
+        name: "Kampung Menggatal",
+        description: "Main village in Zone B",
+      },
+      {
+        zoneId: insertedZones[1].id, // Zone B
+        name: "Kampung Telipok",
+        description: "Secondary village in Zone B",
+      },
+      {
+        zoneId: insertedZones[2].id, // Zone C
+        name: "Kampung Sepanggar",
+        description: "Main village in Zone C",
+      },
+      {
+        zoneId: insertedZones[2].id, // Zone C
+        name: "Kampung Tuaran",
+        description: "Secondary village in Zone C",
+      },
+    ]).returning();
+
+    console.log(`✅ Inserted ${insertedVillages.length} villages`);
+
+    // 12c. Insert Role Assignments (ADUN appoints people to roles in zones/villages)
     console.log("👔 Inserting role assignments...");
     
     let insertedRoleAssignmentsCount = 0;
@@ -666,86 +708,110 @@ async function seed() {
     // Get roles (they should exist from migration)
     const existingRoles = await db.select().from(roles);
     
-    // Find Ketua Cawangan and Ketua Kampung roles
-    const ketuaCawanganRole = existingRoles.find(r => r.name === "Ketua Cawangan");
-    const ketuaKampungRole = existingRoles.find(r => r.name === "Ketua Kampung");
+    // Find Branch Chief and Village Chief roles (English names)
+    const branchChiefRole = existingRoles.find(r => r.name === "Branch Chief");
+    const villageChiefRole = existingRoles.find(r => r.name === "Village Chief");
     
-    if (ketuaCawanganRole && ketuaKampungRole) {
-      // ADUN appoints staff to roles in different zones
-      // Ketua Cawangan handles aids and household registration
-      // Ketua Kampung handles divorce, conflict, and community issues
+    if (branchChiefRole && villageChiefRole && insertedVillages.length > 0) {
+      // ADUN appoints staff to roles in different zones/villages
+      // Branch Chief handles aids and household registration (can manage multiple villages)
+      // Village Chief handles divorce, conflict, and community issues (one per village)
       
       const roleAssignmentsData = [];
       
-      // Assign Ketua Cawangan to Zone A (for aids and household registration)
-      if (insertedStaff.length > 3) {
-        roleAssignmentsData.push({
-          staffId: insertedStaff[3].id, // Fatimah binti Hassan
-          roleId: ketuaCawanganRole.id,
-          zoneId: insertedZones[0].id, // Zone A
-          appointedBy: insertedStaff[0].id, // ADUN
-          status: "active",
-          notes: "Appointed by ADUN to handle aids distribution and household registration for Zone A",
-        });
-      }
+      // Get villages for each zone
+      const zoneAVillages = insertedVillages.filter(v => v.zoneId === insertedZones[0].id);
+      const zoneBVillages = insertedVillages.filter(v => v.zoneId === insertedZones[1].id);
+      const zoneCVillages = insertedVillages.filter(v => v.zoneId === insertedZones[2].id);
       
-      // Assign Ketua Kampung to Zone A (for divorce, conflict, community issues)
-      if (insertedStaff.length > 4) {
+      // Assign Village Chief to first village in Zone A (one per village)
+      if (insertedStaff.length > 4 && zoneAVillages.length > 0) {
         roleAssignmentsData.push({
           staffId: insertedStaff[4].id, // Tan Chee Keong
-          roleId: ketuaKampungRole.id,
+          roleId: villageChiefRole.id,
           zoneId: insertedZones[0].id, // Zone A
+          villageId: zoneAVillages[0].id, // First village in Zone A
           appointedBy: insertedStaff[0].id, // ADUN
           status: "active",
-          notes: "Appointed by ADUN to handle divorce, conflict, and community issues for Zone A",
+          notes: "Appointed by ADUN as Village Chief for this village",
         });
       }
       
-      // Assign Ketua Cawangan to Zone B
-      if (insertedStaff.length > 5) {
+      // Assign Branch Chief to Zone A (can manage multiple villages, but we'll assign to specific villages)
+      if (insertedStaff.length > 3 && zoneAVillages.length > 0) {
+        // Assign Branch Chief to first village in Zone A
         roleAssignmentsData.push({
-          staffId: insertedStaff[5].id, // Norazila binti Ahmad
-          roleId: ketuaCawanganRole.id,
-          zoneId: insertedZones[1].id, // Zone B
+          staffId: insertedStaff[3].id, // Fatimah binti Hassan
+          roleId: branchChiefRole.id,
+          zoneId: insertedZones[0].id, // Zone A
+          villageId: zoneAVillages[0].id, // First village
           appointedBy: insertedStaff[0].id, // ADUN
           status: "active",
-          notes: "Appointed by ADUN to handle aids distribution and household registration for Zone B",
+          notes: "Appointed by ADUN as Branch Chief for this village (can manage multiple villages)",
         });
+        // Assign same Branch Chief to second village if exists (demonstrating multiple villages)
+        if (zoneAVillages.length > 1) {
+          roleAssignmentsData.push({
+            staffId: insertedStaff[3].id, // Same Branch Chief
+            roleId: branchChiefRole.id,
+            zoneId: insertedZones[0].id, // Zone A
+            villageId: zoneAVillages[1].id, // Second village
+            appointedBy: insertedStaff[0].id, // ADUN
+            status: "active",
+            notes: "Appointed by ADUN as Branch Chief for this village (manages multiple villages)",
+          });
+        }
       }
       
-      // Assign Ketua Kampung to Zone B (using a zone leader)
-      if (zoneLeaders.length > 1) {
+      // Assign Village Chief to first village in Zone B
+      if (zoneLeaders.length > 1 && zoneBVillages.length > 0) {
         roleAssignmentsData.push({
           staffId: zoneLeaders[1].id, // Siti Nurhaliza (Zone B Leader)
-          roleId: ketuaKampungRole.id,
+          roleId: villageChiefRole.id,
           zoneId: insertedZones[1].id, // Zone B
+          villageId: zoneBVillages[0].id, // First village in Zone B
           appointedBy: insertedStaff[0].id, // ADUN
           status: "active",
-          notes: "Appointed by ADUN to handle divorce, conflict, and community issues for Zone B",
+          notes: "Appointed by ADUN as Village Chief for this village",
         });
       }
       
-      // Assign Ketua Cawangan to Zone C
-      if (insertedStaff.length > 2) {
+      // Assign Branch Chief to Zone B
+      if (insertedStaff.length > 5 && zoneBVillages.length > 0) {
         roleAssignmentsData.push({
-          staffId: insertedStaff[2].id, // Lim Wei Ming (Staff Manager)
-          roleId: ketuaCawanganRole.id,
-          zoneId: insertedZones[2].id, // Zone C
+          staffId: insertedStaff[5].id, // Norazila binti Ahmad
+          roleId: branchChiefRole.id,
+          zoneId: insertedZones[1].id, // Zone B
+          villageId: zoneBVillages[0].id, // First village
           appointedBy: insertedStaff[0].id, // ADUN
           status: "active",
-          notes: "Appointed by ADUN to handle aids distribution and household registration for Zone C",
+          notes: "Appointed by ADUN as Branch Chief for this village",
         });
       }
       
-      // Assign Ketua Kampung to Zone C
-      if (zoneLeaders.length > 2) {
+      // Assign Village Chief to first village in Zone C
+      if (zoneLeaders.length > 2 && zoneCVillages.length > 0) {
         roleAssignmentsData.push({
           staffId: zoneLeaders[2].id, // Tan Ah Beng (Zone C Leader)
-          roleId: ketuaKampungRole.id,
+          roleId: villageChiefRole.id,
           zoneId: insertedZones[2].id, // Zone C
+          villageId: zoneCVillages[0].id, // First village in Zone C
           appointedBy: insertedStaff[0].id, // ADUN
           status: "active",
-          notes: "Appointed by ADUN to handle divorce, conflict, and community issues for Zone C",
+          notes: "Appointed by ADUN as Village Chief for this village",
+        });
+      }
+      
+      // Assign Branch Chief to Zone C
+      if (insertedStaff.length > 2 && zoneCVillages.length > 0) {
+        roleAssignmentsData.push({
+          staffId: insertedStaff[2].id, // Lim Wei Ming (Staff Manager)
+          roleId: branchChiefRole.id,
+          zoneId: insertedZones[2].id, // Zone C
+          villageId: zoneCVillages[0].id, // First village
+          appointedBy: insertedStaff[0].id, // ADUN
+          status: "active",
+          notes: "Appointed by ADUN as Branch Chief for this village",
         });
       }
       
@@ -1155,6 +1221,282 @@ async function seed() {
 
     console.log("✅ Inserted aid distributions");
 
+    // 12d. Insert AIDS Programs
+    console.log("📦 Inserting AIDS programs...");
+    
+    // Get ADUN staff ID (first staff member)
+    const adunStaffId = insertedStaff[0].id;
+    
+    // Create AIDS programs
+    const insertedAidsPrograms = await db.insert(aidsPrograms).values([
+      {
+        name: "Food Basket Distribution - December 2024",
+        description: "Monthly food basket distribution for eligible households in selected zones",
+        aidType: "Food Basket",
+        status: "active",
+        createdBy: adunStaffId,
+        startDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+        endDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000), // 25 days from now
+        notes: "Priority given to low-income households and families with dependents",
+      },
+      {
+        name: "Cash Aid Program - Q4 2024",
+        description: "Quarterly cash assistance for households in need",
+        aidType: "Cash Aid",
+        status: "draft",
+        createdBy: adunStaffId,
+        startDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 days from now
+        endDate: new Date(Date.now() + 40 * 24 * 60 * 60 * 1000), // 40 days from now
+        notes: "One-time cash assistance of RM200 per eligible household",
+      },
+      {
+        name: "Medical Supplies Distribution - January 2025",
+        description: "Distribution of basic medical supplies to elderly and vulnerable households",
+        aidType: "Medical Supplies",
+        status: "active",
+        createdBy: adunStaffId,
+        startDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+        endDate: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000), // 28 days from now
+        notes: "Includes basic medicines, masks, and hygiene supplies",
+      },
+    ]).returning();
+
+    console.log(`✅ Inserted ${insertedAidsPrograms.length} AIDS programs`);
+
+    // Assign programs to zones
+    console.log("📍 Assigning programs to zones...");
+    const programZonesData = [];
+    
+    // Program 1 (Food Basket) - assigned to Zone A and Zone B
+    if (insertedAidsPrograms[0] && insertedZones.length >= 2) {
+      programZonesData.push({
+        programId: insertedAidsPrograms[0].id,
+        zoneId: insertedZones[0].id, // Zone A
+        villageId: null,
+      });
+      programZonesData.push({
+        programId: insertedAidsPrograms[0].id,
+        zoneId: insertedZones[1].id, // Zone B
+        villageId: null,
+      });
+    }
+    
+    // Program 2 (Cash Aid) - assigned to all zones
+    if (insertedAidsPrograms[1] && insertedZones.length >= 3) {
+      programZonesData.push({
+        programId: insertedAidsPrograms[1].id,
+        zoneId: insertedZones[0].id, // Zone A
+        villageId: null,
+      });
+      programZonesData.push({
+        programId: insertedAidsPrograms[1].id,
+        zoneId: insertedZones[1].id, // Zone B
+        villageId: null,
+      });
+      programZonesData.push({
+        programId: insertedAidsPrograms[1].id,
+        zoneId: insertedZones[2].id, // Zone C
+        villageId: null,
+      });
+    }
+    
+    // Program 3 (Medical Supplies) - assigned to Zone A only
+    if (insertedAidsPrograms[2] && insertedZones.length >= 1) {
+      programZonesData.push({
+        programId: insertedAidsPrograms[2].id,
+        zoneId: insertedZones[0].id, // Zone A
+        villageId: null,
+      });
+    }
+
+    if (programZonesData.length > 0) {
+      await db.insert(aidsProgramZones).values(programZonesData);
+      console.log(`✅ Assigned programs to ${programZonesData.length} zone(s)`);
+    }
+
+    // Automatically assign programs to zone leaders
+    console.log("👔 Assigning programs to zone leaders...");
+    const programAssignmentsData = [];
+    
+    // Program 1 - assign to Zone A and Zone B leaders
+    if (insertedAidsPrograms[0] && zoneLeaders.length >= 2) {
+      programAssignmentsData.push({
+        programId: insertedAidsPrograms[0].id,
+        zoneId: insertedZones[0].id,
+        assignedTo: zoneLeaders[0].id, // Zone A Leader
+        assignedBy: adunStaffId,
+        assignmentType: "zone_leader",
+        status: "active",
+        notes: "Automatically assigned to zone leader when program was created",
+      });
+      programAssignmentsData.push({
+        programId: insertedAidsPrograms[0].id,
+        zoneId: insertedZones[1].id,
+        assignedTo: zoneLeaders[1].id, // Zone B Leader
+        assignedBy: adunStaffId,
+        assignmentType: "zone_leader",
+        status: "active",
+        notes: "Automatically assigned to zone leader when program was created",
+      });
+    }
+    
+    // Program 2 - assign to all zone leaders
+    if (insertedAidsPrograms[1] && zoneLeaders.length >= 3) {
+      programAssignmentsData.push({
+        programId: insertedAidsPrograms[1].id,
+        zoneId: insertedZones[0].id,
+        assignedTo: zoneLeaders[0].id, // Zone A Leader
+        assignedBy: adunStaffId,
+        assignmentType: "zone_leader",
+        status: "pending",
+        notes: "Automatically assigned to zone leader when program was created",
+      });
+      programAssignmentsData.push({
+        programId: insertedAidsPrograms[1].id,
+        zoneId: insertedZones[1].id,
+        assignedTo: zoneLeaders[1].id, // Zone B Leader
+        assignedBy: adunStaffId,
+        assignmentType: "zone_leader",
+        status: "pending",
+        notes: "Automatically assigned to zone leader when program was created",
+      });
+      programAssignmentsData.push({
+        programId: insertedAidsPrograms[1].id,
+        zoneId: insertedZones[2].id,
+        assignedTo: zoneLeaders[2].id, // Zone C Leader
+        assignedBy: adunStaffId,
+        assignmentType: "zone_leader",
+        status: "pending",
+        notes: "Automatically assigned to zone leader when program was created",
+      });
+    }
+    
+    // Program 3 - assign to Zone A leader
+    if (insertedAidsPrograms[2] && zoneLeaders.length >= 1) {
+      programAssignmentsData.push({
+        programId: insertedAidsPrograms[2].id,
+        zoneId: insertedZones[0].id,
+        assignedTo: zoneLeaders[0].id, // Zone A Leader
+        assignedBy: adunStaffId,
+        assignmentType: "zone_leader",
+        status: "active",
+        notes: "Automatically assigned to zone leader when program was created",
+      });
+    }
+
+    if (programAssignmentsData.length > 0) {
+      await db.insert(aidsProgramAssignments).values(programAssignmentsData);
+      console.log(`✅ Created ${programAssignmentsData.length} program assignments to zone leaders`);
+    }
+
+    // Assign some programs to Branch Chief (simulating zone leader assignments)
+    console.log("👥 Assigning programs to Branch Chief...");
+    const ketuaCawanganAssignments = [];
+    
+    // Get Branch Chief role assignments
+    const existingRoleAssignments = await db.select().from(roleAssignments);
+    // Get roles again (or reuse existingRoles if in scope - but it's not, so fetch again)
+    const rolesForAids = await db.select().from(roles);
+    const branchChiefRoleForAids = rolesForAids.find(r => r.name === "Branch Chief");
+    
+    if (branchChiefRoleForAids) {
+      const branchChiefInZones = existingRoleAssignments.filter(
+        ra => ra.roleId === branchChiefRoleForAids.id && ra.status === "active"
+      );
+      
+      // Assign Program 1 (Food Basket) to Branch Chief in Zone A
+      if (insertedAidsPrograms[0] && branchChiefInZones.length > 0) {
+        const zoneABranchChief = branchChiefInZones.find(ra => ra.zoneId === insertedZones[0].id);
+        if (zoneABranchChief && zoneLeaders.length > 0) {
+          ketuaCawanganAssignments.push({
+            programId: insertedAidsPrograms[0].id,
+            zoneId: insertedZones[0].id,
+            assignedTo: zoneABranchChief.staffId,
+            assignedBy: zoneLeaders[0].id, // Zone A Leader assigns to Branch Chief
+            assignmentType: "ketua_cawangan",
+            status: "active",
+            notes: "Assigned by zone leader to handle distribution in Zone A",
+          });
+        }
+      }
+      
+      // Assign Program 3 (Medical Supplies) to Branch Chief in Zone A
+      if (insertedAidsPrograms[2] && branchChiefInZones.length > 0) {
+        const zoneABranchChief = branchChiefInZones.find(ra => ra.zoneId === insertedZones[0].id);
+        if (zoneABranchChief && zoneLeaders.length > 0) {
+          ketuaCawanganAssignments.push({
+            programId: insertedAidsPrograms[2].id,
+            zoneId: insertedZones[0].id,
+            assignedTo: zoneABranchChief.staffId,
+            assignedBy: zoneLeaders[0].id, // Zone A Leader assigns to Branch Chief
+            assignmentType: "ketua_cawangan",
+            status: "active",
+            notes: "Assigned by zone leader to handle medical supplies distribution",
+          });
+        }
+      }
+    }
+
+    if (ketuaCawanganAssignments.length > 0) {
+      await db.insert(aidsProgramAssignments).values(ketuaCawanganAssignments);
+      console.log(`✅ Created ${ketuaCawanganAssignments.length} program assignments to Branch Chief`);
+    }
+
+    // Create some distribution records (simulating Branch Chief marking households)
+    console.log("✅ Creating distribution records...");
+    const distributionRecordsData = [];
+    
+    // Program 1 - mark some households in Zone A as distributed
+    if (insertedAidsPrograms[0] && insertedHouseholds.length >= 2 && ketuaCawanganAssignments.length > 0) {
+      const zoneAHouseholds = insertedHouseholds.filter(h => h.zoneId === insertedZones[0].id);
+      const branchChiefForZoneA = ketuaCawanganAssignments.find(
+        ka => ka.programId === insertedAidsPrograms[0].id && ka.zoneId === insertedZones[0].id
+      );
+      
+      if (zoneAHouseholds.length > 0 && branchChiefForZoneA) {
+        // Mark first 2 households as distributed
+        distributionRecordsData.push({
+          programId: insertedAidsPrograms[0].id,
+          householdId: zoneAHouseholds[0].id,
+          markedBy: branchChiefForZoneA.assignedTo,
+          markedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+          notes: "Food basket distributed successfully",
+        });
+        if (zoneAHouseholds.length > 1) {
+          distributionRecordsData.push({
+            programId: insertedAidsPrograms[0].id,
+            householdId: zoneAHouseholds[1].id,
+            markedBy: branchChiefForZoneA.assignedTo,
+            markedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+            notes: "Food basket distributed",
+          });
+        }
+      }
+    }
+    
+    // Program 3 - mark one household in Zone A as distributed
+    if (insertedAidsPrograms[2] && insertedHouseholds.length >= 1 && ketuaCawanganAssignments.length > 0) {
+      const zoneAHouseholds = insertedHouseholds.filter(h => h.zoneId === insertedZones[0].id);
+      const branchChiefForZoneA = ketuaCawanganAssignments.find(
+        ka => ka.programId === insertedAidsPrograms[2].id && ka.zoneId === insertedZones[0].id
+      );
+      
+      if (zoneAHouseholds.length > 0 && branchChiefForZoneA) {
+        distributionRecordsData.push({
+          programId: insertedAidsPrograms[2].id,
+          householdId: zoneAHouseholds[0].id,
+          markedBy: branchChiefForZoneA.assignedTo,
+          markedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+          notes: "Medical supplies distributed to elderly household",
+        });
+      }
+    }
+
+    if (distributionRecordsData.length > 0) {
+      await db.insert(aidsDistributionRecords).values(distributionRecordsData);
+      console.log(`✅ Created ${distributionRecordsData.length} distribution records`);
+    }
+
     // 13. Seed Permissions (if they don't exist)
     console.log("🔐 Seeding permissions...");
     const existingPermissions = await db.select().from(permissions);
@@ -1291,6 +1633,7 @@ async function seed() {
     console.log("   - 5 notifications");
     console.log("   - 4 support requests");
     console.log(`   - ${insertedZones.length} zones`);
+    console.log(`   - ${insertedVillages.length} villages`);
     if (insertedRoleAssignmentsCount > 0) {
       console.log(`   - ${insertedRoleAssignmentsCount} role assignments`);
     }
@@ -1298,6 +1641,12 @@ async function seed() {
     console.log(`   - ${insertedMembers.length} household members`);
     console.log("   - 6 household income records");
     console.log("   - 7 aid distributions");
+    const allAidsPrograms = await db.select().from(aidsPrograms);
+    console.log(`   - ${allAidsPrograms.length} AIDS programs`);
+    const allProgramAssignments = await db.select().from(aidsProgramAssignments);
+    console.log(`   - ${allProgramAssignments.length} program assignments`);
+    const allDistributionRecords = await db.select().from(aidsDistributionRecords);
+    console.log(`   - ${allDistributionRecords.length} distribution records`);
     const allPerms = await db.select().from(permissions);
     console.log(`   - ${allPerms.length} permissions available`);
     const grantedPerms = await db.select().from(staffPermissions);

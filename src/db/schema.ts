@@ -1,17 +1,8 @@
-import { pgTable, serial, integer, text, timestamp, varchar, doublePrecision, index, pgEnum, boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, timestamp, varchar, doublePrecision, index, pgEnum, boolean, type PgTableWithColumns } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
-// Existing table from initial migration
-export const profiles = pgTable("profiles", {
-  id: serial("id").primaryKey(),
-  fullName: text("full_name"),
-  email: text("email"),
-  phone: varchar("phone", { length: 20 }),
-  address: text("address"),
-  avatarUrl: text("avatar_url"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+// Enums for profile verification (must be declared before profiles table)
+export const profileVerificationStatusEnum = pgEnum("profile_verification_status", ["pending", "verified", "rejected"]);
 
 // Enums for staff
 export const staffRoleEnum = pgEnum("staff_role", ["adun", "super_admin", "zone_leader", "staff_manager", "staff"]);
@@ -25,6 +16,36 @@ export const issueCategoryEnum = pgEnum("issue_category", [
   "public_safety",
   "sanitation",
   "other",
+]);
+
+// Existing table from initial migration
+// Note: Forward references to villages, zones, householdMembers, and staff are resolved later
+// Using type assertion to avoid circular reference TypeScript error
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const profiles: any = pgTable("profiles", {
+  id: serial("id").primaryKey(),
+  fullName: text("full_name"),
+  email: text("email"),
+  phone: varchar("phone", { length: 20 }),
+  address: text("address"),
+  avatarUrl: text("avatar_url"),
+  icNumber: varchar("ic_number", { length: 20 }), // IC number for linking to household members
+  villageId: integer("village_id").references(() => villages.id, { onDelete: "set null" }), // Village where user resides
+  zoneId: integer("zone_id").references(() => zones.id, { onDelete: "set null" }), // Zone where user resides
+  householdMemberId: integer("household_member_id").references(() => householdMembers.id, { onDelete: "set null" }), // Link to household member if exists
+  verificationStatus: profileVerificationStatusEnum("verification_status").default("pending").notNull(), // Verification status by zone leader
+  verifiedBy: integer("verified_by").references(() => staff.id, { onDelete: "set null" }), // Staff who verified the profile
+  verifiedAt: timestamp("verified_at"), // When verification was completed
+  verificationRemarks: text("verification_remarks"), // Remarks when revoking/rejecting verification
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("profiles_email_idx").on(table.email),
+  index("profiles_ic_number_idx").on(table.icNumber),
+  index("profiles_village_idx").on(table.villageId),
+  index("profiles_zone_idx").on(table.zoneId),
+  index("profiles_verification_status_idx").on(table.verificationStatus),
+  index("profiles_household_member_idx").on(table.householdMemberId),
 ]);
 
 // DUN (Dewan Undangan Negeri) table
@@ -202,9 +223,25 @@ export const issuesRelations = relations(issues, ({ many }) => ({
   assignments: many(issueAssignments),
 }));
 
-export const profilesRelations = relations(profiles, ({ many }) => ({
+export const profilesRelations = relations(profiles, ({ one, many }) => ({
   issues: many(issues),
   notifications: many(notifications),
+  village: one(villages, {
+    fields: [profiles.villageId],
+    references: [villages.id],
+  }),
+  zone: one(zones, {
+    fields: [profiles.zoneId],
+    references: [zones.id],
+  }),
+  householdMember: one(householdMembers, {
+    fields: [profiles.householdMemberId],
+    references: [householdMembers.id],
+  }),
+  verifiedByStaff: one(staff, {
+    fields: [profiles.verifiedBy],
+    references: [staff.id],
+  }),
 }));
 
 export const staffRelations = relations(staff, ({ one, many }) => ({
@@ -274,7 +311,7 @@ export const roles = pgTable(
   "roles",
   {
     id: serial("id").primaryKey(),
-    name: text("name").notNull(), // e.g., "Ketua Cawangan", "Ketua Kampung"
+    name: text("name").notNull(), // e.g., "Branch Chief", "Village Chief"
     description: text("description"), // e.g., "Handles aids and household registration"
     responsibilities: text("responsibilities"), // Detailed responsibilities
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -285,7 +322,10 @@ export const roles = pgTable(
   ]
 );
 
-// Role assignments table - links staff to roles within zones (appointed by ADUN)
+// Role assignments table - links staff to roles within zones or villages (appointed by ADUN)
+// For Village Chief: villageId is required (one per village)
+// For Branch Chief: villageId can be set for specific villages (can manage multiple villages)
+// For other roles: villageId is typically null (zone-level)
 export const roleAssignments = pgTable(
   "role_assignments",
   {
@@ -293,6 +333,7 @@ export const roleAssignments = pgTable(
     staffId: integer("staff_id").references(() => staff.id, { onDelete: "cascade" }).notNull(),
     roleId: integer("role_id").references(() => roles.id, { onDelete: "cascade" }).notNull(),
     zoneId: integer("zone_id").references(() => zones.id, { onDelete: "cascade" }).notNull(),
+    villageId: integer("village_id").references(() => villages.id, { onDelete: "cascade" }), // For village-level appointments (Village Chief, or Branch Chief for specific villages)
     appointedBy: integer("appointed_by").references(() => staff.id, { onDelete: "set null" }), // ADUN who made the appointment
     status: varchar("status", { length: 20 }).default("active").notNull(), // active, inactive
     appointedAt: timestamp("appointed_at").defaultNow().notNull(),
@@ -304,6 +345,7 @@ export const roleAssignments = pgTable(
     index("role_assignments_staff_idx").on(table.staffId),
     index("role_assignments_role_idx").on(table.roleId),
     index("role_assignments_zone_idx").on(table.zoneId),
+    index("role_assignments_village_idx").on(table.villageId),
     index("role_assignments_appointed_by_idx").on(table.appointedBy),
     index("role_assignments_status_idx").on(table.status),
   ]
@@ -479,6 +521,10 @@ export const roleAssignmentsRelations = relations(roleAssignments, ({ one }) => 
     fields: [roleAssignments.zoneId],
     references: [zones.id],
   }),
+  village: one(villages, {
+    fields: [roleAssignments.villageId],
+    references: [villages.id],
+  }),
   appointedByStaff: one(staff, {
     fields: [roleAssignments.appointedBy],
     references: [staff.id],
@@ -501,11 +547,12 @@ export const householdsRelations = relations(households, ({ one, many }) => ({
   aidDistributions: many(aidDistributions),
 }));
 
-export const householdMembersRelations = relations(householdMembers, ({ one }) => ({
+export const householdMembersRelations = relations(householdMembers, ({ one, many }) => ({
   household: one(households, {
     fields: [householdMembers.householdId],
     references: [households.id],
   }),
+  profile: many(profiles), // A household member can be linked to a profile
 }));
 
 export const householdIncomeRelations = relations(householdIncome, ({ one }) => ({
@@ -563,3 +610,151 @@ export const appSettings = pgTable(
     index("app_settings_key_idx").on(table.key),
   ]
 );
+
+// AIDS Programs table - stores information about AIDS distribution programs
+export const aidsPrograms = pgTable(
+  "aids_programs",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(), // Program name
+    description: text("description"), // Program description
+    aidType: varchar("aid_type", { length: 100 }).notNull(), // Type of aid being distributed
+    status: varchar("status", { length: 20 }).default("draft").notNull(), // draft, active, completed, cancelled
+    createdBy: integer("created_by").references(() => staff.id, { onDelete: "set null" }).notNull(), // Admin who created the program
+    startDate: timestamp("start_date"), // Program start date
+    endDate: timestamp("end_date"), // Program end date
+    notes: text("notes"), // Additional notes
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("aids_programs_status_idx").on(table.status),
+    index("aids_programs_created_by_idx").on(table.createdBy),
+    index("aids_programs_created_at_idx").on(table.createdAt),
+  ]
+);
+
+// AIDS Program Zones/Villages table - links programs to zones or villages
+export const aidsProgramZones = pgTable(
+  "aids_program_zones",
+  {
+    id: serial("id").primaryKey(),
+    programId: integer("program_id").references(() => aidsPrograms.id, { onDelete: "cascade" }).notNull(),
+    zoneId: integer("zone_id").references(() => zones.id, { onDelete: "cascade" }), // If set, applies to entire zone
+    villageId: integer("village_id").references(() => villages.id, { onDelete: "cascade" }), // If set, applies to specific village
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("aids_program_zones_program_idx").on(table.programId),
+    index("aids_program_zones_zone_idx").on(table.zoneId),
+    index("aids_program_zones_village_idx").on(table.villageId),
+  ]
+);
+
+// AIDS Program Assignments table - assigns programs to zone leaders and ketua cawangan
+export const aidsProgramAssignments = pgTable(
+  "aids_program_assignments",
+  {
+    id: serial("id").primaryKey(),
+    programId: integer("program_id").references(() => aidsPrograms.id, { onDelete: "cascade" }).notNull(),
+    zoneId: integer("zone_id").references(() => zones.id, { onDelete: "cascade" }).notNull(), // Zone for this assignment
+    assignedTo: integer("assigned_to").references(() => staff.id, { onDelete: "cascade" }).notNull(), // Staff member assigned (zone leader or ketua cawangan)
+    assignedBy: integer("assigned_by").references(() => staff.id, { onDelete: "set null" }), // Who made the assignment (admin or zone leader)
+    assignmentType: varchar("assignment_type", { length: 20 }).default("zone_leader").notNull(), // zone_leader, ketua_cawangan
+    status: varchar("status", { length: 20 }).default("pending").notNull(), // pending, active, completed
+    assignedAt: timestamp("assigned_at").defaultNow().notNull(),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("aids_program_assignments_program_idx").on(table.programId),
+    index("aids_program_assignments_zone_idx").on(table.zoneId),
+    index("aids_program_assignments_assigned_to_idx").on(table.assignedTo),
+    index("aids_program_assignments_status_idx").on(table.status),
+  ]
+);
+
+// AIDS Distribution Records table - tracks which households received aids in a program
+export const aidsDistributionRecords = pgTable(
+  "aids_distribution_records",
+  {
+    id: serial("id").primaryKey(),
+    programId: integer("program_id").references(() => aidsPrograms.id, { onDelete: "cascade" }).notNull(),
+    householdId: integer("household_id").references(() => households.id, { onDelete: "cascade" }).notNull(),
+    markedBy: integer("marked_by").references(() => staff.id, { onDelete: "set null" }).notNull(), // Ketua cawangan who marked this
+    markedAt: timestamp("marked_at").defaultNow().notNull(),
+    notes: text("notes"), // Optional notes about the distribution
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("aids_distribution_records_program_idx").on(table.programId),
+    index("aids_distribution_records_household_idx").on(table.householdId),
+    index("aids_distribution_records_marked_by_idx").on(table.markedBy),
+    // Unique constraint: a household can only receive aids once per program
+    index("aids_distribution_records_program_household_idx").on(table.programId, table.householdId),
+  ]
+);
+
+// Relations for AIDS programs
+export const aidsProgramsRelations = relations(aidsPrograms, ({ one, many }) => ({
+  creator: one(staff, {
+    fields: [aidsPrograms.createdBy],
+    references: [staff.id],
+  }),
+  programZones: many(aidsProgramZones),
+  assignments: many(aidsProgramAssignments),
+  distributionRecords: many(aidsDistributionRecords),
+}));
+
+// Relations for AIDS program zones
+export const aidsProgramZonesRelations = relations(aidsProgramZones, ({ one }) => ({
+  program: one(aidsPrograms, {
+    fields: [aidsProgramZones.programId],
+    references: [aidsPrograms.id],
+  }),
+  zone: one(zones, {
+    fields: [aidsProgramZones.zoneId],
+    references: [zones.id],
+  }),
+  village: one(villages, {
+    fields: [aidsProgramZones.villageId],
+    references: [villages.id],
+  }),
+}));
+
+// Relations for AIDS program assignments
+export const aidsProgramAssignmentsRelations = relations(aidsProgramAssignments, ({ one }) => ({
+  program: one(aidsPrograms, {
+    fields: [aidsProgramAssignments.programId],
+    references: [aidsPrograms.id],
+  }),
+  zone: one(zones, {
+    fields: [aidsProgramAssignments.zoneId],
+    references: [zones.id],
+  }),
+  assignedToStaff: one(staff, {
+    fields: [aidsProgramAssignments.assignedTo],
+    references: [staff.id],
+  }),
+  assignedByStaff: one(staff, {
+    fields: [aidsProgramAssignments.assignedBy],
+    references: [staff.id],
+  }),
+}));
+
+// Relations for AIDS distribution records
+export const aidsDistributionRecordsRelations = relations(aidsDistributionRecords, ({ one }) => ({
+  program: one(aidsPrograms, {
+    fields: [aidsDistributionRecords.programId],
+    references: [aidsPrograms.id],
+  }),
+  household: one(households, {
+    fields: [aidsDistributionRecords.householdId],
+    references: [households.id],
+  }),
+  markedByStaff: one(staff, {
+    fields: [aidsDistributionRecords.markedBy],
+    references: [staff.id],
+  }),
+}));

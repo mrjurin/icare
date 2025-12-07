@@ -44,9 +44,9 @@ CREATE INDEX IF NOT EXISTS "role_assignments_appointed_by_idx" ON "role_assignme
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "role_assignments_status_idx" ON "role_assignments" USING btree ("status");
 --> statement-breakpoint
--- Seed initial roles
+-- Seed initial roles (using English names)
 INSERT INTO "roles" ("name", "description", "responsibilities")
 VALUES 
-  ('Ketua Cawangan', 'Branch Chief', 'Responsible for matters of aids and registering households'),
-  ('Ketua Kampung', 'Village Chief', 'Handling matters like Divorce, Conflict, and other community issues')
+  ('Branch Chief', 'Branch Chief', 'Responsible for matters of aids and registering households. Can manage multiple villages.'),
+  ('Village Chief', 'Village Chief', 'Handling matters like Divorce, Conflict, and other community issues. One per village.')
 ON CONFLICT DO NOTHING;

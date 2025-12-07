@@ -18,9 +18,12 @@ export type RoleAssignment = {
   staff_id: number;
   role_id: number;
   zone_id: number;
+  village_id: number | null;
   appointed_by: number | null;
   status: string;
   appointed_at: string;
+  from_date?: string | null;
+  to_date?: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -28,6 +31,7 @@ export type RoleAssignment = {
   staff_name?: string;
   role_name?: string;
   zone_name?: string;
+  village_name?: string;
   appointed_by_name?: string;
 };
 
@@ -54,6 +58,9 @@ export type CreateRoleAssignmentInput = {
   staffId: number;
   roleId: number;
   zoneId: number;
+  villageId?: number | null; // Required for Village Chief, optional for Branch Chief
+  fromDate?: string | null;
+  toDate?: string | null;
   notes?: string;
 };
 
@@ -310,6 +317,7 @@ export async function getRoleAssignments(options?: {
       staff:staff_id(name),
       role:role_id(name),
       zone:zone_id(name),
+      village:village_id(name),
       appointed_by_staff:appointed_by(name)
     `);
 
@@ -339,15 +347,19 @@ export async function getRoleAssignments(options?: {
     staff_id: item.staff_id,
     role_id: item.role_id,
     zone_id: item.zone_id,
+    village_id: item.village_id,
     appointed_by: item.appointed_by,
     status: item.status,
     appointed_at: item.appointed_at,
+    from_date: item.from_date || null,
+    to_date: item.to_date || null,
     notes: item.notes,
     created_at: item.created_at,
     updated_at: item.updated_at,
     staff_name: item.staff?.name,
     role_name: item.role?.name,
     zone_name: item.zone?.name,
+    village_name: item.village?.name,
     appointed_by_name: item.appointed_by_staff?.name,
   }));
 
@@ -427,20 +439,114 @@ export async function createRoleAssignment(
     return { success: false, error: "Zone not found" };
   }
 
-  // Check if there's already an active assignment for this staff in this zone with this role
-  const { data: existing } = await supabase
+  // Get role name to check specific rules
+  const { data: roleData } = await supabase
+    .from("roles")
+    .select("id, name")
+    .eq("id", input.roleId)
+    .single();
+
+  if (!roleData) {
+    return { success: false, error: "Role not found" };
+  }
+
+  const roleName = roleData.name;
+  const isVillageChief = roleName === "Village Chief";
+  const isBranchChief = roleName === "Branch Chief";
+
+  // Validation: Village Chief requires village_id
+  if (isVillageChief && !input.villageId) {
+    return { success: false, error: "Village Chief appointment requires a village to be selected" };
+  }
+
+  // Validation: Check if village exists (if provided)
+  if (input.villageId) {
+    const { data: village } = await supabase
+      .from("villages")
+      .select("id, zone_id")
+      .eq("id", input.villageId)
+      .single();
+
+    if (!village) {
+      return { success: false, error: "Village not found" };
+    }
+
+    // Ensure village belongs to the selected zone
+    if (village.zone_id !== input.zoneId) {
+      return { success: false, error: "Village does not belong to the selected zone" };
+    }
+
+    // Validation: Each village can only have one active Village Chief
+    if (isVillageChief) {
+      const { data: existingVillageChief } = await supabase
+        .from("role_assignments")
+        .select("id, staff_id")
+        .eq("role_id", input.roleId)
+        .eq("village_id", input.villageId)
+        .eq("status", "active")
+        .single();
+
+      if (existingVillageChief) {
+        return {
+          success: false,
+          error: "This village already has an active Village Chief. Please deactivate the existing appointment first.",
+        };
+      }
+    }
+
+    // Validation: Village Chief and Branch Chief cannot be the same person in the same village
+    if (isVillageChief || isBranchChief) {
+      // Get the other role ID
+      const { data: otherRole } = await supabase
+        .from("roles")
+        .select("id")
+        .eq("name", isVillageChief ? "Branch Chief" : "Village Chief")
+        .single();
+
+      if (otherRole) {
+        const { data: conflictingAssignment } = await supabase
+          .from("role_assignments")
+          .select("id, role_id")
+          .eq("staff_id", input.staffId)
+          .eq("village_id", input.villageId)
+          .eq("status", "active")
+          .in("role_id", [input.roleId, otherRole.id])
+          .maybeSingle();
+
+        if (conflictingAssignment) {
+          const conflictingRoleName = conflictingAssignment.role_id === input.roleId
+            ? roleName
+            : (isVillageChief ? "Branch Chief" : "Village Chief");
+          return {
+            success: false,
+            error: `This person is already appointed as ${conflictingRoleName} in this village. Village Chief and Branch Chief cannot be the same person.`,
+          };
+        }
+      }
+    }
+  }
+
+  // Check if there's already an active assignment for this staff in this zone with this role and village
+  let existingQuery = supabase
     .from("role_assignments")
     .select("id")
     .eq("staff_id", input.staffId)
     .eq("role_id", input.roleId)
     .eq("zone_id", input.zoneId)
-    .eq("status", "active")
-    .single();
+    .eq("status", "active");
+
+  if (input.villageId) {
+    existingQuery = existingQuery.eq("village_id", input.villageId);
+  } else {
+    existingQuery = existingQuery.is("village_id", null);
+  }
+
+  const { data: existing } = await existingQuery.single();
 
   if (existing) {
     return {
       success: false,
-      error: "This staff member already has an active assignment for this role in this zone",
+      error: "This staff member already has an active assignment for this role in this location",
     };
   }
 
@@ -453,8 +559,11 @@ export async function createRoleAssignment(
       staff_id: input.staffId,
       role_id: input.roleId,
       zone_id: input.zoneId,
+      village_id: input.villageId || null,
       appointed_by: appointedBy,
       status: "active",
+      from_date: input.fromDate || null,
+      to_date: input.toDate || null,
       notes: input.notes?.trim() || null,
     })
     .select()

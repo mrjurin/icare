@@ -13,8 +13,8 @@ export default async function AdminRolesPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black tracking-[-0.015em]">Role Management</h1>
-          <p className="text-gray-600 mt-1">Manage roles and assign staff to roles within zones</p>
+          <h1 className="text-2xl md:text-3xl font-black tracking-[-0.015em]">Roles & Appointments</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Manage roles and appoint staff to Branch Chief and Village Chief positions in zones and villages</p>
         </div>
         <RoleFormModal
           trigger={

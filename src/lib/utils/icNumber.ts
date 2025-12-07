@@ -88,3 +88,14 @@ export function isChild(dateOfBirth: string | Date | null | undefined): boolean 
   const age = calculateAge(dateOfBirth);
   return age !== null && age < 18;
 }
+
+/**
+ * Normalize IC number by removing dashes and spaces
+ * @param icNumber - Malaysian IC number (with or without dashes/spaces)
+ * @returns Normalized IC number (digits only), or empty string if invalid
+ */
+export function normalizeIcNumber(icNumber: string | null | undefined): string {
+  if (!icNumber) return "";
+  // Remove all non-digit characters
+  return icNumber.replace(/\D/g, "");
+}

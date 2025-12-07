@@ -63,11 +63,17 @@ export async function getVillages(zoneId?: number): Promise<ActionResult<Village
 
   // Filter by specific zone if provided
   if (zoneId) {
-    // Check if user can access this zone
-    const canAccess = await canAccessZone(zoneId);
-    if (!canAccess) {
-      return { success: false, error: "Access denied: You do not have permission to view villages in this zone" };
+    // For super admin and ADUN, accessibleZoneIds is null (all zones accessible)
+    // For zone leaders, accessibleZoneIds is an array of their zones
+    // Only check access if user is restricted (not super admin or ADUN)
+    if (accessibleZoneIds !== null) {
+      // User is restricted to specific zones, check if they can access this zone
+      const canAccess = await canAccessZone(zoneId);
+      if (!canAccess) {
+        return { success: false, error: "Access denied: You do not have permission to view villages in this zone" };
+      }
     }
+    // Apply zone filter
     query = query.eq("zone_id", zoneId);
   }
 

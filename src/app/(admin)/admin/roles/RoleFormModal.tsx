@@ -16,6 +16,7 @@ type Props = {
 
 export default function RoleFormModal({ role, trigger }: Props) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [formData, setFormData] = useState<CreateRoleInput>({
@@ -24,6 +25,11 @@ export default function RoleFormModal({ role, trigger }: Props) {
     responsibilities: "",
   });
   const [error, setError] = useState<string | null>(null);
+
+  // Only render dialog after mount to avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (role) {
@@ -72,6 +78,7 @@ export default function RoleFormModal({ role, trigger }: Props) {
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
+      {mounted && (
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/50 z-[100]" />
         <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white dark:bg-background-dark rounded-xl shadow-xl z-[101] p-6 max-h-[90vh] overflow-y-auto">
@@ -146,6 +153,7 @@ export default function RoleFormModal({ role, trigger }: Props) {
           </form>
         </Dialog.Content>
       </Dialog.Portal>
+      )}
     </Dialog.Root>
   );
 }

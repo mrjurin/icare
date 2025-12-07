@@ -252,7 +252,7 @@ export default function AdminSettingsPage() {
                 The application name displayed in the sidebar.
               </p>
               {loading ? (
-                <Input id="app-name" disabled className="mt-1 w-full" placeholder="Loading..." />
+                <Input id="app-name" disabled value="" className="mt-1 w-full" placeholder="Loading..." />
               ) : (
                 <Input
                   id="app-name"
@@ -271,7 +271,7 @@ export default function AdminSettingsPage() {
                 The title displayed in the admin header at the top of the page.
               </p>
               {loading ? (
-                <Input id="admin-header-title" disabled className="mt-1 w-full" placeholder="Loading..." />
+                <Input id="admin-header-title" disabled value="" className="mt-1 w-full" placeholder="Loading..." />
               ) : (
                 <Input
                   id="admin-header-title"

@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import Input from "@/components/ui/Input";
 import styles from "./layout.module.css";
 import AdminNav from "./nav";
 import LogoutButton from "./LogoutButton";
@@ -89,10 +88,6 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           <header className={styles.topbar}>
             <div className={styles.brandRow}>
               <span style={{ fontWeight: 600 }}>{adminHeaderTitle}</span>
-            </div>
-            <div>
-              {/* Radix Input wrapper preserves exact design */}
-              <Input className="h-9 w-72 rounded-lg border border-gray-200 bg-white px-3 text-sm" placeholder="Search by ID, title, reporter" />
             </div>
           </header>
           <main className={styles.main}>{children}</main>
