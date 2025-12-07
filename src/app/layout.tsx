@@ -10,7 +10,7 @@ const publicSans = Public_Sans({
 export const metadata: Metadata = {
   title: "N.18 Inanam Community Platform",
   description: "Report local issues and drive community-led solutions",
-};
+}; 
 
 export default function RootLayout({
   children,
