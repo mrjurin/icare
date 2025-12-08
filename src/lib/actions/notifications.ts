@@ -111,3 +111,27 @@ export async function markAllNotificationsAsRead(): Promise<ActionResult> {
   revalidatePath("/admin/notifications");
   return { success: true };
 }
+
+/**
+ * Delete a notification
+ */
+export async function deleteNotification(id: number): Promise<ActionResult> {
+  const access = await getCurrentUserAccessReadOnly();
+  
+  if (!access.isAuthenticated || !access.staffId) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const supabase = await getSupabaseServerClient();
+  const { error } = await supabase
+    .from("notifications")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/admin/notifications");
+  return { success: true };
+}

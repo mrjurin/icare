@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Package, Plus, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { createAidDistribution, type AidDistribution } from "@/lib/actions/households";
 import { getActiveStaff, type Staff } from "@/lib/actions/staff";
-import { useEffect } from "react";
 
 type Props = {
   householdId: number;
@@ -24,6 +24,7 @@ export default function AidDistributionSection({
   totalDependents,
   distributions,
 }: Props) {
+  const t = useTranslations("households.detail.aidDistribution");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -66,14 +67,14 @@ export default function AidDistributionSection({
     // Validation
     const distributedToNum = parseInt(formData.distributedTo, 10);
     if (distributedToNum < 1) {
-      setError("Number of people must be at least 1");
+      setError(t("modal.validationError"));
       return;
     }
 
     if (distributedToNum > membersAtHome) {
       if (
         !confirm(
-          `Warning: You're distributing to ${distributedToNum} people, but only ${membersAtHome} are at home. Continue?`
+          t("modal.warning", { distributed: distributedToNum, atHome: membersAtHome })
         )
       ) {
         return;
@@ -105,15 +106,15 @@ export default function AidDistributionSection({
         <div>
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <Package className="size-5" />
-            Aid Distribution History
+            {t("title")}
           </h2>
           <p className="text-sm text-gray-600 mt-1">
-            Track aid distribution to ensure all {membersAtHome} members at home are covered
+            {t("description", { count: membersAtHome })}
           </p>
         </div>
         <Button onClick={handleOpenModal} className="gap-2">
           <Plus className="size-4" />
-          Record Distribution
+          {t("recordDistribution")}
         </Button>
       </div>
 
@@ -122,11 +123,11 @@ export default function AidDistributionSection({
         <div className="flex items-start gap-2">
           <AlertCircle className="size-4 text-blue-600 mt-0.5" />
           <div className="text-sm text-blue-800">
-            <p className="font-medium mb-1">Distribution Guidelines:</p>
+            <p className="font-medium mb-1">{t("guidelines.title")}</p>
             <ul className="list-disc list-inside space-y-0.5 text-xs">
-              <li>Members at home: {membersAtHome}</li>
-              <li>Total dependents: {totalDependents}</li>
-              <li>Make sure to distribute to all {membersAtHome} members at home</li>
+              <li>{t("guidelines.membersAtHome", { count: membersAtHome })}</li>
+              <li>{t("guidelines.totalDependents", { count: totalDependents })}</li>
+              <li>{t("guidelines.makeSure", { count: membersAtHome })}</li>
             </ul>
           </div>
         </div>
@@ -135,21 +136,21 @@ export default function AidDistributionSection({
       {distributions.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
           <Package className="size-12 mx-auto mb-3 text-gray-400" />
-          <p>No aid distributions recorded yet.</p>
+          <p>{t("noDistributions")}</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead className="text-left border-b border-gray-200">
               <tr>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Date</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Aid Type</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Quantity</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.date")}</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.aidType")}</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.quantity")}</th>
                 <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">
-                  Distributed To
+                  {t("table.distributedTo")}
                 </th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Status</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Notes</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.status")}</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.notes")}</th>
               </tr>
             </thead>
             <tbody>
@@ -172,12 +173,12 @@ export default function AidDistributionSection({
                       {isComplete ? (
                         <div className="flex items-center gap-1.5 text-green-700">
                           <CheckCircle className="size-4" />
-                          <span className="text-xs font-medium">Complete</span>
+                          <span className="text-xs font-medium">{t("table.complete")}</span>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5 text-orange-700">
                           <AlertCircle className="size-4" />
-                          <span className="text-xs font-medium">Partial</span>
+                          <span className="text-xs font-medium">{t("table.partial")}</span>
                         </div>
                       )}
                     </td>
@@ -199,7 +200,7 @@ export default function AidDistributionSection({
           <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 rounded-xl shadow-xl z-50 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
               <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
-                Record Aid Distribution
+                {t("modal.title")}
               </Dialog.Title>
               <Dialog.Close asChild>
                 <button className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
@@ -217,14 +218,14 @@ export default function AidDistributionSection({
 
               <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
                 <p className="text-sm text-blue-800">
-                  <strong>Members at home:</strong> {membersAtHome} • <strong>Dependents:</strong>{" "}
+                  <strong>{t("modal.membersAtHome")}</strong> {membersAtHome} • <strong>{t("modal.dependents")}</strong>{" "}
                   {totalDependents}
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Aid Type <span className="text-red-500">*</span>
+                  {t("modal.aidType")} <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={formData.aidType}
@@ -232,19 +233,19 @@ export default function AidDistributionSection({
                   className="w-full h-10 px-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark text-gray-900 dark:text-white"
                   required
                 >
-                  <option value="">Select Aid Type</option>
-                  <option value="Food Basket">Food Basket</option>
-                  <option value="Cash Aid">Cash Aid</option>
-                  <option value="Medical Supplies">Medical Supplies</option>
-                  <option value="Clothing">Clothing</option>
-                  <option value="School Supplies">School Supplies</option>
-                  <option value="Other">Other</option>
+                  <option value="">{t("modal.selectAidType")}</option>
+                  <option value="Food Basket">{t("types.foodBasket")}</option>
+                  <option value="Cash Aid">{t("types.cashAid")}</option>
+                  <option value="Medical Supplies">{t("types.medicalSupplies")}</option>
+                  <option value="Clothing">{t("types.clothing")}</option>
+                  <option value="School Supplies">{t("types.schoolSupplies")}</option>
+                  <option value="Other">{t("types.other")}</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Quantity <span className="text-red-500">*</span>
+                  {t("modal.quantity")} <span className="text-red-500">*</span>
                 </label>
                 <Input
                   type="number"
@@ -258,7 +259,7 @@ export default function AidDistributionSection({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Distributed To (Number of People) <span className="text-red-500">*</span>
+                  {t("modal.distributedTo")} <span className="text-red-500">*</span>
                 </label>
                 <Input
                   type="number"
@@ -276,14 +277,14 @@ export default function AidDistributionSection({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Distributed By (Staff)
+                  {t("modal.distributedBy")}
                 </label>
                 <select
                   value={formData.distributedBy}
                   onChange={(e) => setFormData({ ...formData, distributedBy: e.target.value })}
                   className="w-full h-10 px-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark text-gray-900 dark:text-white"
                 >
-                  <option value="">Select Staff Member</option>
+                  <option value="">{t("modal.selectStaff")}</option>
                   {staffList.map((staff) => (
                     <option key={staff.id} value={staff.id.toString()}>
                       {staff.name} ({staff.role})
@@ -294,7 +295,7 @@ export default function AidDistributionSection({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Notes
+                  {t("modal.notes")}
                 </label>
                 <textarea
                   value={formData.notes}
@@ -308,7 +309,7 @@ export default function AidDistributionSection({
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <Dialog.Close asChild>
                   <Button type="button" variant="outline" disabled={isPending}>
-                    Cancel
+                    {t("modal.cancel")}
                   </Button>
                 </Dialog.Close>
                 <Button type="submit" disabled={isPending} className="gap-2">
@@ -317,7 +318,7 @@ export default function AidDistributionSection({
                   ) : (
                     <Package className="size-4" />
                   )}
-                  Record Distribution
+                  {t("modal.save")}
                 </Button>
               </div>
             </form>

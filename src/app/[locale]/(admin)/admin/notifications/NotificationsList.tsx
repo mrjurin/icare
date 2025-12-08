@@ -4,8 +4,8 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import { BellPlus, CheckCircle2, AlertCircle, MessageSquare } from "lucide-react";
-import { markAllNotificationsAsRead } from "@/lib/actions/notifications";
+import { BellPlus, CheckCircle2, AlertCircle, MessageSquare, Check, Trash2 } from "lucide-react";
+import { markAllNotificationsAsRead, markNotificationAsRead, deleteNotification } from "@/lib/actions/notifications";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
@@ -44,6 +44,7 @@ export default function NotificationsList({ notifications: initialNotifications 
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [isMarkingAsRead, setIsMarkingAsRead] = useState(false);
+  const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
 
   const filteredNotifications = useMemo(() => {
     return notifications.filter((n) => {
@@ -68,6 +69,39 @@ export default function NotificationsList({ notifications: initialNotifications 
       router.refresh();
     }
     setIsMarkingAsRead(false);
+  };
+
+  const handleMarkAsRead = async (id: number) => {
+    setProcessingIds((prev) => new Set(prev).add(id));
+    const result = await markNotificationAsRead(id);
+    if (result.success) {
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
+      );
+      router.refresh();
+    }
+    setProcessingIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm(t("confirmDelete"))) {
+      return;
+    }
+    setProcessingIds((prev) => new Set(prev).add(id));
+    const result = await deleteNotification(id);
+    if (result.success) {
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      router.refresh();
+    }
+    setProcessingIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   };
 
   return (
@@ -111,27 +145,45 @@ export default function NotificationsList({ notifications: initialNotifications 
         ) : (
           filteredNotifications.map((n) => (
             <div key={n.id} className={`rounded-xl border border-gray-200 bg-white px-4 py-4 flex items-center justify-between dark:bg-gray-800 dark:border-gray-700 ${n.unread ? "outline outline-2 outline-primary/60" : ""}`}>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-1">
                 <div className={`size-9 rounded-full flex items-center justify-center ${n.type === "new" ? "bg-primary/10 text-primary" : n.type === "status" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : n.type === "system" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"}`}>
                   <TypeIcon t={n.type} />
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{n.title}</p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">{n.subtitle}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-500">{n.timeAgo}</p>
                 </div>
               </div>
-              <div>
-                {n.issueRef ? (
+              <div className="flex items-center gap-3">
+                {n.issueRef && (
                   <Link 
                     href={`/admin/issues/${n.issueRef.replace(/^INC-/, "")}`} 
                     className="text-primary text-sm font-semibold hover:underline"
                   >
                     {t("viewDetails")}
                   </Link>
-                ) : (
-                  <span className="text-xs text-gray-400 dark:text-gray-500">{t("noLinkedItem")}</span>
                 )}
+                <div className="flex items-center gap-2">
+                  {n.unread && (
+                    <button
+                      onClick={() => handleMarkAsRead(n.id)}
+                      disabled={processingIds.has(n.id)}
+                      className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      title={t("markAsRead")}
+                    >
+                      <Check className="size-4" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDelete(n.id)}
+                    disabled={processingIds.has(n.id)}
+                    className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title={t("delete")}
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
               </div>
             </div>
           ))

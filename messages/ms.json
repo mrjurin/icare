@@ -439,6 +439,159 @@
       "dependents": "Tanggungan",
       "income": "Pendapatan",
       "view": "Lihat →"
+    },
+    "detail": {
+      "back": "Kembali",
+      "editHousehold": "Edit Isi Rumah",
+      "statistics": {
+        "totalMembers": "Jumlah Ahli",
+        "membersAtHome": "Ahli di Rumah",
+        "dependents": "Tanggungan",
+        "monthlyIncome": "Pendapatan Bulanan"
+      },
+      "warning": {
+        "title": "Sesetengah Ahli Tidak Di Rumah",
+        "message": "{count, plural, =1 {# ahli sedang tidak di rumah. Pastikan untuk mengambil kira ini semasa mengagihkan bantuan.} other {# ahli sedang tidak di rumah. Pastikan untuk mengambil kira ini semasa mengagihkan bantuan.}}"
+      },
+      "householdInfo": {
+        "title": "Maklumat Isi Rumah",
+        "headIcNumber": "Nombor IC Ketua",
+        "phoneNumber": "Nombor Telefon",
+        "areaZone": "Kawasan / Zon",
+        "notes": "Nota"
+      },
+      "members": {
+        "title": "Ahli Isi Rumah ({count})",
+        "summary": "{atHome} di rumah • {dependents} tanggungan",
+        "addMember": "Tambah Ahli",
+        "noMembers": "Tiada ahli ditambah lagi. Tambah ahli pertama untuk mula.",
+        "table": {
+          "name": "Nama",
+          "relationship": "Hubungan",
+          "status": "Status",
+          "dependency": "Tanggungan",
+          "dateOfBirth": "Tarikh Lahir",
+          "votingSupport": "Sokongan Undi",
+          "eligibleToVote": "✓ Layak mengundi"
+        },
+        "relationships": {
+          "head": "Ketua Isi Rumah",
+          "spouse": "Pasangan",
+          "child": "Anak",
+          "parent": "Ibu Bapa",
+          "sibling": "Adik Beradik",
+          "other": "Lain-lain"
+        },
+        "statuses": {
+          "atHome": "Di Rumah",
+          "away": "Tidak Di Rumah",
+          "deceased": "Meninggal Dunia"
+        },
+        "dependencies": {
+          "dependent": "Tanggungan",
+          "independent": "Bebas"
+        },
+        "votingSupport": {
+          "white": "Putih (Sokongan Penuh)",
+          "black": "Hitam (Tidak Menyokong)",
+          "red": "Merah (Tidak Ditentukan)"
+        },
+        "modal": {
+          "addTitle": "Tambah Ahli Isi Rumah",
+          "editTitle": "Edit Ahli Isi Rumah",
+          "name": "Nama",
+          "icNumber": "Nombor IC",
+          "relationship": "Hubungan",
+          "dateOfBirth": "Tarikh Lahir",
+          "locality": "Lokaliti",
+          "status": "Status",
+          "dependencyStatus": "Status Tanggungan",
+          "votingSupportStatus": "Status Sokongan Undi",
+          "notes": "Nota",
+          "save": "Simpan",
+          "cancel": "Batal",
+          "deleteConfirm": "Adakah anda pasti mahu memadam ahli ini?"
+        }
+      },
+      "income": {
+        "title": "Maklumat Pendapatan",
+        "lastUpdated": "Kemas kini terakhir: {date}",
+        "noIncome": "Tiada maklumat pendapatan direkodkan",
+        "updateIncome": "Kemaskini Pendapatan",
+        "addIncomeInfo": "Tambah Maklumat Pendapatan",
+        "monthlyIncome": "Pendapatan Bulanan",
+        "incomeSource": "Sumber Pendapatan",
+        "numberOfIncomeEarners": "Bilangan Pencari Nafkah",
+        "notes": "Nota",
+        "noIncomeRecorded": "Tiada maklumat pendapatan direkodkan. Tambah butiran pendapatan untuk membantu perancangan pengagihan bantuan.",
+        "incomeHistory": "Sejarah Pendapatan",
+        "noSourceSpecified": "Tiada sumber dinyatakan",
+        "modal": {
+          "addTitle": "Tambah Maklumat Pendapatan",
+          "updateTitle": "Kemaskini Maklumat Pendapatan",
+          "monthlyIncome": "Pendapatan Bulanan (RM)",
+          "monthlyIncomePlaceholder": "cth., 2500.00",
+          "incomeSource": "Sumber Pendapatan",
+          "selectSource": "Pilih Sumber",
+          "numberOfIncomeEarners": "Bilangan Pencari Nafkah",
+          "notes": "Nota",
+          "save": "Simpan",
+          "cancel": "Batal"
+        },
+        "sources": {
+          "employment": "Pekerjaan",
+          "selfEmployed": "Bekerja Sendiri",
+          "pension": "Pencen",
+          "governmentAid": "Bantuan Kerajaan",
+          "other": "Lain-lain"
+        }
+      },
+      "aidDistribution": {
+        "title": "Sejarah Pengagihan Bantuan",
+        "description": "Jejaki pengagihan bantuan untuk memastikan semua {count} ahli di rumah dilindungi",
+        "recordDistribution": "Rekod Pengagihan",
+        "guidelines": {
+          "title": "Garis Panduan Pengagihan:",
+          "membersAtHome": "Ahli di rumah: {count}",
+          "totalDependents": "Jumlah tanggungan: {count}",
+          "makeSure": "Pastikan untuk mengagihkan kepada semua {count} ahli di rumah"
+        },
+        "noDistributions": "Tiada pengagihan bantuan direkodkan lagi.",
+        "table": {
+          "date": "Tarikh",
+          "aidType": "Jenis Bantuan",
+          "quantity": "Kuantiti",
+          "distributedTo": "Dikagihkan Kepada",
+          "status": "Status",
+          "notes": "Nota",
+          "complete": "Lengkap",
+          "partial": "Separa"
+        },
+        "modal": {
+          "title": "Rekod Pengagihan Bantuan",
+          "membersAtHome": "Ahli di rumah:",
+          "dependents": "Tanggungan:",
+          "aidType": "Jenis Bantuan",
+          "selectAidType": "Pilih Jenis Bantuan",
+          "quantity": "Kuantiti",
+          "distributedTo": "Dikagihkan Kepada",
+          "distributedBy": "Dikagihkan Oleh",
+          "selectStaff": "Pilih Kakitangan",
+          "notes": "Nota",
+          "save": "Simpan",
+          "cancel": "Batal",
+          "validationError": "Bilangan orang mestilah sekurang-kurangnya 1",
+          "warning": "Amaran: Anda mengagihkan kepada {distributed} orang, tetapi hanya {atHome} di rumah. Teruskan?"
+        },
+        "types": {
+          "foodBasket": "Bakul Makanan",
+          "cashAid": "Bantuan Tunai",
+          "medicalSupplies": "Bekalan Perubatan",
+          "clothing": "Pakaian",
+          "schoolSupplies": "Bekalan Sekolah",
+          "other": "Lain-lain"
+        }
+      }
     }
   }
 }

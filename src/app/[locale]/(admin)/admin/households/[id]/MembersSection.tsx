@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
   createMember,
   updateMember,
@@ -25,35 +26,36 @@ type Props = {
   isAdmin: boolean;
 };
 
-const RELATIONSHIP_OPTIONS: { value: MemberRelationship; label: string }[] = [
-  { value: "head", label: "Head of Household" },
-  { value: "spouse", label: "Spouse" },
-  { value: "child", label: "Child" },
-  { value: "parent", label: "Parent" },
-  { value: "sibling", label: "Sibling" },
-  { value: "other", label: "Other" },
-];
-
-const STATUS_OPTIONS: { value: MemberStatus; label: string }[] = [
-  { value: "at_home", label: "At Home" },
-  { value: "away", label: "Away" },
-  { value: "deceased", label: "Deceased" },
-];
-
-const DEPENDENCY_OPTIONS: { value: DependencyStatus; label: string }[] = [
-  { value: "dependent", label: "Dependent" },
-  { value: "independent", label: "Independent" },
-];
-
-const VOTING_SUPPORT_OPTIONS: { value: VotingSupportStatus; label: string; color: string }[] = [
-  { value: "white", label: "White (Full Support)", color: "bg-white border-gray-300" },
-  { value: "black", label: "Black (Not Supporting)", color: "bg-gray-900 text-white" },
-  { value: "red", label: "Red (Not Determined)", color: "bg-red-600 text-white" },
-];
-
 export default function MembersSection({ householdId, members, isAdmin }: Props) {
+  const t = useTranslations("households.detail.members");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+
+  const RELATIONSHIP_OPTIONS: { value: MemberRelationship; label: string }[] = [
+    { value: "head", label: t("relationships.head") },
+    { value: "spouse", label: t("relationships.spouse") },
+    { value: "child", label: t("relationships.child") },
+    { value: "parent", label: t("relationships.parent") },
+    { value: "sibling", label: t("relationships.sibling") },
+    { value: "other", label: t("relationships.other") },
+  ];
+
+  const STATUS_OPTIONS: { value: MemberStatus; label: string }[] = [
+    { value: "at_home", label: t("statuses.atHome") },
+    { value: "away", label: t("statuses.away") },
+    { value: "deceased", label: t("statuses.deceased") },
+  ];
+
+  const DEPENDENCY_OPTIONS: { value: DependencyStatus; label: string }[] = [
+    { value: "dependent", label: t("dependencies.dependent") },
+    { value: "independent", label: t("dependencies.independent") },
+  ];
+
+  const VOTING_SUPPORT_OPTIONS: { value: VotingSupportStatus; label: string; color: string }[] = [
+    { value: "white", label: t("votingSupport.white"), color: "bg-white border-gray-300" },
+    { value: "black", label: t("votingSupport.black"), color: "bg-gray-900 text-white" },
+    { value: "red", label: t("votingSupport.red"), color: "bg-red-600 text-white" },
+  ];
   const [editingMember, setEditingMember] = useState<HouseholdMember | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -160,14 +162,14 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
   };
 
   const handleDelete = (memberId: number) => {
-    if (!confirm("Are you sure you want to delete this member?")) return;
+    if (!confirm(t("modal.deleteConfirm"))) return;
 
     startTransition(async () => {
       const result = await deleteMember(memberId);
       if (result.success) {
         router.refresh();
       } else {
-        alert(result.error || "Failed to delete member");
+        alert(result.error || t("modal.deleteConfirm"));
       }
     });
   };
@@ -195,35 +197,35 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
         <div>
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <Users className="size-5" />
-            Household Members ({members.length})
+            {t("title", { count: members.length })}
           </h2>
           <p className="text-sm text-gray-600 mt-1">
-            {atHomeCount} at home • {dependentsCount} dependents
+            {t("summary", { atHome: atHomeCount, dependents: dependentsCount })}
           </p>
         </div>
         <Button onClick={() => handleOpenModal()} className="gap-2">
           <Plus className="size-4" />
-          Add Member
+          {t("addMember")}
         </Button>
       </div>
 
       {members.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
           <Users className="size-12 mx-auto mb-3 text-gray-400" />
-          <p>No members added yet. Add the first member to get started.</p>
+          <p>{t("noMembers")}</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead className="text-left border-b border-gray-200">
               <tr>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Name</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Relationship</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Status</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Dependency</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Date of Birth</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.name")}</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.relationship")}</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.status")}</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.dependency")}</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.dateOfBirth")}</th>
                 {isAdmin && (
-                  <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Voting Support</th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.votingSupport")}</th>
                 )}
                 <th className="px-4 py-3"></th>
               </tr>
@@ -289,7 +291,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
                         })()
                       : "—"}
                     {member.date_of_birth && isEligibleToVote(member.date_of_birth) && (
-                      <div className="text-xs text-green-600 mt-1">✓ Eligible to vote</div>
+                      <div className="text-xs text-green-600 mt-1">{t("table.eligibleToVote")}</div>
                     )}
                   </td>
                   {isAdmin && (
@@ -370,7 +372,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
           <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 rounded-xl shadow-xl z-50 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
               <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
-                {editingMember ? "Edit Member" : "Add New Member"}
+                {editingMember ? t("modal.editTitle") : t("modal.addTitle")}
               </Dialog.Title>
               <Dialog.Close asChild>
                 <button className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
@@ -389,7 +391,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Name <span className="text-red-500">*</span>
+                    {t("modal.name")} <span className="text-red-500">*</span>
                   </label>
                   <Input
                     type="text"
@@ -402,7 +404,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    IC Number
+                    {t("modal.icNumber")}
                   </label>
                   <Input
                     type="text"
@@ -418,7 +420,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Date of Birth
+                    {t("modal.dateOfBirth")}
                   </label>
                   <Input
                     type="date"
@@ -454,7 +456,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Relationship <span className="text-red-500">*</span>
+                    {t("modal.relationship")} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.relationship}
@@ -474,7 +476,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Status <span className="text-red-500">*</span>
+                    {t("modal.status")} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.status}
@@ -492,7 +494,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Dependency Status <span className="text-red-500">*</span>
+                    {t("modal.dependencyStatus")} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.dependencyStatus}
@@ -516,7 +518,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
                 {isAdmin && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Voting Support Status
+                      {t("modal.votingSupportStatus")}
                     </label>
                     <div className="flex items-center gap-2">
                       {VOTING_SUPPORT_OPTIONS.map((option) => (
@@ -562,7 +564,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Notes
+                    {t("modal.notes")}
                   </label>
                   <textarea
                     value={formData.notes}
@@ -576,7 +578,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <Dialog.Close asChild>
                   <Button type="button" variant="outline" disabled={isPending}>
-                    Cancel
+                    {t("modal.cancel")}
                   </Button>
                 </Dialog.Close>
                 <Button type="submit" disabled={isPending} className="gap-2">
@@ -585,7 +587,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
                   ) : (
                     <Plus className="size-4" />
                   )}
-                  {editingMember ? "Save Changes" : "Add Member"}
+                  {editingMember ? t("modal.save") : t("addMember")}
                 </Button>
               </div>
             </form>
