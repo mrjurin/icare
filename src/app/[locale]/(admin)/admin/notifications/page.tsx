@@ -1,37 +1,43 @@
 import { getNotifications } from "@/lib/actions/notifications";
 import NotificationsList from "./NotificationsList";
+import { getTranslations } from "next-intl/server";
 
-function formatTimeAgo(dateString: string): string {
+function formatTimeAgo(dateString: string, t: any): string {
   const date = new Date(dateString);
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
   if (diffInSeconds < 60) {
-    return "Just now";
+    return t("timeAgo.justNow");
   }
 
   const diffInMinutes = Math.floor(diffInSeconds / 60);
   if (diffInMinutes < 60) {
-    return `${diffInMinutes} minute${diffInMinutes > 1 ? "s" : ""} ago`;
+    const key = diffInMinutes === 1 ? "timeAgo.minuteAgo" : "timeAgo.minutesAgo";
+    return t(key, { count: diffInMinutes });
   }
 
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24) {
-    return `${diffInHours} hour${diffInHours > 1 ? "s" : ""} ago`;
+    const key = diffInHours === 1 ? "timeAgo.hourAgo" : "timeAgo.hoursAgo";
+    return t(key, { count: diffInHours });
   }
 
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 7) {
-    return `${diffInDays} day${diffInDays > 1 ? "s" : ""} ago`;
+    const key = diffInDays === 1 ? "timeAgo.dayAgo" : "timeAgo.daysAgo";
+    return t(key, { count: diffInDays });
   }
 
   const diffInWeeks = Math.floor(diffInDays / 7);
   if (diffInWeeks < 4) {
-    return `${diffInWeeks} week${diffInWeeks > 1 ? "s" : ""} ago`;
+    const key = diffInWeeks === 1 ? "timeAgo.weekAgo" : "timeAgo.weeksAgo";
+    return t(key, { count: diffInWeeks });
   }
 
   const diffInMonths = Math.floor(diffInDays / 30);
-  return `${diffInMonths} month${diffInMonths > 1 ? "s" : ""} ago`;
+  const key = diffInMonths === 1 ? "timeAgo.monthAgo" : "timeAgo.monthsAgo";
+  return t(key, { count: diffInMonths });
 }
 
 function mapCategoryToType(category: string): "new" | "status" | "system" | "comment" {
@@ -58,18 +64,69 @@ function extractIssueRef(body: string): string | undefined {
   return undefined;
 }
 
+function translateNotificationTitle(title: string, t: any): string {
+  const titleLower = title.toLowerCase();
+  
+  if (titleLower.includes("your issue has been received") || titleLower === "your issue has been received") {
+    return t("messages.issueReceived.title");
+  }
+  if (titleLower.includes("issue status updated") || titleLower === "issue status updated") {
+    return t("messages.issueStatusUpdated.title");
+  }
+  if (titleLower.includes("issue resolved") || titleLower === "issue resolved") {
+    return t("messages.issueResolved.title");
+  }
+  if (titleLower.includes("new announcement") || titleLower === "new announcement") {
+    return t("messages.newAnnouncement.title");
+  }
+  
+  // Return original if no match
+  return title;
+}
+
+function translateNotificationBody(body: string, t: any): string {
+  const bodyLower = body.toLowerCase();
+  
+  // Extract issue title from body if present (between quotes)
+  const issueTitleMatch = body.match(/'([^']+)'/);
+  const issueTitle = issueTitleMatch ? issueTitleMatch[1] : "";
+  
+  // Check for "We have received your report about" pattern
+  if (bodyLower.includes("we have received your report about") && issueTitle) {
+    return t("messages.issueReceived.body", { issueTitle });
+  }
+  
+  // Check for "is now in progress" pattern
+  if (bodyLower.includes("is now in progress") && issueTitle) {
+    return t("messages.issueStatusUpdated.body", { issueTitle });
+  }
+  
+  // Check for "has been resolved" pattern
+  if (bodyLower.includes("has been resolved") && issueTitle) {
+    return t("messages.issueResolved.body", { issueTitle });
+  }
+  
+  // Return original if no match
+  return body;
+}
+
 export default async function AdminNotificationsPage() {
+  const t = await getTranslations("notifications");
   const result = await getNotifications({ limit: 100 });
   const dbNotifications = result.success ? result.data || [] : [];
 
   // Transform database notifications to display format
   const notifications = dbNotifications.map((n) => {
     const issueRef = extractIssueRef(n.body);
+    const translatedTitle = translateNotificationTitle(n.title, t);
+    const translatedBody = translateNotificationBody(n.body, t);
+    const displayBody = translatedBody.length > 100 ? translatedBody.substring(0, 100) + "..." : translatedBody;
+    
     return {
       id: n.id,
-      title: n.title,
-      subtitle: n.body.length > 100 ? n.body.substring(0, 100) + "..." : n.body,
-      timeAgo: formatTimeAgo(n.created_at),
+      title: translatedTitle,
+      subtitle: displayBody,
+      timeAgo: formatTimeAgo(n.created_at, t),
       type: mapCategoryToType(n.category),
       issueRef,
       unread: !n.read,
@@ -79,8 +136,8 @@ export default async function AdminNotificationsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl md:text-3xl font-black tracking-[-0.015em]">Notifications</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-400">Manage alerts for new issues, status changes, and system updates.</p>
+        <h1 className="text-2xl md:text-3xl font-black tracking-[-0.015em]">{t("title")}</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-400">{t("description")}</p>
       </div>
 
       <NotificationsList notifications={notifications} />

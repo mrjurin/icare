@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import { BellPlus, CheckCircle2, AlertCircle, MessageSquare } from "lucide-react";
 import { markAllNotificationsAsRead } from "@/lib/actions/notifications";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 type NotificationDisplay = {
   id: number;
@@ -37,6 +38,7 @@ function TypeIcon({ t }: { t: NotificationDisplay["type"] }) {
 }
 
 export default function NotificationsList({ notifications: initialNotifications }: NotificationsListProps) {
+  const t = useTranslations("notifications");
   const router = useRouter();
   const [notifications, setNotifications] = useState<NotificationDisplay[]>(initialNotifications);
   const [searchQuery, setSearchQuery] = useState("");
@@ -73,7 +75,7 @@ export default function NotificationsList({ notifications: initialNotifications 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-2 flex-1 min-w-[320px]">
           <Input 
-            placeholder="Search notifications..." 
+            placeholder={t("searchPlaceholder")} 
             className="flex-1" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -85,18 +87,18 @@ export default function NotificationsList({ notifications: initialNotifications 
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
           >
-            <option value="all">Type: All</option>
-            <option value="new">New</option>
-            <option value="status">Status</option>
-            <option value="system">System</option>
-            <option value="comment">Comment</option>
+            <option value="all">{t("typeFilter.all")}</option>
+            <option value="new">{t("typeFilter.new")}</option>
+            <option value="status">{t("typeFilter.status")}</option>
+            <option value="system">{t("typeFilter.system")}</option>
+            <option value="comment">{t("typeFilter.comment")}</option>
           </select>
           <Button 
             variant="outline" 
             onClick={handleMarkAllAsRead}
             disabled={isMarkingAsRead}
           >
-            {isMarkingAsRead ? "Marking..." : "Mark all as read"}
+            {isMarkingAsRead ? t("marking") : t("markAllAsRead")}
           </Button>
         </div>
       </div>
@@ -104,7 +106,7 @@ export default function NotificationsList({ notifications: initialNotifications 
       <div className="space-y-3">
         {filteredNotifications.length === 0 ? (
           <div className="rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 px-4 py-8 text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400">No notifications found</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{t("noNotificationsFound")}</p>
           </div>
         ) : (
           filteredNotifications.map((n) => (
@@ -125,10 +127,10 @@ export default function NotificationsList({ notifications: initialNotifications 
                     href={`/admin/issues/${n.issueRef.replace(/^INC-/, "")}`} 
                     className="text-primary text-sm font-semibold hover:underline"
                   >
-                    View Details
+                    {t("viewDetails")}
                   </Link>
                 ) : (
-                  <span className="text-xs text-gray-400 dark:text-gray-500">No linked item</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">{t("noLinkedItem")}</span>
                 )}
               </div>
             </div>

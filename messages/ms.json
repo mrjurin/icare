@@ -309,5 +309,53 @@
       "issueLabel": "Isu",
       "issueLocationTitle": "Lokasi Isu"
     }
+  },
+  "notifications": {
+    "title": "Notifikasi",
+    "description": "Urus amaran untuk isu baharu, perubahan status, dan kemas kini sistem.",
+    "searchPlaceholder": "Cari notifikasi...",
+    "typeFilter": {
+      "all": "Jenis: Semua",
+      "new": "Baharu",
+      "status": "Status",
+      "system": "Sistem",
+      "comment": "Komen"
+    },
+    "markAllAsRead": "Tandakan semua sebagai dibaca",
+    "marking": "Menandakan...",
+    "noNotificationsFound": "Tiada notifikasi ditemui",
+    "viewDetails": "Lihat Butiran",
+    "noLinkedItem": "Tiada item yang dikaitkan",
+    "timeAgo": {
+      "justNow": "Baru sahaja",
+      "minuteAgo": "{count} minit yang lalu",
+      "minutesAgo": "{count} minit yang lalu",
+      "hourAgo": "{count} jam yang lalu",
+      "hoursAgo": "{count} jam yang lalu",
+      "dayAgo": "{count} hari yang lalu",
+      "daysAgo": "{count} hari yang lalu",
+      "weekAgo": "{count} minggu yang lalu",
+      "weeksAgo": "{count} minggu yang lalu",
+      "monthAgo": "{count} bulan yang lalu",
+      "monthsAgo": "{count} bulan yang lalu"
+    },
+    "messages": {
+      "issueReceived": {
+        "title": "Isu anda telah diterima",
+        "body": "Kami telah menerima laporan anda tentang '{issueTitle}'. Pasukan kami akan menyemaknya tidak lama lagi."
+      },
+      "issueStatusUpdated": {
+        "title": "Status isu dikemaskini",
+        "body": "Isu anda '{issueTitle}' kini sedang dalam proses."
+      },
+      "issueResolved": {
+        "title": "Isu diselesaikan",
+        "body": "Isu anda '{issueTitle}' telah diselesaikan. Terima kasih kerana melaporkan!"
+      },
+      "newAnnouncement": {
+        "title": "Pengumuman baharu",
+        "body": "{announcementContent}"
+      }
+    }
   }
 }

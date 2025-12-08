@@ -309,5 +309,53 @@
       "issueLabel": "Issue",
       "issueLocationTitle": "Issue Location"
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "Manage alerts for new issues, status changes, and system updates.",
+    "searchPlaceholder": "Search notifications...",
+    "typeFilter": {
+      "all": "Type: All",
+      "new": "New",
+      "status": "Status",
+      "system": "System",
+      "comment": "Comment"
+    },
+    "markAllAsRead": "Mark all as read",
+    "marking": "Marking...",
+    "noNotificationsFound": "No notifications found",
+    "viewDetails": "View Details",
+    "noLinkedItem": "No linked item",
+    "timeAgo": {
+      "justNow": "Just now",
+      "minuteAgo": "{count} minute ago",
+      "minutesAgo": "{count} minutes ago",
+      "hourAgo": "{count} hour ago",
+      "hoursAgo": "{count} hours ago",
+      "dayAgo": "{count} day ago",
+      "daysAgo": "{count} days ago",
+      "weekAgo": "{count} week ago",
+      "weeksAgo": "{count} weeks ago",
+      "monthAgo": "{count} month ago",
+      "monthsAgo": "{count} months ago"
+    },
+    "messages": {
+      "issueReceived": {
+        "title": "Your issue has been received",
+        "body": "We have received your report about '{issueTitle}'. Our team will review it shortly."
+      },
+      "issueStatusUpdated": {
+        "title": "Issue status updated",
+        "body": "Your issue '{issueTitle}' is now in progress."
+      },
+      "issueResolved": {
+        "title": "Issue resolved",
+        "body": "Your issue '{issueTitle}' has been resolved. Thank you for reporting!"
+      },
+      "newAnnouncement": {
+        "title": "New announcement",
+        "body": "{announcementContent}"
+      }
+    }
   }
 }
