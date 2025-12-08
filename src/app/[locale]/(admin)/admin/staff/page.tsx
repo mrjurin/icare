@@ -2,13 +2,15 @@ import { Plus } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { getStaffList } from "@/lib/actions/staff";
 import StaffTable from "./StaffTable";
-import StaffFormModal from "./StaffFormModal";
+import AddStaffSourceModal from "./AddStaffSourceModal";
+import { getTranslations } from "next-intl/server";
 
 export default async function AdminStaffPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const t = await getTranslations("staff");
   const sp = await searchParams;
   const search = typeof sp.search === "string" ? sp.search : undefined;
   const roleFilter = typeof sp.role === "string" ? sp.role : undefined;
@@ -39,14 +41,14 @@ export default async function AdminStaffPage({
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black tracking-[-0.015em]">Staff Management</h1>
-          <p className="text-gray-600 mt-1">Manage ADUN and staff members who can be assigned to issues</p>
+          <h1 className="text-2xl md:text-3xl font-black tracking-[-0.015em]">{t("title")}</h1>
+          <p className="text-gray-600 mt-1">{t("description")}</p>
         </div>
-        <StaffFormModal
+        <AddStaffSourceModal
           trigger={
             <Button className="gap-2">
               <Plus className="size-5" />
-              <span>Add Staff</span>
+              <span>{t("addStaff")}</span>
             </Button>
           }
         />

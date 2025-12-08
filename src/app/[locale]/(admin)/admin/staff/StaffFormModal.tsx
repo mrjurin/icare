@@ -14,20 +14,28 @@ import {
   type CreateStaffInput,
 } from "@/lib/actions/staff";
 import { getZones, type Zone } from "@/lib/actions/zones";
+import { useTranslations } from "next-intl";
 
 type Props = {
-  trigger: ReactNode;
+  trigger?: ReactNode;
   staff?: Staff;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
-export default function StaffFormModal({ trigger, staff }: Props) {
+export default function StaffFormModal({ trigger, staff, open: controlledOpen, onOpenChange: controlledOnOpenChange }: Props) {
+  const t = useTranslations("staff");
+  const tCommon = useTranslations("common");
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? (controlledOnOpenChange || (() => {})) : setInternalOpen;
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [zones, setZones] = useState<Zone[]>([]);
 
-  const isEdit = !!staff;
+  const isEdit = !!staff && staff.id > 0;
 
   const [formData, setFormData] = useState<CreateStaffInput>({
     name: staff?.name || "",
@@ -71,13 +79,29 @@ export default function StaffFormModal({ trigger, staff }: Props) {
     }
   };
 
+  // Update form data when staff prop changes
+  useEffect(() => {
+    if (open && staff) {
+      setFormData({
+        name: staff.name || "",
+        email: staff.email || "",
+        icNumber: (staff as any)?.ic_number || "",
+        phone: staff.phone || "",
+        role: staff.role || "staff",
+        position: staff.position || "",
+        zoneId: (staff as any)?.zone_id || undefined,
+        password: "",
+      });
+    }
+  }, [staff, open]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     // Validate that at least one identifier is provided
     if (!formData.email?.trim() && !formData.icNumber?.trim()) {
-      setError("Either email or IC number must be provided");
+      setError(t("form.errorEmailOrIcRequired"));
       return;
     }
 
@@ -85,14 +109,14 @@ export default function StaffFormModal({ trigger, staff }: Props) {
     if (formData.email?.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email.trim())) {
-        setError("Invalid email format");
+        setError(t("form.errorInvalidEmail"));
         return;
       }
     }
 
     // For new staff, password is required
     if (!isEdit && !formData.password?.trim()) {
-      setError("Initial password is required for new staff members");
+      setError(t("form.errorPasswordRequired"));
       return;
     }
 
@@ -122,6 +146,10 @@ export default function StaffFormModal({ trigger, staff }: Props) {
       if (result.success) {
         setOpen(false);
         router.refresh();
+        // If controlled, notify parent
+        if (isControlled && controlledOnOpenChange) {
+          controlledOnOpenChange(false);
+        }
       } else {
         setError(result.error || "An error occurred");
       }
@@ -130,13 +158,13 @@ export default function StaffFormModal({ trigger, staff }: Props) {
 
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
-      <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
+      {trigger && <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>}
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
         <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 rounded-xl shadow-xl z-50 w-full max-w-lg max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
-              {isEdit ? "Edit Staff Member" : "Add New Staff Member"}
+              {isEdit ? t("form.editTitle") : t("form.addTitle")}
             </Dialog.Title>
             <Dialog.Close asChild>
               <button className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
@@ -154,11 +182,11 @@ export default function StaffFormModal({ trigger, staff }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Full Name <span className="text-red-500">*</span>
+                {t("form.fullName")} <span className="text-red-500">{t("form.fullNameRequired")}</span>
               </label>
               <Input
                 type="text"
-                placeholder="e.g., Ahmad bin Abdullah"
+                placeholder={t("form.fullNamePlaceholder")}
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
@@ -168,43 +196,43 @@ export default function StaffFormModal({ trigger, staff }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Email Address
+                {t("form.email")}
               </label>
               <Input
                 type="email"
-                placeholder="e.g., ahmad@example.com (optional if IC number provided)"
+                placeholder={t("form.emailPlaceholder")}
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="w-full"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Either email or IC number is required. Staff can login using either.
+                {t("form.emailHint")}
               </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                IC Number
+                {t("form.icNumber")}
               </label>
               <Input
                 type="text"
-                placeholder="e.g., 123456789012 (optional if email provided)"
+                placeholder={t("form.icNumberPlaceholder")}
                 value={formData.icNumber}
                 onChange={(e) => setFormData({ ...formData, icNumber: e.target.value })}
                 className="w-full"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Malaysian IC number. Staff can login using this if they don't have an email.
+                {t("form.icNumberHint")}
               </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Phone Number
+                {t("form.phone")}
               </label>
               <Input
                 type="tel"
-                placeholder="e.g., +60 12-345 6789"
+                placeholder={t("form.phonePlaceholder")}
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="w-full"
@@ -213,7 +241,7 @@ export default function StaffFormModal({ trigger, staff }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                System Role <span className="text-red-500">*</span>
+                {t("form.systemRole")} <span className="text-red-500">{t("form.systemRoleRequired")}</span>
               </label>
               <select
                 value={formData.role}
@@ -229,28 +257,28 @@ export default function StaffFormModal({ trigger, staff }: Props) {
                 className="w-full h-10 px-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark text-gray-900 dark:text-white"
                 required
               >
-                <option value="adun">ADUN (Ahli Dewan Undangan Negeri)</option>
-                <option value="super_admin">Super Admin</option>
-                <option value="zone_leader">Zone Leader</option>
-                <option value="staff_manager">Staff Manager</option>
-                <option value="staff">Staff</option>
+                <option value="adun">{t("form.roleAdun")}</option>
+                <option value="super_admin">{t("form.roleSuperAdmin")}</option>
+                <option value="zone_leader">{t("form.roleZoneLeader")}</option>
+                <option value="staff_manager">{t("form.roleStaffManager")}</option>
+                <option value="staff">{t("form.roleStaff")}</option>
               </select>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {formData.role === "adun" && "The elected representative for this constituency. Determines system access and permissions."}
-                {formData.role === "super_admin" && "Can see all zones and manage all data. Full system access."}
-                {formData.role === "zone_leader" && "Responsible for registering households in their assigned zone. Zone-specific access."}
-                {formData.role === "staff_manager" && "Manages and coordinates staff activities. Administrative access."}
-                {formData.role === "staff" && "Regular staff member who handles issues. Standard access."}
+                {formData.role === "adun" && t("form.roleAdunHint")}
+                {formData.role === "super_admin" && t("form.roleSuperAdminHint")}
+                {formData.role === "zone_leader" && t("form.roleZoneLeaderHint")}
+                {formData.role === "staff_manager" && t("form.roleStaffManagerHint")}
+                {formData.role === "staff" && t("form.roleStaffHint")}
               </p>
               <p className="mt-1 text-xs text-gray-400 dark:text-gray-500 italic">
-                Note: System roles determine access permissions. Organizational roles (e.g., Ketua Cawangan, Ketua Kampung) can be assigned separately in the Roles section.
+                {t("form.roleNote")}
               </p>
             </div>
 
             {formData.role === "zone_leader" && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Zone <span className="text-red-500">*</span>
+                  {t("form.zone")} <span className="text-red-500">{t("form.zoneRequired")}</span>
                 </label>
                 <select
                   value={formData.zoneId || ""}
@@ -263,7 +291,7 @@ export default function StaffFormModal({ trigger, staff }: Props) {
                   className="w-full h-10 px-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark text-gray-900 dark:text-white"
                   required={formData.role === "zone_leader"}
                 >
-                  <option value="">Select Zone</option>
+                  <option value="">{t("form.selectZone")}</option>
                   {zones.map((zone) => (
                     <option key={zone.id} value={zone.id}>
                       {zone.name}
@@ -272,7 +300,7 @@ export default function StaffFormModal({ trigger, staff }: Props) {
                 </select>
                 {zones.length === 0 && (
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    No zones available. Create zones first.
+                    {t("form.noZonesAvailable")}
                   </p>
                 )}
               </div>
@@ -280,11 +308,11 @@ export default function StaffFormModal({ trigger, staff }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Position / Title
+                {t("form.position")}
               </label>
               <Input
                 type="text"
-                placeholder="e.g., Community Relations Officer"
+                placeholder={t("form.positionPlaceholder")}
                 value={formData.position}
                 onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                 className="w-full"
@@ -293,13 +321,13 @@ export default function StaffFormModal({ trigger, staff }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {isEdit ? "Reset Password" : "Initial Password"}
-                {!isEdit && <span className="text-red-500">*</span>}
+                {isEdit ? t("form.passwordReset") : t("form.password")}
+                {!isEdit && <span className="text-red-500">{t("form.passwordRequired")}</span>}
               </label>
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
-                  placeholder={isEdit ? "Leave blank to keep current password" : "Enter initial password"}
+                  placeholder={isEdit ? t("form.passwordResetPlaceholder") : t("form.passwordPlaceholder")}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full pr-10"
@@ -315,15 +343,15 @@ export default function StaffFormModal({ trigger, staff }: Props) {
               </div>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 {isEdit 
-                  ? "Enter a new password to reset it, or leave blank to keep the current password."
-                  : "This will be the initial password for the staff member. They can change it after logging in."}
+                  ? t("form.passwordResetHint")
+                  : t("form.passwordHint")}
               </p>
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
               <Dialog.Close asChild>
                 <Button type="button" variant="outline" disabled={isPending}>
-                  Cancel
+                  {tCommon("cancel")}
                 </Button>
               </Dialog.Close>
               <Button type="submit" disabled={isPending} className="gap-2">
@@ -334,7 +362,7 @@ export default function StaffFormModal({ trigger, staff }: Props) {
                 ) : (
                   <UserPlus className="size-4" />
                 )}
-                {isEdit ? "Save Changes" : "Add Staff"}
+                {isEdit ? t("form.saveChanges") : t("form.addStaff")}
               </Button>
             </div>
           </form>
