@@ -285,6 +285,57 @@
     }
   },
   "issues": {
+    "list": {
+      "title": "Papan Pemuka Isu",
+      "counters": {
+        "totalOpenIssues": "Jumlah Isu Terbuka",
+        "pendingReview": "Menunggu Semakan",
+        "resolvedThisWeek": "Diselesaikan Minggu Ini"
+      },
+      "searchPlaceholder": "Cari mengikut kata kunci, ID, atau pelapor...",
+      "filters": {
+        "status": {
+          "label": "Status: Semua",
+          "all": "Semua",
+          "new": "Baharu",
+          "inProgress": "Dalam Proses",
+          "resolved": "Diselesaikan",
+          "closed": "Tutup"
+        },
+        "type": {
+          "label": "Jenis: Semua",
+          "all": "Semua",
+          "infrastructure": "Infrastruktur",
+          "utilities": "Utiliti",
+          "sanitation": "Kebersihan",
+          "publicSafety": "Keselamatan Awam"
+        },
+        "assigned": {
+          "label": "Ditugaskan: Semua",
+          "all": "Semua",
+          "unassigned": "Tidak Ditugaskan",
+          "teamA": "Pasukan A",
+          "sanitationDept": "Jabatan Kebersihan"
+        },
+        "dateRange": "Pilih julat tarikh",
+        "resetFilters": "Set Semula Penapis"
+      },
+      "newIssue": "Isu Baharu",
+      "table": {
+        "selectAll": "Pilih semua",
+        "issueId": "ID Isu",
+        "title": "Tajuk",
+        "dateSubmitted": "Tarikh Dihantar",
+        "category": "Kategori",
+        "status": "Status"
+      },
+      "status": {
+        "pending": "Menunggu",
+        "inProgress": "Dalam Proses",
+        "resolved": "Diselesaikan",
+        "closed": "Tutup"
+      }
+    },
     "detail": {
       "dashboard": "Papan Pemuka",
       "allIssues": "Semua Isu",

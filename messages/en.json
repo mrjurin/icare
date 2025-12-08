@@ -285,6 +285,57 @@
     }
   },
   "issues": {
+    "list": {
+      "title": "Issues Dashboard",
+      "counters": {
+        "totalOpenIssues": "Total Open Issues",
+        "pendingReview": "Pending Review",
+        "resolvedThisWeek": "Resolved This Week"
+      },
+      "searchPlaceholder": "Search by keyword, ID, or reporter...",
+      "filters": {
+        "status": {
+          "label": "Status: All",
+          "all": "All",
+          "new": "New",
+          "inProgress": "In Progress",
+          "resolved": "Resolved",
+          "closed": "Closed"
+        },
+        "type": {
+          "label": "Type: All",
+          "all": "All",
+          "infrastructure": "Infrastructure",
+          "utilities": "Utilities",
+          "sanitation": "Sanitation",
+          "publicSafety": "Public Safety"
+        },
+        "assigned": {
+          "label": "Assigned: All",
+          "all": "All",
+          "unassigned": "Unassigned",
+          "teamA": "Team A",
+          "sanitationDept": "Sanitation Dept."
+        },
+        "dateRange": "Select date range",
+        "resetFilters": "Reset Filters"
+      },
+      "newIssue": "New Issue",
+      "table": {
+        "selectAll": "Select all",
+        "issueId": "Issue ID",
+        "title": "Title",
+        "dateSubmitted": "Date Submitted",
+        "category": "Category",
+        "status": "Status"
+      },
+      "status": {
+        "pending": "Pending",
+        "inProgress": "In Progress",
+        "resolved": "Resolved",
+        "closed": "Closed"
+      }
+    },
     "detail": {
       "dashboard": "Dashboard",
       "allIssues": "All Issues",
