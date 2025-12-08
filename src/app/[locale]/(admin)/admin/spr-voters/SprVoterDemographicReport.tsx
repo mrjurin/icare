@@ -6,6 +6,7 @@ import { getVoterVersions, type SprVoterVersion } from "@/lib/actions/spr-voters
 import { Users, BarChart3, PieChart, TrendingUp } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import SearchableSelect from "@/components/ui/SearchableSelect";
+import { useTranslations } from "next-intl";
 
 type SprVoterDemographicReportProps = {
   versions: SprVoterVersion[];
@@ -16,6 +17,7 @@ export default function SprVoterDemographicReport({
   versions,
   initialVersionId,
 }: SprVoterDemographicReportProps) {
+  const t = useTranslations("sprVoterReports");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedVersionId, setSelectedVersionId] = useState<number | undefined>(initialVersionId);
@@ -51,10 +53,10 @@ export default function SprVoterDemographicReport({
         if (result.success && result.data) {
           setData(result.data);
         } else {
-          setError(result.error || "Failed to load SPR voter demographic data");
+          setError(result.error || t("failedToLoadDemographic"));
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
+        setError(err instanceof Error ? err.message : t("anErrorOccurred"));
       } finally {
         setLoading(false);
       }
@@ -80,7 +82,7 @@ export default function SprVoterDemographicReport({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-500">Loading SPR voter demographic data...</div>
+        <div className="text-gray-500">{t("loadingDemographic")}</div>
       </div>
     );
   }
@@ -88,7 +90,7 @@ export default function SprVoterDemographicReport({
   if (error) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-red-500">Error: {error}</div>
+        <div className="text-red-500">{t("error")}: {error}</div>
       </div>
     );
   }
@@ -96,7 +98,7 @@ export default function SprVoterDemographicReport({
   if (!data) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-500">No data available</div>
+        <div className="text-gray-500">{t("noData")}</div>
       </div>
     );
   }
@@ -115,7 +117,7 @@ export default function SprVoterDemographicReport({
       <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-4">
         <div className="flex items-center gap-4">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-            Select Version:
+            {t("selectVersion")}:
           </label>
           <div className="flex-1 max-w-md">
             <SearchableSelect
@@ -124,15 +126,15 @@ export default function SprVoterDemographicReport({
               onChange={(value) =>
                 handleVersionChange(typeof value === "number" ? value : parseInt(value as string, 10))
               }
-              placeholder="Select a version..."
-              searchPlaceholder="Search versions..."
+              placeholder={t("selectVersionPlaceholder")}
+              searchPlaceholder={t("searchVersions")}
             />
           </div>
           {selectedVersion && (
             <div className="text-sm text-gray-600 dark:text-gray-400">
               {selectedVersion.is_active && (
                 <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 rounded-full">
-                  Active
+                  {t("active")}
                 </span>
               )}
             </div>
@@ -144,7 +146,7 @@ export default function SprVoterDemographicReport({
         <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-12 text-center">
           <BarChart3 className="size-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400 text-lg">
-            Please select a version to view the demographic report
+            {t("pleaseSelectVersionDemographic")}
           </p>
         </div>
       )}
@@ -155,7 +157,7 @@ export default function SprVoterDemographicReport({
           <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gradient-to-br from-primary/10 to-primary/5 p-8 text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
               <Users className="size-8 text-primary" />
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Total Voters</h3>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{t("totalVoters")}</h3>
             </div>
             <div className="text-5xl font-bold text-gray-900 dark:text-white">
               {data.total_voters.toLocaleString()}
@@ -169,7 +171,7 @@ export default function SprVoterDemographicReport({
               <div className="rounded-lg border border-gray-200 dark:border-gray-800 p-6">
                 <div className="flex items-center gap-2 mb-6">
                   <BarChart3 className="size-5 text-primary" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Age Distribution</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t("ageDistribution")}</h3>
                 </div>
                 <div className="space-y-4">
                   {data.age_distribution.map((age) => (
@@ -180,7 +182,7 @@ export default function SprVoterDemographicReport({
                         </span>
                         <div className="flex items-center gap-3">
                           <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {age.count.toLocaleString()} voters
+                            {age.count.toLocaleString()} {t("voters")}
                           </span>
                           <span className="text-sm font-bold text-gray-900 dark:text-white">
                             {age.percentage}%
@@ -208,7 +210,7 @@ export default function SprVoterDemographicReport({
               <div className="rounded-lg border border-gray-200 dark:border-gray-800 p-6">
                 <div className="flex items-center gap-2 mb-6">
                   <PieChart className="size-5 text-primary" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Gender Distribution</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t("genderDistribution")}</h3>
                 </div>
                 <div className="space-y-4">
                   {data.gender_distribution.map((gender) => (
@@ -247,7 +249,7 @@ export default function SprVoterDemographicReport({
               <div className="rounded-lg border border-gray-200 dark:border-gray-800 p-6">
                 <div className="flex items-center gap-2 mb-6">
                   <BarChart3 className="size-5 text-primary" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Race Distribution</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t("raceDistribution")}</h3>
                 </div>
                 <div className="space-y-4">
                   {data.race_distribution.slice(0, 10).map((race) => (
@@ -286,7 +288,7 @@ export default function SprVoterDemographicReport({
               <div className="rounded-lg border border-gray-200 dark:border-gray-800 p-6">
                 <div className="flex items-center gap-2 mb-6">
                   <PieChart className="size-5 text-primary" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Religion Distribution</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t("religionDistribution")}</h3>
                 </div>
                 <div className="space-y-4">
                   {data.religion_distribution.slice(0, 10).map((religion) => (
@@ -326,7 +328,7 @@ export default function SprVoterDemographicReport({
                 <div className="flex items-center gap-2 mb-6">
                   <BarChart3 className="size-5 text-primary" />
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Ethnic Category Distribution
+                    {t("ethnicCategoryDistribution")}
                   </h3>
                 </div>
                 <div className="space-y-4">
@@ -368,21 +370,21 @@ export default function SprVoterDemographicReport({
               <div className="flex items-center gap-2 mb-6">
                 <TrendingUp className="size-5 text-primary" />
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Demographics by Locality
+                  {t("demographicsByLocality")}
                 </h3>
               </div>
               <div className="space-y-6">
                 {data.by_locality.slice(0, 10).map((locality) => (
                   <div key={locality.locality} className="border-b border-gray-200 dark:border-gray-700 pb-6 last:border-b-0 last:pb-0">
                     <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-4">
-                      {locality.locality} ({locality.total_voters.toLocaleString()} voters)
+                      {locality.locality} ({locality.total_voters.toLocaleString()} {t("voters")})
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Age Distribution Pie Chart */}
                       {locality.age_distribution.length > 0 && (
                         <div>
                           <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 text-center">
-                            Age Distribution
+                            {t("ageDistribution")}
                           </h5>
                           <div className="flex flex-col items-center gap-4">
                             {/* Pie Chart */}
@@ -438,7 +440,7 @@ export default function SprVoterDemographicReport({
                                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
                                     {locality.total_voters.toLocaleString()}
                                   </div>
-                                  <div className="text-xs text-gray-600 dark:text-gray-400">Total</div>
+                                  <div className="text-xs text-gray-600 dark:text-gray-400">{t("total")}</div>
                                 </div>
                               </div>
                             </div>
@@ -476,7 +478,7 @@ export default function SprVoterDemographicReport({
                       {locality.gender_distribution.length > 0 && (
                         <div>
                           <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 text-center">
-                            Gender Distribution
+                            {t("genderDistribution")}
                           </h5>
                           <div className="flex flex-col items-center gap-4">
                             {/* Pie Chart */}
@@ -523,7 +525,7 @@ export default function SprVoterDemographicReport({
                                   <div className="text-2xl font-bold text-gray-900 dark:text-white">
                                     {locality.total_voters.toLocaleString()}
                                   </div>
-                                  <div className="text-xs text-gray-600 dark:text-gray-400">Total</div>
+                                  <div className="text-xs text-gray-600 dark:text-gray-400">{t("total")}</div>
                                 </div>
                               </div>
                             </div>
@@ -561,14 +563,14 @@ export default function SprVoterDemographicReport({
               <div className="flex items-center gap-2 mb-6">
                 <TrendingUp className="size-5 text-primary" />
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Age Distribution by Parliament
+                  {t("ageDistributionByParliament")}
                 </h3>
               </div>
               <div className="space-y-6">
                 {data.by_parliament.slice(0, 10).map((parliament) => (
                   <div key={parliament.parliament} className="border-b border-gray-200 dark:border-gray-700 pb-6 last:border-b-0 last:pb-0">
                     <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-4">
-                      {parliament.parliament} ({parliament.total_voters.toLocaleString()} voters)
+                      {parliament.parliament} ({parliament.total_voters.toLocaleString()} {t("voters")})
                     </h4>
                     {parliament.age_distribution.length > 0 && (
                       <div className="space-y-2">

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 
 type Report = {
   id: string;
@@ -14,17 +16,13 @@ type Report = {
 
 type StatusFilter = "All" | "Pending" | "In Review" | "Resolved" | "Overdue";
 
-const mockReports: Report[] = [
-  { id: "#1298", title: "Streetlight outage at Jalan 3", cat: "Infrastructure", status: "Pending", created: "2025-11-29", assignee: "Unassigned" },
-  { id: "#1297", title: "Blocked drain near Pasar", cat: "Sanitation", status: "In Review", created: "2025-11-28", assignee: "A. Rahman" },
-  { id: "#1296", title: "Potholes along Inanam Road", cat: "Roads", status: "Resolved", created: "2025-11-25", assignee: "M. Tan" },
-  { id: "#1295", title: "Broken water pipe at Taman", cat: "Utilities", status: "Pending", created: "2025-11-27", assignee: "Unassigned" },
-  { id: "#1294", title: "Garbage collection delay", cat: "Sanitation", status: "Overdue", created: "2025-11-20", assignee: "M. Tan" },
-  { id: "#1293", title: "Road repair needed", cat: "Roads", status: "Resolved", created: "2025-11-22", assignee: "A. Rahman" },
-  { id: "#1292", title: "Street sign missing", cat: "Infrastructure", status: "In Review", created: "2025-11-26", assignee: "A. Rahman" },
-];
+type ReportsTableProps = {
+  initialReports?: Report[];
+};
 
-export default function ReportsTable() {
+export default function ReportsTable({ initialReports = [] }: ReportsTableProps) {
+  const t = useTranslations("dashboard.reportsTable");
+  const tDashboard = useTranslations("dashboard");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(
@@ -56,7 +54,7 @@ export default function ReportsTable() {
   };
 
   const filteredReports = useMemo(() => {
-    let filtered = mockReports;
+    let filtered = initialReports;
 
     // Filter by status
     if (statusFilter !== "All") {
@@ -76,9 +74,32 @@ export default function ReportsTable() {
     }
 
     return filtered;
-  }, [statusFilter, searchQuery]);
+  }, [statusFilter, searchQuery, initialReports]);
 
   const statusFilters: StatusFilter[] = ["All", "Pending", "In Review", "Resolved", "Overdue"];
+
+  const getStatusLabel = (status: StatusFilter): string => {
+    if (status === "All") return t("all");
+    if (status === "Pending") return tDashboard("pending");
+    if (status === "In Review") return tDashboard("inReview");
+    if (status === "Resolved") return tDashboard("resolved");
+    if (status === "Overdue") return tDashboard("overdue");
+    return status;
+  };
+
+  const getStatusTranslation = (status: string): string => {
+    if (status === "Pending") return tDashboard("pending");
+    if (status === "In Review") return tDashboard("inReview");
+    if (status === "Resolved") return tDashboard("resolved");
+    if (status === "Overdue") return tDashboard("overdue");
+    return status;
+  };
+
+  const handleViewReport = (report: Report) => {
+    // Extract ID from report (e.g., "#1298" -> "1298") and navigate to issue detail page
+    const reportId = report.id.replace("#", "");
+    router.push(`/admin/issues/${reportId}`);
+  };
 
   return (
     <>
@@ -94,7 +115,7 @@ export default function ReportsTable() {
                   : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700"
               }`}
             >
-              {filter}
+              {getStatusLabel(filter)}
             </button>
           ))}
         </div>
@@ -104,10 +125,10 @@ export default function ReportsTable() {
             value={searchQuery}
             onChange={handleSearchChange}
             className="rounded-lg h-10 px-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="Search reports"
+            placeholder={t("searchReports")}
           />
           <button className="rounded-lg h-10 px-3 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-            Filters
+            {t("filters")}
           </button>
         </div>
       </div>
@@ -116,12 +137,12 @@ export default function ReportsTable() {
         <table className="min-w-full text-sm">
           <thead className="text-left bg-gray-50 dark:bg-gray-900">
             <tr>
-              <th className="px-4 py-3">ID</th>
-              <th className="px-4 py-3">Title</th>
-              <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Created</th>
-              <th className="px-4 py-3">Assignee</th>
+              <th className="px-4 py-3">{t("id")}</th>
+              <th className="px-4 py-3">{t("title")}</th>
+              <th className="px-4 py-3">{t("category")}</th>
+              <th className="px-4 py-3">{t("status")}</th>
+              <th className="px-4 py-3">{t("created")}</th>
+              <th className="px-4 py-3">{t("assignee")}</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
@@ -134,14 +155,17 @@ export default function ReportsTable() {
                   <td className="px-4 py-3">{r.cat}</td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center rounded-full px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800">
-                      {r.status}
+                      {getStatusTranslation(r.status)}
                     </span>
                   </td>
                   <td className="px-4 py-3">{r.created}</td>
                   <td className="px-4 py-3">{r.assignee}</td>
                   <td className="px-4 py-3 text-right">
-                    <button className="rounded-md px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                      View
+                    <button
+                      onClick={() => handleViewReport(r)}
+                      className="rounded-md px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      {t("view")}
                     </button>
                   </td>
                 </tr>
@@ -149,7 +173,7 @@ export default function ReportsTable() {
             ) : (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                  No reports found matching your filters.
+                  {t("noReportsFound")}
                 </td>
               </tr>
             )}

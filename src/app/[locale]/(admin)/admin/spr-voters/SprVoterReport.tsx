@@ -6,6 +6,7 @@ import { getVoterVersions, type SprVoterVersion } from "@/lib/actions/spr-voters
 import { TrendingUp, Users, Circle, AlertCircle, BarChart3, PieChart } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import SearchableSelect from "@/components/ui/SearchableSelect";
+import { useTranslations } from "next-intl";
 
 type SprVoterReportProps = {
   versions: SprVoterVersion[];
@@ -13,6 +14,7 @@ type SprVoterReportProps = {
 };
 
 export default function SprVoterReport({ versions, initialVersionId }: SprVoterReportProps) {
+  const t = useTranslations("sprVoterReports");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedVersionId, setSelectedVersionId] = useState<number | undefined>(initialVersionId);
@@ -48,10 +50,10 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
         if (result.success && result.data) {
           setData(result.data);
         } else {
-          setError(result.error || "Failed to load SPR voter support data");
+          setError(result.error || t("failedToLoad"));
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
+        setError(err instanceof Error ? err.message : t("anErrorOccurred"));
       } finally {
         setLoading(false);
       }
@@ -77,7 +79,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-500">Loading SPR voter support data...</div>
+        <div className="text-gray-500">{t("loading")}</div>
       </div>
     );
   }
@@ -85,7 +87,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
   if (error) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-red-500">Error: {error}</div>
+        <div className="text-red-500">{t("error")}: {error}</div>
       </div>
     );
   }
@@ -93,7 +95,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
   if (!data) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-500">No data available</div>
+        <div className="text-gray-500">{t("noData")}</div>
       </div>
     );
   }
@@ -129,22 +131,22 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
       <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-4">
         <div className="flex items-center gap-4">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-            Select Version:
+            {t("selectVersion")}:
           </label>
           <div className="flex-1 max-w-md">
             <SearchableSelect
               options={versionOptions}
               value={selectedVersionId || ""}
               onChange={(value) => handleVersionChange(typeof value === "number" ? value : parseInt(value as string, 10))}
-              placeholder="Select a version..."
-              searchPlaceholder="Search versions..."
+              placeholder={t("selectVersionPlaceholder")}
+              searchPlaceholder={t("searchVersions")}
             />
           </div>
           {selectedVersion && (
             <div className="text-sm text-gray-600 dark:text-gray-400">
               {selectedVersion.is_active && (
                 <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 rounded-full">
-                  Active
+                  {t("active")}
                 </span>
               )}
             </div>
@@ -156,26 +158,26 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
         <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-12 text-center">
           <BarChart3 className="size-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400 text-lg">
-            Please select a version to view the report
+            {t("pleaseSelectVersion")}
           </p>
         </div>
       )}
 
       {selectedVersionId && loading && (
         <div className="flex items-center justify-center py-12">
-          <div className="text-gray-500">Loading SPR voter support data...</div>
+          <div className="text-gray-500">{t("loading")}</div>
         </div>
       )}
 
       {selectedVersionId && error && (
         <div className="flex items-center justify-center py-12">
-          <div className="text-red-500">Error: {error}</div>
+          <div className="text-red-500">{t("error")}: {error}</div>
         </div>
       )}
 
       {selectedVersionId && !loading && !error && !data && (
         <div className="flex items-center justify-center py-12">
-          <div className="text-gray-500">No data available for this version</div>
+          <div className="text-gray-500">{t("noDataForVersion")}</div>
         </div>
       )}
 
@@ -189,16 +191,16 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
                   <Users className="size-8 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Voters</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{t("totalVoters")}</p>
                   <p className="text-4xl font-black text-gray-900 dark:text-white mt-1">
                     {data.total_voters.toLocaleString()}
                   </p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Version</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t("version")}</p>
                 <p className="text-lg font-semibold text-gray-900 dark:text-white mt-1">
-                  {selectedVersion?.name || "Unknown"}
+                  {selectedVersion?.name || t("unknown")}
                 </p>
               </div>
             </div>
@@ -209,7 +211,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
             <div className="flex items-center justify-center gap-3 mb-4">
               <TrendingUp className="size-8 text-primary" />
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Overall Support Score
+                {t("overallSupportScore")}
               </h3>
             </div>
             <div className="relative inline-flex items-center justify-center">
@@ -245,10 +247,10 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
               </div>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
-              Based on voting support status (White: Supporting, Black: Not Supporting, Red: Undetermined)
+              {t("basedOnVotingSupport")}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-              {classifiedPercentage}% of voters have been classified
+              {t("classifiedPercentage", { percentage: classifiedPercentage })}
             </p>
           </div>
 
@@ -260,7 +262,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
               <Circle className="size-5 text-gray-900" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm text-gray-600 dark:text-gray-400 break-words">White (Supporting)</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 break-words">{t("whiteSupporting")}</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1 break-words">
                 {data.total_white_supporters.toLocaleString()}
               </p>
@@ -268,7 +270,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
                 {data.total_voters > 0
                   ? ((data.total_white_supporters / data.total_voters) * 100).toFixed(1)
                   : "0"}
-                % of voters
+                {t("ofVoters")}
               </p>
             </div>
           </div>
@@ -280,7 +282,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
               <Circle className="size-5 text-white" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm text-gray-600 dark:text-gray-400 break-words">Black (Not Supporting)</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 break-words">{t("blackNotSupporting")}</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1 break-words">
                 {data.total_black_non_supporters.toLocaleString()}
               </p>
@@ -288,7 +290,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
                 {data.total_voters > 0
                   ? ((data.total_black_non_supporters / data.total_voters) * 100).toFixed(1)
                   : "0"}
-                % of voters
+                {t("ofVoters")}
               </p>
             </div>
           </div>
@@ -300,7 +302,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
               <AlertCircle className="size-5 text-white" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm text-gray-600 dark:text-gray-400 break-words">Red (Undetermined)</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 break-words">{t("redUndetermined")}</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1 break-words">
                 {data.total_red_undetermined.toLocaleString()}
               </p>
@@ -308,7 +310,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
                 {data.total_voters > 0
                   ? ((data.total_red_undetermined / data.total_voters) * 100).toFixed(1)
                   : "0"}
-                % of voters
+                {t("ofVoters")}
               </p>
             </div>
           </div>
@@ -320,7 +322,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
               <Users className="size-5 text-gray-700 dark:text-gray-300" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm text-gray-600 dark:text-gray-400 break-words">Unclassified</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 break-words">{t("unclassified")}</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1 break-words">
                 {data.total_unclassified.toLocaleString()}
               </p>
@@ -328,7 +330,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
                 {data.total_voters > 0
                   ? ((data.total_unclassified / data.total_voters) * 100).toFixed(1)
                   : "0"}
-                % of voters
+                {t("ofVoters")}
               </p>
             </div>
           </div>
@@ -340,7 +342,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
         <div className="flex items-center gap-2 mb-6">
           <PieChart className="size-5 text-primary" />
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Overall Support Distribution
+            {t("overallSupportDistribution")}
           </h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
@@ -452,7 +454,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
                   <div className="text-3xl font-bold text-gray-900 dark:text-white">
                     {data.total_voters.toLocaleString()}
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Total Voters</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">{t("totalVoters")}</div>
                 </div>
               </div>
             </div>
@@ -463,7 +465,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
             <div className="flex items-center gap-3">
               <div className="w-5 h-5 bg-white border-2 border-gray-400 rounded-full"></div>
               <div className="flex-1">
-                <div className="font-semibold text-gray-900 dark:text-white">White (Supporting)</div>
+                <div className="font-semibold text-gray-900 dark:text-white">{t("whiteSupporting")}</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   {data.total_white_supporters.toLocaleString()} (
                   {data.total_voters > 0
@@ -476,7 +478,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
             <div className="flex items-center gap-3">
               <div className="w-5 h-5 bg-gray-900 rounded-full"></div>
               <div className="flex-1">
-                <div className="font-semibold text-gray-900 dark:text-white">Black (Not Supporting)</div>
+                <div className="font-semibold text-gray-900 dark:text-white">{t("blackNotSupporting")}</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   {data.total_black_non_supporters.toLocaleString()} (
                   {data.total_voters > 0
@@ -489,7 +491,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
             <div className="flex items-center gap-3">
               <div className="w-5 h-5 bg-red-600 rounded-full"></div>
               <div className="flex-1">
-                <div className="font-semibold text-gray-900 dark:text-white">Red (Undetermined)</div>
+                <div className="font-semibold text-gray-900 dark:text-white">{t("redUndetermined")}</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   {data.total_red_undetermined.toLocaleString()} (
                   {data.total_voters > 0
@@ -503,7 +505,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
               <div className="flex items-center gap-3">
                 <div className="w-5 h-5 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
                 <div className="flex-1">
-                  <div className="font-semibold text-gray-900 dark:text-white">Unclassified</div>
+                  <div className="font-semibold text-gray-900 dark:text-white">{t("unclassified")}</div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">
                     {data.total_unclassified.toLocaleString()} (
                     {data.total_voters > 0
@@ -527,7 +529,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
             <div className="flex items-center gap-2 mb-6">
               <BarChart3 className="size-5 text-primary" />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Support Score by Locality
+                {t("supportScoreByLocality")}
               </h3>
             </div>
             <div className="space-y-4">
@@ -542,7 +544,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
                       </span>
                       <div className="flex items-center gap-3">
                         <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {locality.total_voters} voters
+                          {locality.total_voters} {t("voters")}
                         </span>
                         <span className={`text-sm font-bold ${getScoreColor(locality.support_score)}`}>
                           {locality.support_score.toFixed(1)}%
@@ -640,7 +642,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
             <div className="flex items-center gap-2 mb-6">
               <BarChart3 className="size-5 text-primary" />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Support Score by Parliament
+                {t("supportScoreByParliament")}
               </h3>
             </div>
             <div className="space-y-4">
@@ -755,7 +757,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
             <div className="flex items-center gap-2 mb-6">
               <BarChart3 className="size-5 text-primary" />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Support Score by Polling Station
+                {t("supportScoreByPollingStation")}
               </h3>
             </div>
             <div className="space-y-4">
@@ -860,7 +862,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
             <div className="flex items-center gap-2 mb-6">
               <BarChart3 className="size-5 text-primary" />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Support Score by Channel
+                {t("supportScoreByChannel")}
               </h3>
             </div>
             <div className="space-y-4">
@@ -876,7 +878,7 @@ export default function SprVoterReport({ versions, initialVersionId }: SprVoterR
                   <div key={channel.channel ?? "null"}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-gray-900 dark:text-white truncate flex-1 mr-2">
-                        Channel {channel.channel ?? "Not Specified"}
+                        {t("channel")} {channel.channel ?? t("notSpecified")}
                       </span>
                       <div className="flex items-center gap-3">
                         <span className="text-xs text-gray-500 dark:text-gray-400">

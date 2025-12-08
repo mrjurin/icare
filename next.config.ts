@@ -11,6 +11,17 @@ const nextConfig = {
         hostname: "lh3.googleusercontent.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        pathname: "/**",
+      },
+      // Allow Supabase storage URLs (if using Supabase Storage for media)
+      {
+        protocol: "https",
+        hostname: "**.supabase.co",
+        pathname: "/**",
+      },
     ],
   },
   turbopack: {

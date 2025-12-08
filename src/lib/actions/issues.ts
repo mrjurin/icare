@@ -1,6 +1,6 @@
 "use server";
 
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseServerClient, getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { parseActivity, type ActivityType } from "@/lib/utils/activity";
 
@@ -203,7 +203,8 @@ export async function addComment(
  * Get formatted activity list for an issue
  */
 export async function getIssueActivity(issueId: number) {
-  const supabase = await getSupabaseServerClient();
+  // Use read-only client since this can be called from Server Components
+  const supabase = await getSupabaseReadOnlyClient();
 
   // Get issue creation date
   const { data: issue } = await supabase

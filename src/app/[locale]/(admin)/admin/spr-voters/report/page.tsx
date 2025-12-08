@@ -2,12 +2,14 @@ import SprVoterReport from "../SprVoterReport";
 import SprVoterDemographicReport from "../SprVoterDemographicReport";
 import { getVoterVersions } from "@/lib/actions/spr-voters";
 import ReportTabs from "./ReportTabs";
+import { getTranslations } from "next-intl/server";
 
 export default async function SprVoterReportPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const t = await getTranslations("sprVoterReports");
   const sp = await searchParams;
   const versionId = typeof sp.versionId === "string" ? parseInt(sp.versionId, 10) : undefined;
   const reportType = typeof sp.type === "string" ? sp.type : "support";
@@ -25,10 +27,10 @@ export default async function SprVoterReportPage({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-black tracking-[-0.015em]">
-            SPR Voter Reports
+            {t("title")}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Analyze SPR voter data by support status and demographics
+            {t("description")}
           </p>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { BarChart3, Users } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type ReportTabsProps = {
   activeTab: string;
@@ -9,6 +10,7 @@ type ReportTabsProps = {
 };
 
 export default function ReportTabs({ activeTab, versionId }: ReportTabsProps) {
+  const t = useTranslations("sprVoterReports");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -33,7 +35,7 @@ export default function ReportTabs({ activeTab, versionId }: ReportTabsProps) {
           } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
         >
           <BarChart3 className="size-4" />
-          Support Report
+          {t("supportReport")}
         </button>
         <button
           onClick={() => handleTabChange("demographic")}
@@ -44,7 +46,7 @@ export default function ReportTabs({ activeTab, versionId }: ReportTabsProps) {
           } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
         >
           <Users className="size-4" />
-          Demographic Report
+          {t("demographicReport")}
         </button>
       </nav>
     </div>
