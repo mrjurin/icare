@@ -12,6 +12,7 @@ import {
   type Zone,
   type CreateZoneInput,
 } from "@/lib/actions/zones";
+import { useTranslations } from "next-intl";
 
 type Props = {
   trigger: ReactNode;
@@ -19,6 +20,7 @@ type Props = {
 };
 
 export default function ZoneFormModal({ trigger, zone }: Props) {
+  const t = useTranslations("zones.form");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -61,7 +63,7 @@ export default function ZoneFormModal({ trigger, zone }: Props) {
         setOpen(false);
         router.refresh();
       } else {
-        setError(result.error || "An error occurred");
+        setError(result.error || t("error"));
       }
     });
   };
@@ -74,7 +76,7 @@ export default function ZoneFormModal({ trigger, zone }: Props) {
         <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 rounded-xl shadow-xl z-50 w-full max-w-lg max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
-              {isEdit ? "Edit Zone" : "Add New Zone"}
+              {isEdit ? t("editZone") : t("addNewZone")}
             </Dialog.Title>
             <Dialog.Close asChild>
               <button className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
@@ -92,11 +94,11 @@ export default function ZoneFormModal({ trigger, zone }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Zone Name <span className="text-red-500">*</span>
+                {t("zoneName")} <span className="text-red-500">*</span>
               </label>
               <Input
                 type="text"
-                placeholder="e.g., Zone A"
+                placeholder={t("zoneNamePlaceholder")}
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
@@ -106,21 +108,21 @@ export default function ZoneFormModal({ trigger, zone }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Description
+                {t("description")}
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
                 className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark text-gray-900 dark:text-white"
-                placeholder="Optional description for this zone..."
+                placeholder={t("descriptionPlaceholder")}
               />
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
               <Dialog.Close asChild>
                 <Button type="button" variant="outline" disabled={isPending}>
-                  Cancel
+                  {t("cancel")}
                 </Button>
               </Dialog.Close>
               <Button type="submit" disabled={isPending} className="gap-2">
@@ -131,7 +133,7 @@ export default function ZoneFormModal({ trigger, zone }: Props) {
                 ) : (
                   <MapPin className="size-4" />
                 )}
-                {isEdit ? "Save Changes" : "Add Zone"}
+                {isEdit ? t("saveChanges") : t("addZone")}
               </Button>
             </div>
           </form>

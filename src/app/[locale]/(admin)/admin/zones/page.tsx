@@ -5,8 +5,10 @@ import { getZones } from "@/lib/actions/zones";
 import { getVillageCountsByZone } from "@/lib/actions/villages";
 import ZoneTable from "./ZoneTable";
 import ZoneFormModal from "./ZoneFormModal";
+import { getTranslations } from "next-intl/server";
 
 export default async function AdminZonesPage() {
+  const t = await getTranslations("zones");
   const zonesResult = await getZones();
   const zones = zonesResult.success ? zonesResult.data || [] : [];
 
@@ -18,21 +20,21 @@ export default async function AdminZonesPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black tracking-[-0.015em]">Zone Management</h1>
-          <p className="text-gray-600 mt-1">Manage zones for organizing households and aid distribution</p>
+          <h1 className="text-2xl md:text-3xl font-black tracking-[-0.015em]">{t("title")}</h1>
+          <p className="text-gray-600 mt-1">{t("description")}</p>
         </div>
         <div className="flex gap-3">
           <Link href="/admin/zones/statistics">
             <Button variant="outline" className="gap-2">
               <MapPin className="size-5" />
-              <span>View Statistics</span>
+              <span>{t("viewStatistics")}</span>
             </Button>
           </Link>
           <ZoneFormModal
             trigger={
               <Button className="gap-2">
                 <Plus className="size-5" />
-                <span>Add Zone</span>
+                <span>{t("addZone")}</span>
               </Button>
             }
           />

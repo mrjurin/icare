@@ -1,7 +1,7 @@
 "use server";
 
 import { getSupabaseServerClient, getSupabaseReadOnlyClient } from "@/lib/supabase/server";
-import { getAccessibleZoneIds, getAccessibleZoneIdsReadOnly } from "@/lib/utils/accessControl";
+import { getAccessibleZoneIds, getAccessibleZoneIdsReadOnly, getCurrentUserAccessReadOnly } from "@/lib/utils/accessControl";
 import { isEligibleToVote, calculateAge } from "@/lib/utils/icNumber";
 import { getVoterVersions } from "@/lib/actions/spr-voters";
 
@@ -1437,6 +1437,336 @@ export async function getAdunDashboardStats(): Promise<ActionResult<AdunDashboar
     : 0;
 
   // Support percentage: white / total eligible voters
+  const supportPercentage = totalVoters > 0
+    ? Number(((whiteSupporters / totalVoters) * 100).toFixed(2))
+    : 0;
+
+  return {
+    success: true,
+    data: {
+      total_villages: totalVillages,
+      total_zones: totalZones,
+      total_voters: totalVoters,
+      age_distribution: ageDistribution,
+      voters_by_locality: votersByLocality,
+      support_status: {
+        white_supporters: whiteSupporters,
+        black_non_supporters: blackNonSupporters,
+        red_undetermined: redUndetermined,
+        unclassified: unclassified,
+        support_score: supportScore,
+        support_percentage: supportPercentage,
+      },
+    },
+  };
+}
+
+/**
+ * Get ADUN dashboard statistics from SPR voters data (read-only version for Server Components)
+ * Returns total villages, zones, and voters from SPR data for the ADUN's area
+ * Use this in Server Components to avoid cookie modification errors
+ */
+export async function getAdunDashboardStatsFromSpr(versionId?: number): Promise<ActionResult<AdunDashboardStats>> {
+  const supabase = await getSupabaseReadOnlyClient();
+  const accessibleZoneIds = await getAccessibleZoneIdsReadOnly();
+  const access = await getCurrentUserAccessReadOnly();
+  
+  // For super admin or ADUN, they can see all zones (accessibleZoneIds is null)
+  // For zone leaders, accessibleZoneIds is an array of their zone IDs
+  const isSuperAdminOrAdun = access.isSuperAdmin || access.isAdun;
+
+  // Get accessible zones with DUN information
+  let zonesQuery = supabase.from("zones").select("id, name, dun_id");
+  let totalZones = 0;
+  let zoneIds: number[] = [];
+  
+  if (accessibleZoneIds !== null) {
+    if (accessibleZoneIds.length === 0) {
+      return { 
+        success: true, 
+        data: {
+          total_villages: 0,
+          total_zones: 0,
+          total_voters: 0,
+          age_distribution: [],
+          voters_by_locality: [],
+          support_status: {
+            white_supporters: 0,
+            black_non_supporters: 0,
+            red_undetermined: 0,
+            unclassified: 0,
+            support_score: 0,
+            support_percentage: 0,
+          },
+        } 
+      };
+    }
+    zonesQuery = zonesQuery.in("id", accessibleZoneIds);
+  }
+
+  const { data: zones, error: zonesError } = await zonesQuery;
+  if (zonesError) {
+    return { success: false, error: zonesError.message || "Failed to fetch zones" };
+  }
+
+  if (zones && zones.length > 0) {
+    zoneIds = zones.map(z => z.id);
+    totalZones = zones.length;
+  } else if (isSuperAdminOrAdun) {
+    // For super admin/ADUN, if no zones found, still proceed (they might not have zones set up yet)
+    // We'll show all SPR voters
+    totalZones = 0;
+  } else {
+    // For zone leaders with no zones, return empty
+    return {
+      success: true,
+      data: {
+        total_villages: 0,
+        total_zones: 0,
+        total_voters: 0,
+        age_distribution: [],
+        voters_by_locality: [],
+        support_status: {
+          white_supporters: 0,
+          black_non_supporters: 0,
+          red_undetermined: 0,
+          unclassified: 0,
+          support_score: 0,
+          support_percentage: 0,
+        },
+      },
+    };
+  }
+
+  // Get DUN IDs from zones
+  const dunIds = zones ? [...new Set(zones.map(z => z.dun_id).filter(Boolean))] : [];
+  
+  // Get DUN names
+  let dunNames: string[] = [];
+  if (dunIds.length > 0) {
+    const { data: duns, error: dunsError } = await supabase
+      .from("duns")
+      .select("name")
+      .in("id", dunIds);
+    
+    if (!dunsError && duns) {
+      dunNames = duns.map(d => d.name).filter(Boolean);
+    }
+  }
+
+  // Get total villages
+  const { data: villages, error: villagesError } = await supabase
+    .from("villages")
+    .select("id")
+    .in("zone_id", zoneIds);
+
+  if (villagesError) {
+    return { success: false, error: villagesError.message };
+  }
+
+  const totalVillages = villages?.length || 0;
+
+  // Get active SPR version if not specified
+  let selectedVersionId = versionId;
+  if (!selectedVersionId) {
+    const versionsResult = await getVoterVersions();
+    const versions = versionsResult.success ? versionsResult.data || [] : [];
+    const activeVersion = versions.find((v) => v.is_active);
+    selectedVersionId = activeVersion?.id;
+  }
+
+  // If no active version found, return empty stats
+  if (!selectedVersionId) {
+    return {
+      success: true,
+      data: {
+        total_villages: totalVillages,
+        total_zones: totalZones,
+        total_voters: 0,
+        age_distribution: [],
+        voters_by_locality: [],
+        support_status: {
+          white_supporters: 0,
+          black_non_supporters: 0,
+          red_undetermined: 0,
+          unclassified: 0,
+          support_score: 0,
+          support_percentage: 0,
+        },
+      },
+    };
+  }
+
+  // Get SPR voters filtered by DUN name
+  // Fetch all voters in batches (Supabase has a default limit of 1000)
+  let allVoters: any[] = [];
+  const batchSize = 1000;
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    let votersQuery = supabase
+      .from("spr_voters")
+      .select("id, tarikh_lahir, nama_lokaliti, voting_support_status, nama_dun")
+      .eq("version_id", selectedVersionId)
+      .range(offset, offset + batchSize - 1);
+
+    // Filter by DUN name if we have DUN names
+    // For super admin/ADUN: if no DUN names found, show all voters (don't filter by DUN)
+    // For zone leaders: filter by DUN names if available
+    // Only filter by DUN if we have DUN names AND (user is not super admin/ADUN OR we want to filter)
+    if (dunNames.length > 0 && (!isSuperAdminOrAdun || zoneIds.length > 0)) {
+      // Use case-insensitive matching with ilike for better matching
+      // Build OR conditions for each DUN name
+      const dunConditions = dunNames
+        .map(name => name.trim())
+        .filter(Boolean)
+        .map(name => `nama_dun.ilike.%${name}%`)
+        .join(",");
+      if (dunConditions) {
+        votersQuery = votersQuery.or(dunConditions);
+      }
+    }
+    // If dunNames.length === 0 OR user is super admin/ADUN with no zones, don't filter by DUN (show all voters for the version)
+
+    const { data: batch, error: votersError } = await votersQuery;
+
+    if (votersError) {
+      return { success: false, error: votersError.message };
+    }
+
+    if (!batch || batch.length === 0) {
+      hasMore = false;
+    } else {
+      allVoters.push(...batch);
+      offset += batchSize;
+      // If we got fewer records than batch size, we've reached the end
+      if (batch.length < batchSize) {
+        hasMore = false;
+      }
+    }
+  }
+
+  let voters = allVoters;
+  let totalVoters = voters.length;
+
+  // If we filtered by DUN names but got 0 results, and user is super admin/ADUN,
+  // try again without DUN filter (in case DUN names don't match)
+  if (totalVoters === 0 && dunNames.length > 0 && isSuperAdminOrAdun) {
+    // Retry without DUN filter
+    allVoters = [];
+    offset = 0;
+    hasMore = true;
+    
+    while (hasMore) {
+      let votersQuery = supabase
+        .from("spr_voters")
+        .select("id, tarikh_lahir, nama_lokaliti, voting_support_status, nama_dun")
+        .eq("version_id", selectedVersionId)
+        .range(offset, offset + batchSize - 1);
+
+      const { data: batch, error: votersError } = await votersQuery;
+
+      if (votersError) {
+        return { success: false, error: votersError.message };
+      }
+
+      if (!batch || batch.length === 0) {
+        hasMore = false;
+      } else {
+        allVoters.push(...batch);
+        offset += batchSize;
+        if (batch.length < batchSize) {
+          hasMore = false;
+        }
+      }
+    }
+    
+    voters = allVoters;
+    totalVoters = voters.length;
+  }
+
+  if (totalVoters === 0) {
+    return {
+      success: true,
+      data: {
+        total_villages: totalVillages,
+        total_zones: totalZones,
+        total_voters: 0,
+        age_distribution: [],
+        voters_by_locality: [],
+        support_status: {
+          white_supporters: 0,
+          black_non_supporters: 0,
+          red_undetermined: 0,
+          unclassified: 0,
+          support_score: 0,
+          support_percentage: 0,
+        },
+      },
+    };
+  }
+
+  // Age distribution
+  const ageGroups = {
+    "18-25": 0,
+    "26-35": 0,
+    "36-45": 0,
+    "46-55": 0,
+    "56-65": 0,
+    "65+": 0,
+  };
+
+  voters.forEach(voter => {
+    const age = calculateAge(voter.tarikh_lahir);
+    if (age !== null && age >= 18) {
+      if (age >= 18 && age <= 25) ageGroups["18-25"]++;
+      else if (age <= 35) ageGroups["26-35"]++;
+      else if (age <= 45) ageGroups["36-45"]++;
+      else if (age <= 55) ageGroups["46-55"]++;
+      else if (age <= 65) ageGroups["56-65"]++;
+      else ageGroups["65+"]++;
+    }
+  });
+
+  const ageDistribution = Object.entries(ageGroups)
+    .map(([age_group, count]) => ({
+      age_group,
+      count,
+      percentage: totalVoters > 0 ? Number(((count / totalVoters) * 100).toFixed(2)) : 0,
+    }))
+    .filter(item => item.count > 0);
+
+  // Voters by locality
+  const localityMap = new Map<string, number>();
+  voters.forEach(voter => {
+    const locality = voter.nama_lokaliti || "Not Specified";
+    localityMap.set(locality, (localityMap.get(locality) || 0) + 1);
+  });
+
+  const votersByLocality = Array.from(localityMap.entries())
+    .map(([locality, count]) => ({
+      locality,
+      count,
+      percentage: totalVoters > 0 ? Number(((count / totalVoters) * 100).toFixed(2)) : 0,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10); // Top 10 localities
+
+  // Support status analysis
+  const whiteSupporters = voters.filter(v => v.voting_support_status === "white").length;
+  const blackNonSupporters = voters.filter(v => v.voting_support_status === "black").length;
+  const redUndetermined = voters.filter(v => v.voting_support_status === "red").length;
+  const unclassified = voters.filter(v => !v.voting_support_status).length;
+
+  // Support score: (white / (white + black + red)) * 100
+  // Only count voters with a status (white, black, or red), exclude unclassified
+  const classifiedVoters = whiteSupporters + blackNonSupporters + redUndetermined;
+  const supportScore = classifiedVoters > 0
+    ? Number(((whiteSupporters / classifiedVoters) * 100).toFixed(2))
+    : 0;
+
+  // Support percentage: white / total voters
   const supportPercentage = totalVoters > 0
     ? Number(((whiteSupporters / totalVoters) * 100).toFixed(2))
     : 0;

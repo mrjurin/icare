@@ -8,27 +8,37 @@ import DataTable, { DataTableEmpty } from "@/components/ui/DataTable";
 import { updateAidsProgram, type AidsProgram } from "@/lib/actions/aidsPrograms";
 import AidsProgramForm from "./AidsProgramForm";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
+
+// Format date consistently to avoid hydration mismatches
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${day}/${month}/${year}`;
+}
 
 type AidsProgramsTableProps = {
   programs: AidsProgram[];
 };
 
-function getStatusBadge(status: string): { label: string; class: string } {
+function getStatusBadge(status: string, t: any): { label: string; class: string } {
   const statusMap: Record<string, { label: string; class: string }> = {
     draft: {
-      label: "Draft",
+      label: t("table.statuses.draft"),
       class: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
     },
     active: {
-      label: "Active",
+      label: t("table.statuses.active"),
       class: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
     },
     completed: {
-      label: "Completed",
+      label: t("table.statuses.completed"),
       class: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300",
     },
     cancelled: {
-      label: "Cancelled",
+      label: t("table.statuses.cancelled"),
       class: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300",
     },
   };
@@ -37,6 +47,7 @@ function getStatusBadge(status: string): { label: string; class: string } {
 }
 
 export default function AidsProgramsTable({ programs }: AidsProgramsTableProps) {
+  const t = useTranslations("aidsPrograms");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [editingProgram, setEditingProgram] = useState<AidsProgram | null>(null);
@@ -62,34 +73,34 @@ export default function AidsProgramsTable({ programs }: AidsProgramsTableProps) 
           <thead className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
             <tr>
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                Program Name
+                {t("table.programName")}
               </th>
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                Aid Type
+                {t("table.aidType")}
               </th>
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                Status
+                {t("table.status")}
               </th>
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                Progress
+                {t("table.progress")}
               </th>
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                Created
+                {t("table.created")}
               </th>
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400 text-right">
-                Actions
+                {t("table.actions")}
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
             {programs.length === 0 ? (
               <DataTableEmpty
-                message="No programs found. Create your first AIDS distribution program to get started."
+                message={t("table.noPrograms")}
                 colSpan={6}
               />
             ) : (
               programs.map((program) => {
-                const statusBadge = getStatusBadge(program.status);
+                const statusBadge = getStatusBadge(program.status, t);
                 const progress =
                   program.total_households && program.total_households > 0
                     ? Math.round(
@@ -134,7 +145,7 @@ export default function AidsProgramsTable({ programs }: AidsProgramsTableProps) 
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-600 dark:text-gray-400">
-                        {new Date(program.created_at).toLocaleDateString()}
+                        {formatDate(program.created_at)}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">

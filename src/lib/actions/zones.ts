@@ -8,8 +8,18 @@ export type Zone = {
   id: number;
   name: string;
   description: string | null;
+  polling_station_id: number | null;
   created_at: string;
   updated_at: string;
+};
+
+export type ZoneWithPollingStation = Zone & {
+  polling_station?: {
+    id: number;
+    name: string;
+    code: string | null;
+    locality_name: string | null;
+  } | null;
 };
 
 export type ZoneStatistics = {
@@ -80,7 +90,7 @@ export async function getZones(): Promise<ActionResult<Zone[]>> {
  * Get a single zone by ID
  * Checks access control before returning
  */
-export async function getZoneById(id: number): Promise<ActionResult<Zone>> {
+export async function getZoneById(id: number): Promise<ActionResult<ZoneWithPollingStation>> {
   if (!id || Number.isNaN(id)) {
     return { success: false, error: "Invalid zone ID" };
   }
@@ -93,17 +103,51 @@ export async function getZoneById(id: number): Promise<ActionResult<Zone>> {
     return { success: false, error: "Access denied: You do not have permission to view this zone" };
   }
 
-  const { data, error } = await supabase
+  // Try to select with polling station join, but handle case where column might not exist yet
+  let query = supabase
     .from("zones")
     .select("*")
     .eq("id", id)
     .single();
 
+  const { data, error } = await query;
+
   if (error || !data) {
     return { success: false, error: "Zone not found" };
   }
 
-  return { success: true, data: data as Zone };
+  const zone = data as any;
+  
+  // If polling_station_id exists and is not null, fetch the polling station details
+  let pollingStation = null;
+  if (zone.polling_station_id) {
+    const { data: psData } = await supabase
+      .from("polling_stations")
+      .select("id, name, code, localities(name)")
+      .eq("id", zone.polling_station_id)
+      .single();
+    
+    if (psData) {
+      pollingStation = {
+        id: psData.id,
+        name: psData.name,
+        code: psData.code,
+        locality_name: (psData as any).localities?.name || null,
+      };
+    }
+  }
+
+  const result: ZoneWithPollingStation = {
+    id: zone.id,
+    name: zone.name,
+    description: zone.description,
+    polling_station_id: zone.polling_station_id || null,
+    created_at: zone.created_at,
+    updated_at: zone.updated_at,
+    polling_station: pollingStation,
+  };
+
+  return { success: true, data: result };
 }
 
 /**
@@ -372,4 +416,63 @@ export async function getZoneStatistics(zoneId?: number): Promise<ActionResult<Z
   });
 
   return { success: true, data: statistics };
+}
+
+/**
+ * Link a polling station to a zone
+ * Only super admin and ADUN can link polling stations
+ */
+export async function linkPollingStationToZone(
+  zoneId: number,
+  pollingStationId: number | null
+): Promise<ActionResult<Zone>> {
+  if (!zoneId || Number.isNaN(zoneId)) {
+    return { success: false, error: "Invalid zone ID" };
+  }
+
+  const supabase = await getSupabaseServerClient();
+  const { getCurrentUserAccess, canAccessZone } = await import("@/lib/utils/accessControl");
+
+  // Check if user has permission to update zones
+  const access = await getCurrentUserAccess();
+  if (!access.isSuperAdmin && !access.isAdun) {
+    return { success: false, error: "Access denied: Only super admin and ADUN can link polling stations" };
+  }
+
+  // Check if user can access this zone
+  const canAccess = await canAccessZone(zoneId);
+  if (!canAccess) {
+    return { success: false, error: "Access denied: You do not have permission to update this zone" };
+  }
+
+  // If pollingStationId is provided, verify it exists
+  if (pollingStationId !== null) {
+    const { data: pollingStation, error: psError } = await supabase
+      .from("polling_stations")
+      .select("id")
+      .eq("id", pollingStationId)
+      .single();
+
+    if (psError || !pollingStation) {
+      return { success: false, error: "Polling station not found" };
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("zones")
+    .update({
+      polling_station_id: pollingStationId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", zoneId)
+    .select()
+    .single();
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/admin/zones");
+  revalidatePath(`/admin/zones/${zoneId}`);
+  return { success: true, data: data as Zone };
 }

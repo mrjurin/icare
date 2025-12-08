@@ -10,6 +10,7 @@ import DataTable, { DataTableEmpty } from "@/components/ui/DataTable";
 import type { PaginationProps } from "@/components/ui/Pagination";
 import { deleteVoter, updateVoterVotingSupportStatus, type SprVoter } from "@/lib/actions/spr-voters";
 import VoterFormModal from "./VoterFormModal";
+import { useTranslations } from "next-intl";
 
 type SprVotersTableProps = {
   voters: SprVoter[];
@@ -26,6 +27,8 @@ export default function SprVotersTable({
   search: initialSearch,
   unmatchedOnly: initialUnmatchedOnly = false,
 }: SprVotersTableProps) {
+  const t = useTranslations("sprVoters.table");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -92,13 +95,13 @@ export default function SprVotersTable({
     <>
       <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Voters</h3>
+          <h3 className="text-lg font-semibold">{t("voters")}</h3>
           <VoterFormModal
             versionId={versionId}
             voter={null}
             trigger={
               <Button className="gap-2">
-                Add Voter
+                {t("addVoter")}
               </Button>
             }
           />
@@ -112,14 +115,14 @@ export default function SprVotersTable({
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
                 <Input
                   type="text"
-                  placeholder="Search by name, IC number, or address..."
+                  placeholder={t("searchPlaceholder")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10"
                 />
               </div>
               <Button type="submit" variant="outline">
-                Search
+                {t("search")}
               </Button>
               {initialSearch && (
                 <Button
@@ -148,11 +151,11 @@ export default function SprVotersTable({
               className="gap-2"
             >
               <Filter className="size-4" />
-              {unmatchedOnly ? "Showing Unmatched Only" : "Show Unmatched Only"}
+              {unmatchedOnly ? t("showingUnmatchedOnly") : t("showUnmatchedOnly")}
             </Button>
             {unmatchedOnly && (
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                ({voters.length} unmatched voter{voters.length !== 1 ? "s" : ""})
+                ({voters.length === 1 ? t("unmatchedCount", { count: voters.length }) : t("unmatchedCountPlural", { count: voters.length })})
               </span>
             )}
           </div>
@@ -162,34 +165,34 @@ export default function SprVotersTable({
       {/* Table */}
       <DataTable
         pagination={pagination || undefined}
-        emptyMessage="No voters found. Import a CSV file or add voters manually."
+        emptyMessage={t("noVotersFound")}
       >
         <table className="w-full text-left text-sm">
           <thead className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
             <tr>
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                Name
+                {t("name")}
               </th>
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                IC Number
+                {t("icNumber")}
               </th>
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                Address
+                {t("address")}
               </th>
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                Locality
+                {t("locality")}
               </th>
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                Polling Station
+                {t("pollingStation")}
               </th>
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                Match Status
+                {t("matchStatus")}
               </th>
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                Voting Support
+                {t("votingSupport")}
               </th>
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400 text-right">
-                Actions
+                {t("actions")}
               </th>
             </tr>
           </thead>
@@ -197,7 +200,7 @@ export default function SprVotersTable({
             {voters.length === 0 ? (
               <DataTableEmpty
                 colSpan={8}
-                message={unmatchedOnly ? "No unmatched voters found. All voters have been matched." : "No voters found. Import a CSV file or add voters manually."}
+                message={unmatchedOnly ? t("noUnmatchedVoters") : t("noVotersFound")}
               />
             ) : (
               voters.map((voter) => (
@@ -223,20 +226,20 @@ export default function SprVotersTable({
                   <td className="px-6 py-4 whitespace-nowrap">
                     {voter.household_member_id ? (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                        Matched
+                        {t("matched")}
                       </span>
                     ) : (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
-                        Unmatched
+                        {t("unmatched")}
                       </span>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-1">
                       {[
-                        { value: "white", label: "White (Full Support)" },
-                        { value: "black", label: "Black (Not Supporting)" },
-                        { value: "red", label: "Red (Not Determined)" },
+                        { value: "white", label: t("whiteFullSupport") },
+                        { value: "black", label: t("blackNotSupporting") },
+                        { value: "red", label: t("redNotDetermined") },
                       ].map((option) => (
                         <button
                           key={option.value}
@@ -266,8 +269,8 @@ export default function SprVotersTable({
                           `}
                           title={
                             voter.voting_support_status === option.value
-                              ? `Remove ${option.label}`
-                              : `Set as ${option.label}`
+                              ? t("remove", { label: option.label })
+                              : t("setAs", { label: option.label })
                           }
                         >
                           {option.value === "white" ? "W" : option.value === "black" ? "B" : "R"}
@@ -283,7 +286,7 @@ export default function SprVotersTable({
                         trigger={
                           <button
                             className="p-2 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-                            title="Edit"
+                            title={t("edit")}
                             disabled={isPending}
                           >
                             <Edit className="size-4" />
@@ -292,7 +295,7 @@ export default function SprVotersTable({
                       />
                       <button
                         className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-                        title="Delete"
+                        title={t("delete")}
                         onClick={() => setDeleteTarget(voter)}
                         disabled={isPending}
                       >
@@ -316,16 +319,14 @@ export default function SprVotersTable({
           <AlertDialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
           <AlertDialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 rounded-xl p-6 shadow-xl z-50 w-full max-w-md">
             <AlertDialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
-              Delete Voter
+              {t("deleteTitle")}
             </AlertDialog.Title>
             <AlertDialog.Description className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Are you sure you want to delete{" "}
-              <span className="font-semibold">{deleteTarget?.nama}</span>? This action cannot be
-              undone.
+              {t("deleteConfirm", { name: deleteTarget?.nama || "" })}
             </AlertDialog.Description>
             <div className="mt-6 flex justify-end gap-3">
               <AlertDialog.Cancel asChild>
-                <Button variant="outline">Cancel</Button>
+                <Button variant="outline">{tCommon("cancel")}</Button>
               </AlertDialog.Cancel>
               <AlertDialog.Action asChild>
                 <Button
@@ -333,7 +334,7 @@ export default function SprVotersTable({
                   onClick={handleDelete}
                   disabled={isPending}
                 >
-                  Delete
+                  {t("delete")}
                 </Button>
               </AlertDialog.Action>
             </div>

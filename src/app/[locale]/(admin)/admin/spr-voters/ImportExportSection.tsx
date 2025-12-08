@@ -11,12 +11,14 @@ import {
   matchVotersWithHouseholds,
   type ActionResult,
 } from "@/lib/actions/spr-voters";
+import { useTranslations } from "next-intl";
 
 type ImportExportSectionProps = {
   versionId: number;
 };
 
 export default function ImportExportSection({ versionId }: ImportExportSectionProps) {
+  const t = useTranslations("sprVoters.importExport");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [importResult, setImportResult] = useState<{
@@ -53,7 +55,7 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
 
     // Validate file type
     if (!file.name.endsWith(".csv")) {
-      alert("Please select a CSV file");
+      alert(t("import.fileTypeError"));
       return;
     }
 
@@ -67,14 +69,14 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
     reader.onload = async (event) => {
       const csvContent = event.target?.result as string;
       if (!csvContent) {
-        alert("Failed to read file");
+        alert(t("import.readError"));
         return;
       }
 
       // Parse CSV to get total rows and header
       const lines = csvContent.split("\n").filter((line) => line.trim());
       if (lines.length < 2) {
-        alert("CSV file must have at least a header and one data row");
+        alert(t("import.invalidFormat"));
         return;
       }
 
@@ -87,7 +89,7 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
 
       // Check required columns
       if (!("Nama" in headerMap)) {
-        alert("Missing required column: Nama");
+        alert(t("import.missingColumn", { column: "Nama" }));
         return;
       }
 
@@ -187,10 +189,10 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
           const errorMessage =
             error instanceof Error
               ? error.message.includes("Failed to fetch")
-                ? "Network error: Please check your connection and try again. The server may be processing a large file."
+                ? t("import.networkError")
                 : error.message
               : "Unknown error occurred";
-          alert(`Failed to import voters: ${errorMessage}`);
+          alert(t("import.importError", { error: errorMessage }));
           setUploadProgress(null);
         }
       });
@@ -206,7 +208,7 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
     try {
       const result = await exportVotersToCSV(versionId);
       if (!result.success) {
-        alert(result.error || "Failed to export voters");
+        alert(result.error || t("export.exportError"));
         return;
       }
 
@@ -223,7 +225,7 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
         document.body.removeChild(link);
       }
     } catch (error) {
-      alert("Failed to export voters");
+      alert(t("export.exportError"));
     } finally {
       setIsExporting(false);
     }
@@ -235,7 +237,7 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
     try {
       const result = await matchVotersWithHouseholds(versionId);
       if (!result.success) {
-        alert(result.error || "Failed to match voters");
+        alert(result.error || t("matching.matchError"));
         return;
       }
 
@@ -244,7 +246,7 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
         router.refresh();
       }
     } catch (error) {
-      alert("Failed to match voters");
+      alert(t("matching.matchError"));
     } finally {
       setIsMatching(false);
     }
@@ -252,18 +254,17 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
 
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">
-      <h3 className="text-lg font-semibold mb-4">Import, Export & Matching</h3>
+      <h3 className="text-lg font-semibold mb-4">{t("title")}</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Import Section */}
         <div className="space-y-3">
           <div>
             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Import Voters from CSV
+              {t("import.title")}
             </h4>
             <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-              Upload a CSV file with SPR voter data. The file should match the SPR Malaysia format.
-              Large files are supported (up to 50MB).
+              {t("import.description")}
             </p>
             <div>
               <input
@@ -282,18 +283,18 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Upload className="size-4" />
-                {isPending ? "Importing..." : "Choose CSV File"}
+                {isPending ? t("import.importing") : t("import.chooseFile")}
               </Button>
               {selectedFileName && selectedFileSize !== null && (
                 <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
-                  <p className="font-medium">Selected: {selectedFileName}</p>
-                  <p>Size: {formatFileSize(selectedFileSize)}</p>
+                  <p className="font-medium">{t("import.selected", { fileName: selectedFileName })}</p>
+                  <p>{t("import.size", { size: formatFileSize(selectedFileSize) })}</p>
                 </div>
               )}
               {uploadProgress && (
                 <div className="mt-3 space-y-2">
                   <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
-                    <span>Processing rows...</span>
+                    <span>{t("import.processingRows")}</span>
                     <span>
                       {uploadProgress.current.toLocaleString()} / {uploadProgress.total.toLocaleString()} ({uploadProgress.percentage}%)
                     </span>
@@ -325,19 +326,19 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
                 )}
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    Imported {importResult.imported} voters
+                    {t("import.imported", { count: importResult.imported })}
                   </p>
                   {importResult.errors.length > 0 && (
                     <div className="mt-2">
                       <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                        {importResult.errors.length} error(s) occurred:
+                        {t("import.errorsOccurred", { count: importResult.errors.length })}
                       </p>
                       <ul className="text-xs text-gray-600 dark:text-gray-400 list-disc list-inside space-y-1 max-h-32 overflow-y-auto">
                         {importResult.errors.slice(0, 10).map((error, idx) => (
                           <li key={idx}>{error}</li>
                         ))}
                         {importResult.errors.length > 10 && (
-                          <li>... and {importResult.errors.length - 10} more errors</li>
+                          <li>{t("import.andMoreErrors", { count: importResult.errors.length - 10 })}</li>
                         )}
                       </ul>
                     </div>
@@ -352,10 +353,10 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
         <div className="space-y-3">
           <div>
             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Export Voters to CSV
+              {t("export.title")}
             </h4>
             <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-              Download all voters in the selected version as a CSV file.
+              {t("export.description")}
             </p>
             <Button
               onClick={handleExport}
@@ -364,7 +365,7 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
               variant="outline"
             >
               <Download className="size-4" />
-              {isExporting ? "Exporting..." : "Export to CSV"}
+              {isExporting ? t("export.exporting") : t("export.exportToCsv")}
             </Button>
           </div>
 
@@ -373,7 +374,7 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
               <FileText className="size-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="text-xs text-gray-600 dark:text-gray-400">
-                  The exported CSV will include all voter fields in the SPR Malaysia format.
+                  {t("export.info")}
                 </p>
               </div>
             </div>
@@ -384,10 +385,10 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
         <div className="space-y-3">
           <div>
             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Match with Households
+              {t("matching.title")}
             </h4>
             <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-              Automatically match SPR voters with household members by IC number.
+              {t("matching.description")}
             </p>
             <Button
               onClick={handleMatch}
@@ -396,7 +397,7 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
               variant="outline"
             >
               <Link2 className="size-4" />
-              {isMatching ? "Matching..." : "Match Voters"}
+              {isMatching ? t("matching.matching") : t("matching.matchVoters")}
             </Button>
           </div>
 
@@ -416,11 +417,11 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
                 )}
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    Matched {matchResult.matched} of {matchResult.total} voters
+                    {t("matching.matched", { matched: matchResult.matched, total: matchResult.total })}
                   </p>
                   {matchResult.unmatched > 0 && (
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                      {matchResult.unmatched} voters could not be matched. Use the filter to view unmatched voters.
+                      {t("matching.unmatchedMessage", { count: matchResult.unmatched })}
                     </p>
                   )}
                 </div>

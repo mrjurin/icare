@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Edit, Trash2, Plus } from "lucide-react";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
+import { useTranslations } from "next-intl";
 import Button from "@/components/ui/Button";
 import DataTable, { DataTableEmpty } from "@/components/ui/DataTable";
 import { deleteReferenceData, type ReferenceData, type ReferenceTable } from "@/lib/actions/reference-data";
@@ -18,9 +19,10 @@ type ReferenceDataTableProps = {
 
 export default function ReferenceDataTable({ table, data }: ReferenceDataTableProps) {
   const router = useRouter();
+  const t = useTranslations("referenceData");
   const [isPending, startTransition] = useTransition();
   const [deleteTarget, setDeleteTarget] = useState<ReferenceData | null>(null);
-  const displayName = getTableDisplayName(table);
+  const displayName = getTableDisplayName(table, t);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -28,7 +30,7 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
     startTransition(async () => {
       const result = await deleteReferenceData(table, deleteTarget.id);
       if (!result.success) {
-        alert(result.error || "Failed to delete");
+        alert(result.error || t("table.deleteFailed"));
         return;
       }
       setDeleteTarget(null);
@@ -42,45 +44,45 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
 
       <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">All {displayName}s</h3>
+          <h3 className="text-lg font-semibold">{t("table.all", { displayName })}</h3>
           <ReferenceDataFormModal
             table={table}
             data={null}
             trigger={
               <Button className="gap-2">
                 <Plus className="size-4" />
-                Add {displayName}
+                {t("table.add", { displayName })}
               </Button>
             }
           />
         </div>
       </div>
 
-      <DataTable emptyMessage={`No ${displayName.toLowerCase()}s found. Create your first one.`}>
+      <DataTable emptyMessage={t("table.empty", { displayName: displayName.toLowerCase() })}>
         <table className="w-full text-left text-sm">
           <thead className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
             <tr>
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                Name
+                {t("table.name")}
               </th>
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                Code
+                {t("table.code")}
               </th>
               {(table === "localities" || table === "polling_stations") && (
                 <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                  {table === "localities" ? "Parliament / DUN" : "Locality"}
+                  {table === "localities" ? t("table.parliamentDun") : t("table.locality")}
                 </th>
               )}
               {table === "polling_stations" && (
                 <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                  Address
+                  {t("table.address")}
                 </th>
               )}
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                Status
+                {t("table.status")}
               </th>
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400 text-right">
-                Actions
+                {t("table.actions")}
               </th>
             </tr>
           </thead>
@@ -88,7 +90,7 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
             {data.length === 0 ? (
               <DataTableEmpty
                 colSpan={table === "polling_stations" ? 6 : table === "localities" ? 5 : 4}
-                message={`No ${displayName.toLowerCase()}s found. Create your first one.`}
+                message={t("table.empty", { displayName: displayName.toLowerCase() })}
               />
             ) : (
               data.map((item) => (
@@ -122,7 +124,7 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
                           : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
                       }`}
                     >
-                      {(item.is_active ?? false) ? "Active" : "Inactive"}
+                      {(item.is_active ?? false) ? t("table.active") : t("table.inactive")}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -133,7 +135,7 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
                         trigger={
                           <button
                             className="p-2 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-                            title="Edit"
+                            title={t("table.edit")}
                             disabled={isPending}
                           >
                             <Edit className="size-4" />
@@ -142,7 +144,7 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
                       />
                       <button
                         className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-                        title="Delete"
+                        title={t("table.delete")}
                         onClick={() => setDeleteTarget(item)}
                         disabled={isPending}
                       >
@@ -166,16 +168,14 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
           <AlertDialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
           <AlertDialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 rounded-xl p-6 shadow-xl z-50 w-full max-w-md">
             <AlertDialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
-              Delete {displayName}
+              {t("table.deleteTitle", { displayName })}
             </AlertDialog.Title>
             <AlertDialog.Description className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Are you sure you want to delete{" "}
-              <span className="font-semibold">{deleteTarget?.name}</span>? This action cannot be
-              undone.
+              {t("table.deleteConfirm", { name: deleteTarget?.name || "" })}
             </AlertDialog.Description>
             <div className="mt-6 flex justify-end gap-3">
               <AlertDialog.Cancel asChild>
-                <Button variant="outline">Cancel</Button>
+                <Button variant="outline">{t("form.cancel")}</Button>
               </AlertDialog.Cancel>
               <AlertDialog.Action asChild>
                 <Button
@@ -183,7 +183,7 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
                   onClick={handleDelete}
                   disabled={isPending}
                 >
-                  Delete
+                  {t("table.delete")}
                 </Button>
               </AlertDialog.Action>
             </div>

@@ -13,6 +13,7 @@ import {
   type CreateVoterInput,
   type UpdateVoterInput,
 } from "@/lib/actions/spr-voters";
+import { useTranslations } from "next-intl";
 
 type VoterFormModalProps = {
   versionId: number;
@@ -21,6 +22,8 @@ type VoterFormModalProps = {
 };
 
 export default function VoterFormModal({ versionId, voter, trigger }: VoterFormModalProps) {
+  const t = useTranslations("sprVoters.form");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(false);
@@ -74,7 +77,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
     e.preventDefault();
 
     if (!formData.nama?.trim()) {
-      alert("Name is required");
+      alert(t("nameRequired"));
       return;
     }
 
@@ -118,7 +121,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
       }
 
       if (!result.success) {
-        alert(result.error || "Failed to save voter");
+        alert(result.error || t("saveError"));
         return;
       }
 
@@ -135,7 +138,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
         <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 rounded-xl p-6 shadow-xl z-50 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between mb-4">
             <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
-              {voter ? "Edit Voter" : "Add New Voter"}
+              {voter ? t("editTitle") : t("addTitle")}
             </Dialog.Title>
             <Dialog.Close asChild>
               <button className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
@@ -148,7 +151,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  Name *
+                  {t("name")} *
                 </label>
                 <Input
                   type="text"
@@ -161,7 +164,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  IC Number
+                  {t("icNumber")}
                 </label>
                 <Input
                   type="text"
@@ -173,7 +176,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  Old IC Number
+                  {t("oldIcNumber")}
                 </label>
                 <Input
                   type="text"
@@ -185,7 +188,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  Phone Number
+                  {t("phoneNumber")}
                 </label>
                 <Input
                   type="text"
@@ -197,7 +200,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  Gender
+                  {t("gender")}
                 </label>
                 <select
                   className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-primary focus:ring-primary"
@@ -205,15 +208,15 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
                   onChange={(e) => setFormData({ ...formData, jantina: e.target.value })}
                   disabled={isPending}
                 >
-                  <option value="">Select...</option>
-                  <option value="L">Lelaki (Male)</option>
-                  <option value="P">Perempuan (Female)</option>
+                  <option value="">{t("selectGender")}</option>
+                  <option value="L">{t("male")}</option>
+                  <option value="P">{t("female")}</option>
                 </select>
               </div>
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  Date of Birth
+                  {t("dateOfBirth")}
                 </label>
                 <Input
                   type="date"
@@ -225,7 +228,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  Race
+                  {t("race")}
                 </label>
                 <Input
                   type="text"
@@ -237,7 +240,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  Religion
+                  {t("religion")}
                 </label>
                 <Input
                   type="text"
@@ -249,7 +252,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  Address
+                  {t("address")}
                 </label>
                 <textarea
                   className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-primary focus:ring-primary"
@@ -262,7 +265,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  Postcode
+                  {t("postcode")}
                 </label>
                 <Input
                   type="text"
@@ -274,7 +277,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  District
+                  {t("district")}
                 </label>
                 <Input
                   type="text"
@@ -286,7 +289,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  Locality Code
+                  {t("localityCode")}
                 </label>
                 <Input
                   type="text"
@@ -298,7 +301,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  Locality Name
+                  {t("localityName")}
                 </label>
                 <Input
                   type="text"
@@ -310,7 +313,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  Parliament Name
+                  {t("parliamentName")}
                 </label>
                 <Input
                   type="text"
@@ -322,7 +325,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  DUN Name
+                  {t("dunName")}
                 </label>
                 <Input
                   type="text"
@@ -334,7 +337,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  Polling Station
+                  {t("pollingStation")}
                 </label>
                 <Input
                   type="text"
@@ -346,7 +349,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  Voting Time
+                  {t("votingTime")}
                 </label>
                 <Input
                   type="text"
@@ -358,7 +361,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  Channel/Stream
+                  {t("channelStream")}
                 </label>
                 <Input
                   type="number"
@@ -375,13 +378,13 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
 
               <div className="md:col-span-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">
-                  Voting Support Status
+                  {t("votingSupportStatus")}
                 </label>
                 <div className="flex gap-2">
                   {[
-                    { value: "white", label: "White (Full Support)", color: "bg-white border-gray-400 text-gray-900" },
-                    { value: "black", label: "Black (Not Supporting)", color: "bg-gray-900 border-gray-700 text-white" },
-                    { value: "red", label: "Red (Not Determined)", color: "bg-red-600 border-red-700 text-white" },
+                    { value: "white", label: t("whiteFullSupport"), color: "bg-white border-gray-400 text-gray-900" },
+                    { value: "black", label: t("blackNotSupporting"), color: "bg-gray-900 border-gray-700 text-white" },
+                    { value: "red", label: t("redNotDetermined"), color: "bg-red-600 border-red-700 text-white" },
                   ].map((option) => (
                     <button
                       key={option.value}
@@ -414,7 +417,7 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
                   ))}
                 </div>
                 <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                  <span className="font-semibold">W</span>: Full support • <span className="font-semibold">B</span>: Not supporting • <span className="font-semibold">R</span>: Not determined
+                  {t("votingSupportLegend")}
                 </p>
               </div>
             </div>
@@ -422,11 +425,11 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
             <div className="flex justify-end gap-3 mt-6">
               <Dialog.Close asChild>
                 <Button type="button" variant="outline" disabled={isPending}>
-                  Cancel
+                  {tCommon("cancel")}
                 </Button>
               </Dialog.Close>
               <Button type="submit" disabled={isPending}>
-                {voter ? "Update Voter" : "Create Voter"}
+                {voter ? t("updateVoter") : t("createVoter")}
               </Button>
             </div>
           </form>

@@ -3,6 +3,7 @@
 import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, Download, FileText, AlertCircle, CheckCircle, Database } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Button from "@/components/ui/Button";
 import {
   importReferenceDataFromCSV,
@@ -19,6 +20,7 @@ type ImportExportSectionProps = {
 
 export default function ImportExportSection({ table }: ImportExportSectionProps) {
   const router = useRouter();
+  const t = useTranslations("referenceData");
   const [isPending, startTransition] = useTransition();
   const [importResult, setImportResult] = useState<{
     imported: number;
@@ -34,7 +36,7 @@ export default function ImportExportSection({ table }: ImportExportSectionProps)
   const [versions, setVersions] = useState<SprVoterVersion[]>([]);
   const [selectedVersionId, setSelectedVersionId] = useState<number | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const displayName = getTableDisplayName(table);
+  const displayName = getTableDisplayName(table, t);
 
   // Load SPR versions
   useEffect(() => {
@@ -56,7 +58,7 @@ export default function ImportExportSection({ table }: ImportExportSectionProps)
 
     // Validate file type
     if (!file.name.endsWith(".csv")) {
-      alert("Please select a CSV file");
+      alert(t("importExport.import.pleaseSelectCsv"));
       return;
     }
 
@@ -64,14 +66,14 @@ export default function ImportExportSection({ table }: ImportExportSectionProps)
     reader.onload = async (event) => {
       const csvContent = event.target?.result as string;
       if (!csvContent) {
-        alert("Failed to read file");
+        alert(t("importExport.import.failedToRead"));
         return;
       }
 
       startTransition(async () => {
         const result = await importReferenceDataFromCSV(table, csvContent);
         if (!result.success) {
-          alert(result.error || "Failed to import data");
+          alert(result.error || t("importExport.import.failedToImport"));
           return;
         }
 
@@ -92,7 +94,7 @@ export default function ImportExportSection({ table }: ImportExportSectionProps)
     try {
       const result = await exportReferenceDataToCSV(table);
       if (!result.success) {
-        alert(result.error || "Failed to export data");
+        alert(result.error || t("importExport.export.failedToExport"));
         return;
       }
 
@@ -109,7 +111,7 @@ export default function ImportExportSection({ table }: ImportExportSectionProps)
         document.body.removeChild(link);
       }
     } catch (error) {
-      alert("Failed to export data");
+      alert(t("importExport.export.failedToExport"));
     } finally {
       setIsExporting(false);
     }
@@ -122,7 +124,7 @@ export default function ImportExportSection({ table }: ImportExportSectionProps)
     startTransition(async () => {
       const result = await populateReferenceDataFromSpr(table, selectedVersionId);
       if (!result.success) {
-        alert(result.error || "Failed to populate data from SPR");
+        alert(result.error || t("importExport.populate.failedToPopulate"));
         setIsPopulating(false);
         return;
       }
@@ -137,28 +139,28 @@ export default function ImportExportSection({ table }: ImportExportSectionProps)
 
   // Get expected CSV format based on table type
   const getExpectedFormat = () => {
-    const baseColumns = "Name, Code, Description, IsActive";
+    const baseColumns = `${t("table.name")}, ${t("table.code")}, ${t("form.description")}, ${t("form.active")}`;
     if (table === "localities") {
-      return `${baseColumns}, Parliament, DUN, District`;
+      return `${baseColumns}, ${t("form.parliament")}, ${t("form.dun")}, ${t("form.district")}`;
     } else if (table === "polling_stations") {
-      return `${baseColumns}, Locality, Address`;
+      return `${baseColumns}, ${t("form.locality")}, ${t("form.address")}`;
     }
     return baseColumns;
   };
 
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6 mb-6">
-      <h3 className="text-lg font-semibold mb-4">Import & Export</h3>
+      <h3 className="text-lg font-semibold mb-4">{t("importExport.title")}</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Import Section */}
         <div className="space-y-3">
           <div>
             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Import {displayName} from CSV
+              {t("importExport.import.title", { displayName })}
             </h4>
             <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-              Upload a CSV file with {displayName.toLowerCase()} data. Required columns: {getExpectedFormat()}
+              {t("importExport.import.description", { displayName: displayName.toLowerCase(), format: getExpectedFormat() })}
             </p>
             <div>
               <input
@@ -177,7 +179,7 @@ export default function ImportExportSection({ table }: ImportExportSectionProps)
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Upload className="size-4" />
-                {isPending ? "Importing..." : "Choose CSV File"}
+                {isPending ? t("importExport.import.importing") : t("importExport.import.chooseFile")}
               </Button>
             </div>
           </div>
@@ -198,20 +200,21 @@ export default function ImportExportSection({ table }: ImportExportSectionProps)
                 )}
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    Imported {importResult.imported} {displayName.toLowerCase()}
-                    {importResult.imported !== 1 ? "s" : ""}
+                    {importResult.imported === 1
+                      ? t("importExport.import.imported", { count: importResult.imported, displayName: displayName.toLowerCase() })
+                      : t("importExport.import.importedPlural", { count: importResult.imported, displayName: displayName.toLowerCase() })}
                   </p>
                   {importResult.errors.length > 0 && (
                     <div className="mt-2">
                       <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                        {importResult.errors.length} error(s) occurred:
+                        {t("importExport.import.errorsOccurred", { count: importResult.errors.length })}
                       </p>
                       <ul className="text-xs text-gray-600 dark:text-gray-400 list-disc list-inside space-y-1 max-h-32 overflow-y-auto">
                         {importResult.errors.slice(0, 10).map((error, idx) => (
                           <li key={idx}>{error}</li>
                         ))}
                         {importResult.errors.length > 10 && (
-                          <li>... and {importResult.errors.length - 10} more errors</li>
+                          <li>{t("importExport.import.andMoreErrors", { count: importResult.errors.length - 10 })}</li>
                         )}
                       </ul>
                     </div>
@@ -226,10 +229,10 @@ export default function ImportExportSection({ table }: ImportExportSectionProps)
         <div className="space-y-3">
           <div>
             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Export {displayName} to CSV
+              {t("importExport.export.title", { displayName })}
             </h4>
             <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-              Download all {displayName.toLowerCase()} data as a CSV file.
+              {t("importExport.export.description", { displayName: displayName.toLowerCase() })}
             </p>
             <Button
               onClick={handleExport}
@@ -238,7 +241,7 @@ export default function ImportExportSection({ table }: ImportExportSectionProps)
               variant="outline"
             >
               <Download className="size-4" />
-              {isExporting ? "Exporting..." : "Export to CSV"}
+              {isExporting ? t("importExport.export.exporting") : t("importExport.export.exportToCsv")}
             </Button>
           </div>
 
@@ -247,19 +250,19 @@ export default function ImportExportSection({ table }: ImportExportSectionProps)
               <FileText className="size-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="text-xs font-medium text-gray-900 dark:text-white mb-1">
-                  Expected CSV Format:
+                  {t("importExport.export.expectedFormat")}
                 </p>
                 <p className="text-xs text-gray-600 dark:text-gray-400">
                   {getExpectedFormat()}
                 </p>
                 {table === "localities" && (
                   <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    Note: Parliament, DUN, and District should match existing records by name or code.
+                    {t("importExport.export.noteParliamentDun")}
                   </p>
                 )}
                 {table === "polling_stations" && (
                   <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    Note: Locality should match an existing locality by name or code.
+                    {t("importExport.export.noteLocality")}
                   </p>
                 )}
               </div>
@@ -271,15 +274,15 @@ export default function ImportExportSection({ table }: ImportExportSectionProps)
         <div className="space-y-3">
           <div>
             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Populate from SPR Data
+              {t("importExport.populate.title")}
             </h4>
             <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-              Extract unique {displayName.toLowerCase()} values from SPR voter data.
+              {t("importExport.populate.description", { displayName: displayName.toLowerCase() })}
             </p>
             {versions.length > 0 && (
               <div className="mb-3">
                 <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  SPR Version (optional)
+                  {t("importExport.populate.sprVersion")}
                 </label>
                 <select
                   value={selectedVersionId || ""}
@@ -289,10 +292,10 @@ export default function ImportExportSection({ table }: ImportExportSectionProps)
                   disabled={isPopulating}
                   className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="">All Versions</option>
+                  <option value="">{t("importExport.populate.allVersions")}</option>
                   {versions.map((version) => (
                     <option key={version.id} value={version.id}>
-                      {version.name} {version.is_active ? "(Active)" : ""}
+                      {version.name} {version.is_active ? t("importExport.populate.active") : ""}
                     </option>
                   ))}
                 </select>
@@ -305,7 +308,7 @@ export default function ImportExportSection({ table }: ImportExportSectionProps)
               variant="outline"
             >
               <Database className="size-4" />
-              {isPopulating ? "Populating..." : "Populate from SPR"}
+              {isPopulating ? t("importExport.populate.populating") : t("importExport.populate.populateFromSpr")}
             </Button>
           </div>
 
@@ -325,26 +328,27 @@ export default function ImportExportSection({ table }: ImportExportSectionProps)
                 )}
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    Added {populateResult.added} new {displayName.toLowerCase()}
-                    {populateResult.added !== 1 ? "s" : ""}
+                    {populateResult.added === 1
+                      ? t("importExport.populate.added", { count: populateResult.added, displayName: displayName.toLowerCase() })
+                      : t("importExport.populate.addedPlural", { count: populateResult.added, displayName: displayName.toLowerCase() })}
                     {populateResult.skipped > 0 && (
                       <span className="text-gray-600 dark:text-gray-400">
                         {" "}
-                        ({populateResult.skipped} skipped)
+                        {t("importExport.populate.skipped", { count: populateResult.skipped })}
                       </span>
                     )}
                   </p>
                   {populateResult.errors.length > 0 && (
                     <div className="mt-2">
                       <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                        {populateResult.errors.length} error(s) occurred:
+                        {t("importExport.populate.errorsOccurred", { count: populateResult.errors.length })}
                       </p>
                       <ul className="text-xs text-gray-600 dark:text-gray-400 list-disc list-inside space-y-1 max-h-32 overflow-y-auto">
                         {populateResult.errors.slice(0, 10).map((error, idx) => (
                           <li key={idx}>{error}</li>
                         ))}
                         {populateResult.errors.length > 10 && (
-                          <li>... and {populateResult.errors.length - 10} more errors</li>
+                          <li>{t("importExport.populate.andMoreErrors", { count: populateResult.errors.length - 10 })}</li>
                         )}
                       </ul>
                     </div>

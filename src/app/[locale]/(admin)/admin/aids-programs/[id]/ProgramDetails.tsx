@@ -1,6 +1,7 @@
 "use client";
 
 import { AidsProgram, AidsProgramZone, AidsProgramAssignment } from "@/lib/actions/aidsPrograms";
+import { useTranslations } from "next-intl";
 
 type ProgramDetailsProps = {
   program: AidsProgram;
@@ -9,20 +10,32 @@ type ProgramDetailsProps = {
 };
 
 export default function ProgramDetails({ program, zones, assignments }: ProgramDetailsProps) {
+  const t = useTranslations("aidsPrograms.detail");
+  const tTable = useTranslations("aidsPrograms.table");
   const progress =
     program.total_households && program.total_households > 0
       ? Math.round(((program.distributed_households || 0) / program.total_households) * 100)
       : 0;
 
+  const getStatusLabel = (status: string) => {
+    const statusMap: Record<string, string> = {
+      draft: tTable("statuses.draft"),
+      active: tTable("statuses.active"),
+      completed: tTable("statuses.completed"),
+      cancelled: tTable("statuses.cancelled"),
+    };
+    return statusMap[status] || status;
+  };
+
   return (
     <div className="bg-white dark:bg-background-dark rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Aid Type</h3>
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t("aidType")}</h3>
           <p className="text-lg font-semibold">{program.aid_type}</p>
         </div>
         <div>
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Status</h3>
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t("status")}</h3>
           <span
             className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
               program.status === "active"
@@ -32,11 +45,11 @@ export default function ProgramDetails({ program, zones, assignments }: ProgramD
                 : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
             }`}
           >
-            {program.status.charAt(0).toUpperCase() + program.status.slice(1)}
+            {getStatusLabel(program.status)}
           </span>
         </div>
         <div>
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Progress</h3>
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t("progress")}</h3>
           <div className="flex items-center gap-3">
             <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-3">
               <div
@@ -50,14 +63,14 @@ export default function ProgramDetails({ program, zones, assignments }: ProgramD
           </div>
         </div>
         <div>
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Created By</h3>
-          <p className="text-lg">{program.creator_name || "Unknown"}</p>
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t("createdBy")}</h3>
+          <p className="text-lg">{program.creator_name || t("unknown")}</p>
         </div>
       </div>
 
       {zones.length > 0 && (
         <div>
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Assigned Zones/Villages</h3>
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">{t("assignedZonesVillages")}</h3>
           <div className="space-y-2">
             {zones.map((zone) => (
               <div
@@ -78,7 +91,7 @@ export default function ProgramDetails({ program, zones, assignments }: ProgramD
 
       {assignments.length > 0 && (
         <div>
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Assignments</h3>
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">{t("assignments")}</h3>
           <div className="space-y-2">
             {assignments.map((assignment) => (
               <div
@@ -88,7 +101,7 @@ export default function ProgramDetails({ program, zones, assignments }: ProgramD
                 <div>
                   <span className="font-medium">{assignment.assigned_to_name}</span>
                   <span className="text-sm text-gray-600 dark:text-gray-400 ml-2">
-                    ({assignment.assignment_type === "zone_leader" ? "Zone Leader" : "Branch Chief"})
+                    ({assignment.assignment_type === "zone_leader" ? t("zoneLeader") : t("branchChief")})
                   </span>
                 </div>
                 <span

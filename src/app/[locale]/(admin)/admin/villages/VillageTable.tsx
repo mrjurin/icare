@@ -6,18 +6,20 @@ import { Edit2, Trash2, MapPin } from "lucide-react";
 import Button from "@/components/ui/Button";
 import VillageFormModal from "./VillageFormModal";
 import { deleteVillage, type Village } from "@/lib/actions/villages";
+import { useTranslations } from "next-intl";
 
 type Props = {
   villages: Village[];
 };
 
 export default function VillageTable({ villages }: Props) {
+  const t = useTranslations("villages.table");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [editingVillage, setEditingVillage] = useState<Village | null>(null);
 
   const handleDelete = (village: Village) => {
-    if (!confirm(`Are you sure you want to delete "${village.name}"? This action cannot be undone.`)) {
+    if (!confirm(t("deleteConfirm", { name: village.name }))) {
       return;
     }
 
@@ -26,7 +28,7 @@ export default function VillageTable({ villages }: Props) {
       if (result.success) {
         router.refresh();
       } else {
-        alert(result.error || "Failed to delete village");
+        alert(result.error || t("deleteError"));
       }
     });
   };
@@ -35,8 +37,8 @@ export default function VillageTable({ villages }: Props) {
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
         <MapPin className="size-12 mx-auto mb-4 text-gray-400" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No villages yet</h3>
-        <p className="text-gray-600 mb-4">Create your first village to start organizing by location</p>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">{t("noVillagesYet")}</h3>
+        <p className="text-gray-600 mb-4">{t("createFirstVillage")}</p>
       </div>
     );
   }
@@ -47,11 +49,11 @@ export default function VillageTable({ villages }: Props) {
         <table className="min-w-full text-sm">
           <thead className="text-left border-b border-gray-200 bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600">Village Name</th>
-              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600">Zone</th>
-              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600">Description</th>
-              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600">Created</th>
-              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 text-right">Actions</th>
+              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600">{t("villageName")}</th>
+              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600">{t("zone")}</th>
+              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600">{t("description")}</th>
+              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600">{t("created")}</th>
+              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 text-right">{t("actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -84,7 +86,7 @@ export default function VillageTable({ villages }: Props) {
                       trigger={
                         <button
                           className="p-2 text-gray-600 hover:text-primary rounded-lg hover:bg-gray-100"
-                          title="Edit"
+                          title={t("edit")}
                         >
                           <Edit2 className="size-4" />
                         </button>
@@ -93,7 +95,7 @@ export default function VillageTable({ villages }: Props) {
                     <button
                       onClick={() => handleDelete(village)}
                       className="p-2 text-red-600 hover:text-red-700 rounded-lg hover:bg-red-50"
-                      title="Delete"
+                      title={t("delete")}
                       disabled={isPending}
                     >
                       <Trash2 className="size-4" />

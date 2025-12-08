@@ -4,6 +4,7 @@ import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import {
@@ -30,13 +31,14 @@ export default function ReferenceDataFormModal({
   trigger,
 }: ReferenceDataFormModalProps) {
   const router = useRouter();
+  const t = useTranslations("referenceData");
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [parliaments, setParliaments] = useState<ReferenceData[]>([]);
   const [duns, setDuns] = useState<ReferenceData[]>([]);
   const [districts, setDistricts] = useState<ReferenceData[]>([]);
   const [localities, setLocalities] = useState<ReferenceData[]>([]);
-  const displayName = getTableDisplayName(table);
+  const displayName = getTableDisplayName(table, t);
 
   const [formData, setFormData] = useState<CreateReferenceDataInput>({
     name: "",
@@ -96,7 +98,7 @@ export default function ReferenceDataFormModal({
     e.preventDefault();
 
     if (!formData.name?.trim()) {
-      alert("Name is required");
+      alert(t("form.nameRequired"));
       return;
     }
 
@@ -113,7 +115,7 @@ export default function ReferenceDataFormModal({
       }
 
       if (!result.success) {
-        alert(result.error || "Failed to save");
+        alert(result.error || t("form.saveFailed"));
         return;
       }
 
@@ -130,7 +132,7 @@ export default function ReferenceDataFormModal({
         <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 rounded-xl p-6 shadow-xl z-50 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between mb-4">
             <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
-              {data ? `Edit ${displayName}` : `Add New ${displayName}`}
+              {data ? t("form.editTitle", { displayName }) : t("form.addTitle", { displayName })}
             </Dialog.Title>
             <Dialog.Close asChild>
               <button className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
@@ -142,7 +144,7 @@ export default function ReferenceDataFormModal({
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                Name *
+                {t("form.name")} *
               </label>
               <Input
                 type="text"
@@ -155,7 +157,7 @@ export default function ReferenceDataFormModal({
 
             <div>
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                Code
+                {t("form.code")}
               </label>
               <Input
                 type="text"
@@ -169,7 +171,7 @@ export default function ReferenceDataFormModal({
               <>
                 <div>
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                    Parliament
+                    {t("form.parliament")}
                   </label>
                   <SearchableSelect
                     options={parliaments.map((p) => ({ value: p.id, label: p.name }))}
@@ -180,13 +182,13 @@ export default function ReferenceDataFormModal({
                         parliamentId: value ? parseInt(String(value), 10) : undefined,
                       })
                     }
-                    placeholder="Select parliament..."
+                    placeholder={t("form.selectParliament")}
                   />
                 </div>
 
                 <div>
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                    DUN
+                    {t("form.dun")}
                   </label>
                   <SearchableSelect
                     options={duns.map((d) => ({ value: d.id, label: d.name }))}
@@ -197,13 +199,13 @@ export default function ReferenceDataFormModal({
                         dunId: value ? parseInt(String(value), 10) : undefined,
                       })
                     }
-                    placeholder="Select DUN..."
+                    placeholder={t("form.selectDun")}
                   />
                 </div>
 
                 <div>
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                    District
+                    {t("form.district")}
                   </label>
                   <SearchableSelect
                     options={districts.map((d) => ({ value: d.id, label: d.name }))}
@@ -214,7 +216,7 @@ export default function ReferenceDataFormModal({
                         districtId: value ? parseInt(String(value), 10) : undefined,
                       })
                     }
-                    placeholder="Select district..."
+                    placeholder={t("form.selectDistrict")}
                   />
                 </div>
               </>
@@ -224,7 +226,7 @@ export default function ReferenceDataFormModal({
               <>
                 <div>
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                    Locality
+                    {t("form.locality")}
                   </label>
                   <SearchableSelect
                     options={localities.map((l) => ({ value: l.id, label: l.name }))}
@@ -235,13 +237,13 @@ export default function ReferenceDataFormModal({
                         localityId: value ? parseInt(String(value), 10) : undefined,
                       })
                     }
-                    placeholder="Select locality..."
+                    placeholder={t("form.selectLocality")}
                   />
                 </div>
 
                 <div>
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                    Address
+                    {t("form.address")}
                   </label>
                   <textarea
                     className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-primary focus:ring-primary"
@@ -256,7 +258,7 @@ export default function ReferenceDataFormModal({
 
             <div>
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                Description
+                {t("form.description")}
               </label>
               <textarea
                 className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-primary focus:ring-primary"
@@ -280,18 +282,18 @@ export default function ReferenceDataFormModal({
                 htmlFor="is-active"
                 className="text-sm font-medium text-gray-700 dark:text-gray-300"
               >
-                Active
+                {t("form.active")}
               </label>
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
               <Dialog.Close asChild>
                 <Button type="button" variant="outline" disabled={isPending}>
-                  Cancel
+                  {t("form.cancel")}
                 </Button>
               </Dialog.Close>
               <Button type="submit" disabled={isPending}>
-                {data ? "Update" : "Create"}
+                {data ? t("form.update") : t("form.create")}
               </Button>
             </div>
           </form>

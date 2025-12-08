@@ -373,6 +373,72 @@ export async function deleteVillage(id: number): Promise<ActionResult> {
 }
 
 /**
+ * Get villages that are not in a specific zone
+ * Returns villages from other zones that can be reassigned
+ */
+export async function getVillagesNotInZone(zoneId: number): Promise<ActionResult<Village[]>> {
+  if (!zoneId || Number.isNaN(zoneId)) {
+    return { success: false, error: "Invalid zone ID" };
+  }
+
+  const supabase = await getSupabaseServerClient();
+
+  // Check if user can access the target zone
+  const canAccess = await canAccessZone(zoneId);
+  if (!canAccess) {
+    return { success: false, error: "Access denied: You do not have permission to access this zone" };
+  }
+
+  // Get accessible zone IDs based on user role
+  const accessibleZoneIds = await getAccessibleZoneIds();
+
+  let query = supabase
+    .from("villages")
+    .select("*")
+    .neq("zone_id", zoneId)
+    .order("name", { ascending: true });
+
+  // Apply zone-based access control
+  if (accessibleZoneIds !== null) {
+    // User is restricted to specific zones (zone leader)
+    if (accessibleZoneIds.length === 0) {
+      // No zones accessible, return empty
+      return { success: true, data: [] };
+    }
+    // Only show villages from zones the user can access
+    query = query.in("zone_id", accessibleZoneIds);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  // Fetch zone information separately
+  const villageData = (data || []) as Village[];
+  if (villageData.length > 0) {
+    const zoneIds = [...new Set(villageData.map((v) => v.zone_id))];
+    const { data: zonesData } = await supabase
+      .from("zones")
+      .select("id, name")
+      .in("id", zoneIds);
+
+    const zonesMap = new Map((zonesData || []).map((z) => [z.id, z]));
+
+    // Merge zone data into villages
+    villageData.forEach((village) => {
+      const zone = zonesMap.get(village.zone_id);
+      if (zone) {
+        village.zones = zone;
+      }
+    });
+  }
+
+  return { success: true, data: villageData };
+}
+
+/**
  * Get village count for zones
  */
 export async function getVillageCountsByZone(zoneIds?: number[]): Promise<ActionResult<Record<number, number>>> {

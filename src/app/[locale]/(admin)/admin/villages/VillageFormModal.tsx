@@ -13,6 +13,7 @@ import {
   type CreateVillageInput,
 } from "@/lib/actions/villages";
 import { getZones, type Zone } from "@/lib/actions/zones";
+import { useTranslations } from "next-intl";
 
 type Props = {
   trigger: ReactNode;
@@ -21,6 +22,7 @@ type Props = {
 };
 
 export default function VillageFormModal({ trigger, village, defaultZoneId }: Props) {
+  const t = useTranslations("villages.form");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -65,7 +67,7 @@ export default function VillageFormModal({ trigger, village, defaultZoneId }: Pr
     setError(null);
 
     if (!formData.zoneId || formData.zoneId === 0) {
-      setError("Please select a zone");
+      setError(t("pleaseSelectZone"));
       return;
     }
 
@@ -84,7 +86,7 @@ export default function VillageFormModal({ trigger, village, defaultZoneId }: Pr
         setOpen(false);
         router.refresh();
       } else {
-        setError(result.error || "An error occurred");
+        setError(result.error || t("error"));
       }
     });
   };
@@ -98,10 +100,10 @@ export default function VillageFormModal({ trigger, village, defaultZoneId }: Pr
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <div>
               <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
-                {isEdit ? "Edit Village" : "Add New Village"}
+                {isEdit ? t("editVillage") : t("addNewVillage")}
               </Dialog.Title>
               <Dialog.Description className="sr-only">
-                {isEdit ? "Edit village information" : "Create a new village in the selected zone"}
+                {isEdit ? t("editVillageInfo") : t("createNewVillage")}
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
@@ -120,10 +122,10 @@ export default function VillageFormModal({ trigger, village, defaultZoneId }: Pr
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Zone <span className="text-red-500">*</span>
+                {t("zone")} <span className="text-red-500">*</span>
                 {isZonePreSelected && (
                   <span className="ml-2 text-xs text-gray-500 font-normal">
-                    (Pre-selected from zone context)
+                    {t("zonePreSelected")}
                   </span>
                 )}
               </label>
@@ -138,7 +140,7 @@ export default function VillageFormModal({ trigger, village, defaultZoneId }: Pr
                   required
                   className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark text-gray-900 dark:text-white"
                 >
-                  <option value={0}>Select a zone</option>
+                  <option value={0}>{t("selectZone")}</option>
                   {zones.map((zone) => (
                     <option key={zone.id} value={zone.id}>
                       {zone.name}
@@ -150,11 +152,11 @@ export default function VillageFormModal({ trigger, village, defaultZoneId }: Pr
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Village Name <span className="text-red-500">*</span>
+                {t("villageName")} <span className="text-red-500">*</span>
               </label>
               <Input
                 type="text"
-                placeholder="e.g., Kampung A"
+                placeholder={t("villageNamePlaceholder")}
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
@@ -164,21 +166,21 @@ export default function VillageFormModal({ trigger, village, defaultZoneId }: Pr
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Description
+                {t("description")}
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
                 className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark text-gray-900 dark:text-white"
-                placeholder="Optional description for this village..."
+                placeholder={t("descriptionPlaceholder")}
               />
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
               <Dialog.Close asChild>
                 <Button type="button" variant="outline" disabled={isPending}>
-                  Cancel
+                  {t("cancel")}
                 </Button>
               </Dialog.Close>
               <Button type="submit" disabled={isPending} className="gap-2">
@@ -189,7 +191,7 @@ export default function VillageFormModal({ trigger, village, defaultZoneId }: Pr
                 ) : (
                   <MapPin className="size-4" />
                 )}
-                {isEdit ? "Save Changes" : "Add Village"}
+                {isEdit ? t("saveChanges") : t("addVillage")}
               </Button>
             </div>
           </form>

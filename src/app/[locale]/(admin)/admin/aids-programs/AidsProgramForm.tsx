@@ -13,6 +13,7 @@ import {
   type UpdateAidsProgramInput,
 } from "@/lib/actions/aidsPrograms";
 import { getZones } from "@/lib/actions/zones";
+import { useTranslations } from "next-intl";
 
 type AidsProgramFormProps = {
   program?: AidsProgram | null;
@@ -25,6 +26,7 @@ export default function AidsProgramForm({
   onSuccess,
   onCancel,
 }: AidsProgramFormProps) {
+  const t = useTranslations("aidsPrograms.form");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(!!program);
@@ -130,17 +132,17 @@ export default function AidsProgramForm({
     e.preventDefault();
 
     if (!formData.name?.trim()) {
-      alert("Program name is required");
+      alert(t("programNameRequired"));
       return;
     }
 
     if (!formData.aidType?.trim()) {
-      alert("Aid type is required");
+      alert(t("aidTypeRequired"));
       return;
     }
 
     if (selectedZones.length === 0 && selectedVillages.length === 0) {
-      alert("Please select at least one zone or village");
+      alert(t("selectZonesRequired"));
       return;
     }
 
@@ -174,7 +176,7 @@ export default function AidsProgramForm({
           router.refresh();
         }
       } else {
-        alert(result.error || "Failed to save program");
+        alert(result.error || t("saveError"));
       }
     });
   };
@@ -206,7 +208,7 @@ export default function AidsProgramForm({
       >
         <div className="sticky top-0 bg-white dark:bg-background-dark border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
           <h2 className="text-xl font-bold">
-            {program ? "Edit Program" : "Create New AIDS Program"}
+            {program ? t("editTitle") : t("createTitle")}
           </h2>
           <button
             onClick={handleCancel}
@@ -219,11 +221,11 @@ export default function AidsProgramForm({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Program Name <span className="text-red-500">*</span>
+              {t("programName")} <span className="text-red-500">*</span>
             </label>
             <Input
               type="text"
-              placeholder="e.g., Food Basket Distribution 2024"
+              placeholder={t("programNamePlaceholder")}
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
@@ -233,11 +235,11 @@ export default function AidsProgramForm({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Aid Type <span className="text-red-500">*</span>
+              {t("aidType")} <span className="text-red-500">*</span>
             </label>
             <Input
               type="text"
-              placeholder="e.g., Food Basket, Cash Aid, Medical Supplies"
+              placeholder={t("aidTypePlaceholder")}
               value={formData.aidType}
               onChange={(e) => setFormData({ ...formData, aidType: e.target.value })}
               required
@@ -247,10 +249,10 @@ export default function AidsProgramForm({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Description
+              {t("description")}
             </label>
             <textarea
-              placeholder="Program description..."
+              placeholder={t("descriptionPlaceholder")}
               value={formData.description || ""}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
@@ -261,7 +263,7 @@ export default function AidsProgramForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Start Date
+                {t("startDate")}
               </label>
               <Input
                 type="datetime-local"
@@ -273,7 +275,7 @@ export default function AidsProgramForm({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                End Date
+                {t("endDate")}
               </label>
               <Input
                 type="datetime-local"
@@ -286,7 +288,7 @@ export default function AidsProgramForm({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Select Zones <span className="text-red-500">*</span>
+              {t("selectZones")} <span className="text-red-500">*</span>
             </label>
             <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-3">
               {zones.map((zone) => (
@@ -315,7 +317,7 @@ export default function AidsProgramForm({
             </div>
             {zones.length === 0 && (
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                No zones available. Create zones first.
+                {t("noZonesAvailable")}
               </p>
             )}
           </div>
@@ -323,7 +325,7 @@ export default function AidsProgramForm({
           {selectedZones.length === 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Or Select Specific Villages
+                {t("orSelectVillages")}
               </label>
               <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-3">
                 {villages.map((village) => (
@@ -349,10 +351,10 @@ export default function AidsProgramForm({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Notes
+              {t("notes")}
             </label>
             <textarea
-              placeholder="Additional notes..."
+              placeholder={t("notesPlaceholder")}
               value={formData.notes || ""}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={2}
@@ -362,11 +364,11 @@ export default function AidsProgramForm({
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <Button type="button" variant="outline" onClick={handleCancel} disabled={isPending}>
-              Cancel
+              {t("cancel")}
             </Button>
             <Button type="submit" disabled={isPending}>
               <Send className="w-4 h-4 mr-2" />
-              {isPending ? "Saving..." : program ? "Update Program" : "Create Program"}
+              {isPending ? t("saving") : program ? t("updateProgram") : t("createProgram")}
             </Button>
           </div>
         </form>

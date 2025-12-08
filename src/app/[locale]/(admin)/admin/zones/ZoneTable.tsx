@@ -7,6 +7,7 @@ import { Edit2, Trash2, MapPin, Eye } from "lucide-react";
 import Button from "@/components/ui/Button";
 import ZoneFormModal from "./ZoneFormModal";
 import { deleteZone, type Zone } from "@/lib/actions/zones";
+import { useTranslations } from "next-intl";
 
 type Props = {
   zones: Zone[];
@@ -14,12 +15,13 @@ type Props = {
 };
 
 export default function ZoneTable({ zones, villageCounts = {} }: Props) {
+  const t = useTranslations("zones.table");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [editingZone, setEditingZone] = useState<Zone | null>(null);
 
   const handleDelete = (zone: Zone) => {
-    if (!confirm(`Are you sure you want to delete "${zone.name}"? This action cannot be undone.`)) {
+    if (!confirm(t("deleteConfirm", { name: zone.name }))) {
       return;
     }
 
@@ -28,7 +30,7 @@ export default function ZoneTable({ zones, villageCounts = {} }: Props) {
       if (result.success) {
         router.refresh();
       } else {
-        alert(result.error || "Failed to delete zone");
+        alert(result.error || t("deleteError"));
       }
     });
   };
@@ -37,8 +39,8 @@ export default function ZoneTable({ zones, villageCounts = {} }: Props) {
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
         <MapPin className="size-12 mx-auto mb-4 text-gray-400" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No zones yet</h3>
-        <p className="text-gray-600 mb-4">Create your first zone to start organizing households</p>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">{t("noZonesYet")}</h3>
+        <p className="text-gray-600 mb-4">{t("createFirstZone")}</p>
       </div>
     );
   }
@@ -49,11 +51,11 @@ export default function ZoneTable({ zones, villageCounts = {} }: Props) {
         <table className="min-w-full text-sm">
           <thead className="text-left border-b border-gray-200 bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600">Zone Name</th>
-              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600">Description</th>
-              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600">Villages</th>
-              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600">Created</th>
-              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 text-right">Actions</th>
+              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600">{t("zoneName")}</th>
+              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600">{t("description")}</th>
+              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600">{t("villages")}</th>
+              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600">{t("created")}</th>
+              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 text-right">{t("actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -73,7 +75,7 @@ export default function ZoneTable({ zones, villageCounts = {} }: Props) {
                       className="text-primary hover:underline text-sm flex items-center gap-1"
                     >
                       <Eye className="size-3" />
-                      View
+                      {t("view")}
                     </Link>
                   </div>
                 </td>
@@ -93,7 +95,7 @@ export default function ZoneTable({ zones, villageCounts = {} }: Props) {
                       trigger={
                         <button
                           className="p-2 text-gray-600 hover:text-primary rounded-lg hover:bg-gray-100"
-                          title="Edit"
+                          title={t("edit")}
                         >
                           <Edit2 className="size-4" />
                         </button>
@@ -102,7 +104,7 @@ export default function ZoneTable({ zones, villageCounts = {} }: Props) {
                     <button
                       onClick={() => handleDelete(zone)}
                       className="p-2 text-red-600 hover:text-red-700 rounded-lg hover:bg-red-50"
-                      title="Delete"
+                      title={t("delete")}
                       disabled={isPending}
                     >
                       <Trash2 className="size-4" />

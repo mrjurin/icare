@@ -3,6 +3,7 @@
 import { getSupabaseServerClient, getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/utils/accessControl";
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type ActionResult<T = void> = {
   success: boolean;
@@ -172,6 +173,64 @@ export async function getVoterVersion(id: number): Promise<ActionResult<SprVoter
 }
 
 /**
+ * Helper function to ensure only one version is active at a time
+ * Deactivates all versions except the one with the specified ID (if provided)
+ * or the most recently updated active version
+ */
+async function ensureOnlyOneActiveVersion(
+  supabase: SupabaseClient<any, "public", "public", any, any>,
+  keepActiveId?: number
+): Promise<{ success: boolean; error?: string }> {
+  // Get all active versions
+  const { data: activeVersions, error: fetchError } = await supabase
+    .from("spr_voter_versions")
+    .select("id, updated_at")
+    .eq("is_active", true);
+
+  if (fetchError) {
+    return { success: false, error: fetchError.message };
+  }
+
+  if (!activeVersions || activeVersions.length <= 1) {
+    // Already compliant or no active versions
+    return { success: true };
+  }
+
+  // If we have a specific version to keep active, deactivate all others
+  if (keepActiveId !== undefined) {
+    const { error: deactivateError } = await supabase
+      .from("spr_voter_versions")
+      .update({ is_active: false })
+      .neq("id", keepActiveId)
+      .eq("is_active", true);
+
+    if (deactivateError) {
+      return { success: false, error: deactivateError.message };
+    }
+    return { success: true };
+  }
+
+  // Otherwise, keep the most recently updated one active
+  const sortedVersions = activeVersions.sort(
+    (a: { id: number; updated_at: string }, b: { id: number; updated_at: string }) =>
+      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  );
+  const keepId = sortedVersions[0].id;
+
+  const { error: deactivateError } = await supabase
+    .from("spr_voter_versions")
+    .update({ is_active: false })
+    .neq("id", keepId)
+    .eq("is_active", true);
+
+  if (deactivateError) {
+    return { success: false, error: deactivateError.message };
+  }
+
+  return { success: true };
+}
+
+/**
  * Create a new voter version
  * Only super admin and ADUN can create versions
  */
@@ -197,12 +256,20 @@ export async function createVoterVersion(
 
   const supabase = await getSupabaseServerClient();
 
-  // If setting as active, deactivate all other versions
+  // If setting as active, ensure only this version is active
+  // This ensures only one version is active at a time
   if (input.isActive) {
-    await supabase
+    const { error: deactivateError } = await supabase
       .from("spr_voter_versions")
       .update({ is_active: false })
       .eq("is_active", true);
+    
+    if (deactivateError) {
+      return { success: false, error: `Failed to deactivate other versions: ${deactivateError.message}` };
+    }
+  } else {
+    // Even when creating as inactive, ensure data integrity
+    await ensureOnlyOneActiveVersion(supabase);
   }
 
   const { data, error } = await supabase
@@ -269,13 +336,21 @@ export async function updateVoterVersion(
 
   if (input.isActive !== undefined) {
     updates.is_active = input.isActive;
-    // If setting as active, deactivate all other versions
+    // If setting as active, deactivate all other versions first
+    // This ensures only one version is active at a time
     if (input.isActive) {
-      await supabase
+      const { error: deactivateError } = await supabase
         .from("spr_voter_versions")
         .update({ is_active: false })
         .neq("id", input.id)
         .eq("is_active", true);
+      
+      if (deactivateError) {
+        return { success: false, error: `Failed to deactivate other versions: ${deactivateError.message}` };
+      }
+    } else {
+      // Even when deactivating, ensure data integrity (in case multiple were active)
+      await ensureOnlyOneActiveVersion(supabase);
     }
   }
 

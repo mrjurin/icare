@@ -31,14 +31,12 @@ export default function AssignKetuaCawanganSection({
       const loadKetuaCawangan = async () => {
         const result = await getRoleAssignments({ zoneId: selectedZoneId, status: "active" });
         if (result.success && result.data) {
-          // Filter for Branch Chief role
-          const ketuaCawangan = result.data
-            .filter((ra) => ra.role_name === "Branch Chief")
-            .map((ra) => ({
-              id: ra.id,
-              name: ra.staff_name || "Unknown",
-              staff_id: ra.staff_id,
-            }));
+          // Get all role assignments - any role can be assigned as ketua cawangan
+          const ketuaCawangan = result.data.map((ra) => ({
+            id: ra.id,
+            name: ra.staff_name || "Unknown",
+            staff_id: ra.staff_id,
+          }));
           setKetuaCawanganList(ketuaCawangan);
         }
       };

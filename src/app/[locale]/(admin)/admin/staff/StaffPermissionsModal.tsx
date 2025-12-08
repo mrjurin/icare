@@ -14,6 +14,7 @@ import {
   type StaffPermission,
 } from "@/lib/actions/permissions";
 import { type Staff } from "@/lib/actions/staff";
+import { useTranslations } from "next-intl";
 
 type Props = {
   trigger: ReactNode;
@@ -21,6 +22,8 @@ type Props = {
 };
 
 export default function StaffPermissionsModal({ trigger, staff }: Props) {
+  const t = useTranslations("staff.permissions");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -41,10 +44,10 @@ export default function StaffPermissionsModal({ trigger, staff }: Props) {
         if (permsResult.success && permsResult.data) {
           setPermissions(permsResult.data);
           if (permsResult.data.length === 0) {
-            setError("No permissions found. Please run the migration to create default permissions.");
+            setError(t("noPermissionsFound"));
           }
         } else {
-          setError(permsResult.error || "Failed to load permissions");
+          setError(permsResult.error || t("errorLoading"));
           console.error("Failed to load permissions:", permsResult.error);
         }
         if (staffPermsResult.success && staffPermsResult.data) {
@@ -52,14 +55,14 @@ export default function StaffPermissionsModal({ trigger, staff }: Props) {
         } else {
           // Don't set error for staff permissions if it's just empty
           if (staffPermsResult.error && !staffPermsResult.error.includes("Access denied")) {
-            setError(staffPermsResult.error || "Failed to load staff permissions");
+            setError(staffPermsResult.error || t("errorLoading"));
             console.error("Failed to load staff permissions:", staffPermsResult.error);
           }
         }
         setLoading(false);
       }).catch((err) => {
         console.error("Error loading permissions:", err);
-        setError("An unexpected error occurred while loading permissions");
+        setError(t("errorUnexpected"));
         setLoading(false);
       });
     }
@@ -77,7 +80,7 @@ export default function StaffPermissionsModal({ trigger, staff }: Props) {
         }
         router.refresh();
       } else {
-        setError(result.error || "Failed to grant permission");
+        setError(result.error || t("errorGranting"));
       }
     });
   };
@@ -94,7 +97,7 @@ export default function StaffPermissionsModal({ trigger, staff }: Props) {
         }
         router.refresh();
       } else {
-        setError(result.error || "Failed to revoke permission");
+        setError(result.error || t("errorRevoking"));
       }
     });
   };
@@ -126,7 +129,7 @@ export default function StaffPermissionsModal({ trigger, staff }: Props) {
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <Shield className="size-5" />
-              Manage Permissions - {staff.name}
+              {t("title", { name: staff.name })}
             </Dialog.Title>
             <Dialog.Close asChild>
               <button className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
@@ -150,19 +153,19 @@ export default function StaffPermissionsModal({ trigger, staff }: Props) {
               <div className="text-center py-8">
                 <Shield className="size-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600 dark:text-gray-400 mb-2">
-                  No permissions found
+                  {t("noPermissionsFound")}
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-500">
-                  Please run the migration to create default permissions:
+                  {t("noPermissionsMessage")}
                 </p>
                 <code className="block mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs">
-                  npm run drizzle:migrate
+                  {t("migrationCommand")}
                 </code>
               </div>
             ) : Object.keys(permissionsByCategory).length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-gray-600 dark:text-gray-400">
-                  No permissions available
+                  {t("noPermissionsAvailable")}
                 </p>
               </div>
             ) : (
@@ -197,8 +200,10 @@ export default function StaffPermissionsModal({ trigger, staff }: Props) {
                               )}
                               {staffPerm?.granted_by_name && (
                                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                  Granted by {staffPerm.granted_by_name} on{" "}
-                                  {new Date(staffPerm.granted_at).toLocaleDateString()}
+                                  {t("grantedBy", { 
+                                    name: staffPerm.granted_by_name,
+                                    date: new Date(staffPerm.granted_at).toLocaleDateString()
+                                  })}
                                 </p>
                               )}
                             </div>
@@ -212,7 +217,7 @@ export default function StaffPermissionsModal({ trigger, staff }: Props) {
                                   className="h-8 px-3 gap-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                                 >
                                   <XCircle className="size-4" />
-                                  Revoke
+                                  {t("revoke")}
                                 </Button>
                               ) : (
                                 <Button
@@ -222,7 +227,7 @@ export default function StaffPermissionsModal({ trigger, staff }: Props) {
                                   className="h-8 px-3 gap-2"
                                 >
                                   <CheckCircle2 className="size-4" />
-                                  Grant
+                                  {t("grant")}
                                 </Button>
                               )}
                             </div>
@@ -238,7 +243,7 @@ export default function StaffPermissionsModal({ trigger, staff }: Props) {
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
               <Dialog.Close asChild>
                 <Button type="button" variant="outline" disabled={isPending}>
-                  Close
+                  {t("close")}
                 </Button>
               </Dialog.Close>
             </div>

@@ -9,6 +9,7 @@ import {
   School,
   Landmark,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { type ReferenceTable } from "@/lib/actions/reference-data";
 import { getTableDisplayName } from "@/lib/utils/reference-data";
 
@@ -24,39 +25,44 @@ const referenceTables: Array<{ table: ReferenceTable; icon: typeof Users }> = [
 ];
 
 export default function ReferenceDataIndexPage() {
+  const t = useTranslations("referenceData");
+  
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl md:text-3xl font-black tracking-[-0.015em]">
-          Reference Data Management
+          {t("title")}
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Manage reference data for the system
+          {t("description")}
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {referenceTables.map(({ table, icon: Icon }) => (
-          <Link
-            key={table}
-            href={`/admin/reference-data/${table}`}
-            className="p-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark hover:border-primary hover:shadow-lg transition-all"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-primary/10">
-                <Icon className="size-6 text-primary" />
+        {referenceTables.map(({ table, icon: Icon }) => {
+          const displayName = getTableDisplayName(table, t);
+          return (
+            <Link
+              key={table}
+              href={`/admin/reference-data/${table}`}
+              className="p-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark hover:border-primary hover:shadow-lg transition-all"
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-primary/10">
+                  <Icon className="size-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white">
+                    {displayName}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    {t("manageData", { displayName: displayName.toLowerCase() })}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white">
-                  {getTableDisplayName(table)}
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Manage {getTableDisplayName(table).toLowerCase()} data
-                </p>
-              </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

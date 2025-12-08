@@ -280,12 +280,14 @@ export const zones = pgTable(
     dunId: integer("dun_id").references(() => duns.id, { onDelete: "cascade" }).notNull(),
     name: text("name").notNull(),
     description: text("description"),
+    pollingStationId: integer("polling_station_id").references(() => pollingStations.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
     index("zones_name_idx").on(table.name),
     index("zones_dun_idx").on(table.dunId),
+    index("zones_polling_station_idx").on(table.pollingStationId),
   ]
 );
 
@@ -486,6 +488,10 @@ export const zonesRelations = relations(zones, ({ one, many }) => ({
   dun: one(duns, {
     fields: [zones.dunId],
     references: [duns.id],
+  }),
+  pollingStation: one(pollingStations, {
+    fields: [zones.pollingStationId],
+    references: [pollingStations.id],
   }),
   households: many(households),
   leaders: many(staff),
@@ -994,11 +1000,12 @@ export const localitiesRelations = relations(localities, ({ one }) => ({
   }),
 }));
 
-export const pollingStationsRelations = relations(pollingStations, ({ one }) => ({
+export const pollingStationsRelations = relations(pollingStations, ({ one, many }) => ({
   locality: one(localities, {
     fields: [pollingStations.localityId],
     references: [localities.id],
   }),
+  zones: many(zones),
 }));
 
 export const parliamentsRelations = relations(parliaments, ({ many }) => ({
@@ -1007,4 +1014,36 @@ export const parliamentsRelations = relations(parliaments, ({ many }) => ({
 
 export const districtsRelations = relations(districts, ({ many }) => ({
   localities: many(localities),
+}));
+
+// Backups table - stores backup metadata
+export const backups = pgTable(
+  "backups",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(), // Backup name/description
+    fileName: text("file_name").notNull(), // Name of the backup file
+    filePath: text("file_path"), // Path to backup file (if stored in storage)
+    fileSize: integer("file_size"), // Size in bytes
+    backupType: varchar("backup_type", { length: 20 }).default("full").notNull(), // full, partial
+    status: varchar("status", { length: 20 }).default("completed").notNull(), // pending, completed, failed
+    createdBy: integer("created_by").references(() => staff.id, { onDelete: "set null" }),
+    metadata: text("metadata"), // JSON metadata about what was backed up
+    notes: text("notes"), // Optional notes
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    completedAt: timestamp("completed_at"), // When backup was completed
+  },
+  (table) => [
+    index("backups_created_by_idx").on(table.createdBy),
+    index("backups_status_idx").on(table.status),
+    index("backups_created_at_idx").on(table.createdAt),
+  ]
+);
+
+// Relations for backups
+export const backupsRelations = relations(backups, ({ one }) => ({
+  creator: one(staff, {
+    fields: [backups.createdBy],
+    references: [staff.id],
+  }),
 }));

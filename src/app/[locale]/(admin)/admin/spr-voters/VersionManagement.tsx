@@ -14,6 +14,7 @@ import {
   clearVersionVoters,
   type SprVoterVersion,
 } from "@/lib/actions/spr-voters";
+import { useTranslations } from "next-intl";
 
 // Format date consistently to avoid hydration mismatches
 function formatDate(dateString: string): string {
@@ -33,6 +34,8 @@ export default function VersionManagement({
   versions,
   selectedVersionId,
 }: VersionManagementProps) {
+  const t = useTranslations("sprVoters.versions");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -75,7 +78,7 @@ export default function VersionManagement({
     e.preventDefault();
 
     if (!formData.name.trim()) {
-      alert("Version name is required");
+      alert(t("versionNameRequired"));
       return;
     }
 
@@ -99,7 +102,7 @@ export default function VersionManagement({
       }
 
       if (!result.success) {
-        alert(result.error || "Failed to save version");
+        alert(result.error || t("saveError"));
         return;
       }
 
@@ -114,7 +117,7 @@ export default function VersionManagement({
     startTransition(async () => {
       const result = await deleteVoterVersion(deleteTarget.id);
       if (!result.success) {
-        alert(result.error || "Failed to delete version");
+        alert(result.error || t("deleteError"));
         return;
       }
       setDeleteTarget(null);
@@ -128,7 +131,7 @@ export default function VersionManagement({
     startTransition(async () => {
       const result = await clearVersionVoters(clearTarget.id);
       if (!result.success) {
-        alert(result.error || "Failed to clear imported data");
+        alert(result.error || t("clearError"));
         return;
       }
       setClearTarget(null);
@@ -148,14 +151,14 @@ export default function VersionManagement({
       <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold">Voter Versions</h3>
+            <h3 className="text-lg font-semibold">{t("title")}</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Manage different election rounds and voter lists
+              {t("description")}
             </p>
           </div>
           <Button onClick={handleCreateVersion} className="gap-2">
             <Plus className="size-4" />
-            New Version
+            {t("newVersion")}
           </Button>
         </div>
 
@@ -174,7 +177,7 @@ export default function VersionManagement({
                 <h4 className="font-semibold text-gray-900 dark:text-white">{version.name}</h4>
                 {version.is_active && (
                   <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 rounded-full">
-                    Active
+                    {t("active")}
                   </span>
                 )}
               </div>
@@ -185,28 +188,28 @@ export default function VersionManagement({
               )}
               {version.election_date && (
                 <p className="text-xs text-gray-500 dark:text-gray-500">
-                  Election: {formatDate(version.election_date)}
+                  {t("election", { date: formatDate(version.election_date) })}
                 </p>
               )}
               <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
                 <button
                   className="p-1.5 text-gray-500 hover:text-primary rounded"
                   onClick={() => handleEditVersion(version)}
-                  title="Edit"
+                  title={t("edit")}
                 >
                   <Edit className="size-4" />
                 </button>
                 <button
                   className="p-1.5 text-gray-500 hover:text-orange-600 rounded"
                   onClick={() => setClearTarget(version)}
-                  title="Clear Imported Data"
+                  title={t("clearImportedData")}
                 >
                   <XCircle className="size-4" />
                 </button>
                 <button
                   className="p-1.5 text-gray-500 hover:text-red-600 rounded"
                   onClick={() => setDeleteTarget(version)}
-                  title="Delete"
+                  title={t("delete")}
                 >
                   <Trash2 className="size-4" />
                 </button>
@@ -216,7 +219,7 @@ export default function VersionManagement({
 
           {versions.length === 0 && (
             <div className="col-span-full text-center py-8 text-gray-500 dark:text-gray-400">
-              No versions created yet. Create your first version to get started.
+              {t("noVersions")}
             </div>
           )}
         </div>
@@ -228,17 +231,17 @@ export default function VersionManagement({
           <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
           <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 rounded-xl p-6 shadow-xl z-50 w-full max-w-md">
             <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-              {editingVersion ? "Edit Version" : "Create New Version"}
+              {editingVersion ? t("editTitle") : t("createTitle")}
             </Dialog.Title>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  Version Name *
+                  {t("versionName")} *
                 </label>
                 <Input
                   type="text"
-                  placeholder="e.g., GE15, PRN2023"
+                  placeholder={t("versionNamePlaceholder")}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
@@ -248,11 +251,11 @@ export default function VersionManagement({
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  Description
+                  {t("description")}
                 </label>
                 <textarea
                   className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-primary focus:ring-primary"
-                  placeholder="Description of this version..."
+                  placeholder={t("descriptionPlaceholder")}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
@@ -262,7 +265,7 @@ export default function VersionManagement({
 
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                  Election Date
+                  {t("electionDate")}
                 </label>
                 <Input
                   type="date"
@@ -285,18 +288,18 @@ export default function VersionManagement({
                   htmlFor="is-active"
                   className="text-sm font-medium text-gray-700 dark:text-gray-300"
                 >
-                  Set as active version
+                  {t("setAsActive")}
                 </label>
               </div>
 
               <div className="flex justify-end gap-3 mt-6">
                 <Dialog.Close asChild>
                   <Button type="button" variant="outline" disabled={isPending}>
-                    Cancel
+                    {tCommon("cancel")}
                   </Button>
                 </Dialog.Close>
                 <Button type="submit" disabled={isPending}>
-                  {editingVersion ? "Update" : "Create"}
+                  {editingVersion ? t("update") : t("create")}
                 </Button>
               </div>
             </form>
@@ -310,20 +313,18 @@ export default function VersionManagement({
           <AlertDialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
           <AlertDialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 rounded-xl p-6 shadow-xl z-50 w-full max-w-md">
             <AlertDialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
-              Delete Version
+              {t("deleteTitle")}
             </AlertDialog.Title>
             <AlertDialog.Description className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Are you sure you want to delete{" "}
-              <span className="font-semibold">{deleteTarget?.name}</span>? This will also delete all
-              voters in this version. This action cannot be undone.
+              {t("deleteConfirm", { name: deleteTarget?.name || "" })}
             </AlertDialog.Description>
             <div className="mt-6 flex justify-end gap-3">
               <AlertDialog.Cancel asChild>
-                <Button variant="outline">Cancel</Button>
+                <Button variant="outline">{tCommon("cancel")}</Button>
               </AlertDialog.Cancel>
               <AlertDialog.Action asChild>
                 <Button className="bg-red-600 hover:bg-red-700" onClick={handleDelete} disabled={isPending}>
-                  Delete
+                  {t("delete")}
                 </Button>
               </AlertDialog.Action>
             </div>
@@ -337,17 +338,14 @@ export default function VersionManagement({
           <AlertDialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
           <AlertDialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 rounded-xl p-6 shadow-xl z-50 w-full max-w-md">
             <AlertDialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
-              Clear Imported Data
+              {t("clearTitle")}
             </AlertDialog.Title>
             <AlertDialog.Description className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Are you sure you want to clear all imported voters for{" "}
-              <span className="font-semibold">{clearTarget?.name}</span>? This will delete all voters
-              in this version, but the version itself will remain. You can then re-upload data. This
-              action cannot be undone.
+              {t("clearConfirm", { name: clearTarget?.name || "" })}
             </AlertDialog.Description>
             <div className="mt-6 flex justify-end gap-3">
               <AlertDialog.Cancel asChild>
-                <Button variant="outline">Cancel</Button>
+                <Button variant="outline">{tCommon("cancel")}</Button>
               </AlertDialog.Cancel>
               <AlertDialog.Action asChild>
                 <Button
@@ -355,7 +353,7 @@ export default function VersionManagement({
                   onClick={handleClearVoters}
                   disabled={isPending}
                 >
-                  Clear Data
+                  {t("clearData")}
                 </Button>
               </AlertDialog.Action>
             </div>
