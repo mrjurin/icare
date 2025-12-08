@@ -270,6 +270,9 @@
     "basedOnClassifiedVoters": "Berdasarkan pengundi yang diklasifikasikan (Putih / (Putih + Hitam + Merah))",
     "classifiedVoters": "pengundi diklasifikasikan",
     "voters": "pengundi",
+    "householdView": "Paparan Isi Rumah",
+    "sprView": "Paparan SPR",
+    "noDataAvailable": "Tiada data tersedia",
     "loadingReports": "Memuatkan laporan...",
     "reportsTable": {
       "all": "Semua",

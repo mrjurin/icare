@@ -270,6 +270,9 @@
     "basedOnClassifiedVoters": "Based on classified voters (White / (White + Black + Red))",
     "classifiedVoters": "classified voters",
     "voters": "voters",
+    "householdView": "Household View",
+    "sprView": "SPR View",
+    "noDataAvailable": "No data available",
     "loadingReports": "Loading reports...",
     "reportsTable": {
       "all": "All",
