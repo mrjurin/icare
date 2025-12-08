@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from 'next-intl/plugin';
 
-const nextConfig: NextConfig = {
+const withNextIntl = createNextIntlPlugin('./src/i18n/config.ts');
+
+const nextConfig = {
   images: {
     remotePatterns: [
       {
@@ -13,6 +16,11 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
-};
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "50mb", // Increased to handle large CSV file uploads
+    },
+  },
+} satisfies NextConfig;
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

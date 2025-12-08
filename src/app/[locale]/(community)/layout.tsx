@@ -1,0 +1,23 @@
+import { ReactNode } from "react";
+import { redirect } from "next/navigation";
+import { getWorkspaceAccess } from "@/lib/utils/accessControl";
+import CommunityLayoutClient from "./CommunityLayoutClient";
+
+export default async function CommunityLayout({ children }: { children: ReactNode }) {
+  // Check workspace access
+  const workspaceAccess = await getWorkspaceAccess();
+  
+  // Only allow community workspace access
+  if (!workspaceAccess.canAccessCommunity) {
+    // Redirect based on user's actual workspace
+    if (workspaceAccess.canAccessAdmin) {
+      redirect("/admin/dashboard");
+    } else if (workspaceAccess.canAccessStaff) {
+      redirect("/staff/dashboard");
+    } else {
+      redirect("/community/login");
+    }
+  }
+
+  return <CommunityLayoutClient>{children}</CommunityLayoutClient>;
+}

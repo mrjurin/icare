@@ -758,3 +758,253 @@ export const aidsDistributionRecordsRelations = relations(aidsDistributionRecord
     references: [staff.id],
   }),
 }));
+
+// SPR Voter Versions table - tracks different election rounds/versions
+export const sprVoterVersions = pgTable(
+  "spr_voter_versions",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(), // e.g., "GE15", "PRN2023"
+    description: text("description"), // Description of this version
+    electionDate: timestamp("election_date"), // Election date
+    isActive: boolean("is_active").default(false).notNull(), // Only one version should be active at a time
+    createdBy: integer("created_by").references(() => staff.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("spr_voter_versions_name_idx").on(table.name),
+    index("spr_voter_versions_is_active_idx").on(table.isActive),
+  ]
+);
+
+// SPR Voters table - stores voter data from SPR Malaysia
+export const sprVoters = pgTable(
+  "spr_voters",
+  {
+    id: serial("id").primaryKey(),
+    versionId: integer("version_id").references(() => sprVoterVersions.id, { onDelete: "cascade" }).notNull(),
+    noSiri: integer("no_siri"), // Serial number
+    noKp: varchar("no_kp", { length: 20 }), // IC number (No. Kad Pengenalan)
+    noKpLama: varchar("no_kp_lama", { length: 20 }), // Old IC number
+    nama: text("nama").notNull(), // Name
+    noHp: varchar("no_hp", { length: 20 }), // Phone number
+    jantina: varchar("jantina", { length: 1 }), // Gender (P/L)
+    tarikhLahir: timestamp("tarikh_lahir"), // Date of birth
+    bangsa: text("bangsa"), // Race/ethnicity
+    agama: text("agama"), // Religion
+    kategoriKaum: text("kategori_kaum"), // Ethnic category
+    noRumah: text("no_rumah"), // House number
+    alamat: text("alamat"), // Address
+    poskod: varchar("poskod", { length: 10 }), // Postcode
+    daerah: text("daerah"), // District
+    kodLokaliti: varchar("kod_lokaliti", { length: 50 }), // Locality code
+    namaParlimen: text("nama_parlimen"), // Parliament name
+    namaDun: text("nama_dun"), // DUN name
+    namaPdm: text("nama_pdm"), // PDM name
+    namaLokaliti: text("nama_lokaliti"), // Locality name
+    kategoriUndi: text("kategori_undi"), // Voting category
+    namaTm: text("nama_tm"), // Polling station name (Tempat Mengundi)
+    masaUndi: text("masa_undi"), // Voting time
+    saluran: integer("saluran"), // Channel/stream number
+    householdMemberId: integer("household_member_id").references(() => householdMembers.id, { onDelete: "set null" }), // Link to household member if matched
+    votingSupportStatus: votingSupportStatusEnum("voting_support_status"), // White: full support, Black: not supporting, Red: not determined
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("spr_voters_version_idx").on(table.versionId),
+    index("spr_voters_no_kp_idx").on(table.noKp),
+    index("spr_voters_nama_idx").on(table.nama),
+    index("spr_voters_kod_lokaliti_idx").on(table.kodLokaliti),
+    index("spr_voters_household_member_idx").on(table.householdMemberId),
+    index("spr_voters_voting_support_status_idx").on(table.votingSupportStatus),
+  ]
+);
+
+// Relations for SPR voter versions
+export const sprVoterVersionsRelations = relations(sprVoterVersions, ({ one, many }) => ({
+  creator: one(staff, {
+    fields: [sprVoterVersions.createdBy],
+    references: [staff.id],
+  }),
+  voters: many(sprVoters),
+}));
+
+// Relations for SPR voters
+export const sprVotersRelations = relations(sprVoters, ({ one }) => ({
+  version: one(sprVoterVersions, {
+    fields: [sprVoters.versionId],
+    references: [sprVoterVersions.id],
+  }),
+  householdMember: one(householdMembers, {
+    fields: [sprVoters.householdMemberId],
+    references: [householdMembers.id],
+  }),
+}));
+
+// Gender table
+export const genders = pgTable(
+  "genders",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull().unique(),
+    code: varchar("code", { length: 10 }),
+    description: text("description"),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("genders_name_idx").on(table.name),
+    index("genders_code_idx").on(table.code),
+  ]
+);
+
+// Religion table
+export const religions = pgTable(
+  "religions",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull().unique(),
+    code: varchar("code", { length: 20 }),
+    description: text("description"),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("religions_name_idx").on(table.name),
+    index("religions_code_idx").on(table.code),
+  ]
+);
+
+// Race table
+export const races = pgTable(
+  "races",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull().unique(),
+    code: varchar("code", { length: 20 }),
+    description: text("description"),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("races_name_idx").on(table.name),
+    index("races_code_idx").on(table.code),
+  ]
+);
+
+// District table
+export const districts = pgTable(
+  "districts",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull().unique(),
+    code: varchar("code", { length: 20 }),
+    description: text("description"),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("districts_name_idx").on(table.name),
+    index("districts_code_idx").on(table.code),
+  ]
+);
+
+// Parliament table
+export const parliaments = pgTable(
+  "parliaments",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull().unique(),
+    code: varchar("code", { length: 20 }),
+    description: text("description"),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("parliaments_name_idx").on(table.name),
+    index("parliaments_code_idx").on(table.code),
+  ]
+);
+
+// Locality table
+export const localities = pgTable(
+  "localities",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    code: varchar("code", { length: 50 }).unique(),
+    parliamentId: integer("parliament_id").references(() => parliaments.id, { onDelete: "set null" }),
+    dunId: integer("dun_id").references(() => duns.id, { onDelete: "set null" }),
+    districtId: integer("district_id").references(() => districts.id, { onDelete: "set null" }),
+    description: text("description"),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("localities_name_idx").on(table.name),
+    index("localities_code_idx").on(table.code),
+    index("localities_parliament_idx").on(table.parliamentId),
+    index("localities_dun_idx").on(table.dunId),
+    index("localities_district_idx").on(table.districtId),
+  ]
+);
+
+// Polling Station table
+export const pollingStations = pgTable(
+  "polling_stations",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull().unique(),
+    code: varchar("code", { length: 50 }),
+    localityId: integer("locality_id").references(() => localities.id, { onDelete: "set null" }),
+    address: text("address"),
+    description: text("description"),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("polling_stations_name_idx").on(table.name),
+    index("polling_stations_code_idx").on(table.code),
+    index("polling_stations_locality_idx").on(table.localityId),
+  ]
+);
+
+// Relations for reference data
+export const localitiesRelations = relations(localities, ({ one }) => ({
+  parliament: one(parliaments, {
+    fields: [localities.parliamentId],
+    references: [parliaments.id],
+  }),
+  dun: one(duns, {
+    fields: [localities.dunId],
+    references: [duns.id],
+  }),
+  district: one(districts, {
+    fields: [localities.districtId],
+    references: [districts.id],
+  }),
+}));
+
+export const pollingStationsRelations = relations(pollingStations, ({ one }) => ({
+  locality: one(localities, {
+    fields: [pollingStations.localityId],
+    references: [localities.id],
+  }),
+}));
+
+export const parliamentsRelations = relations(parliaments, ({ many }) => ({
+  localities: many(localities),
+}));
+
+export const districtsRelations = relations(districts, ({ many }) => ({
+  localities: many(localities),
+}));

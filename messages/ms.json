@@ -1,0 +1,197 @@
+{
+  "common": {
+    "appName": "Platform Komuniti N.18 Inanam",
+    "loading": "Memuatkan...",
+    "save": "Simpan",
+    "cancel": "Batal",
+    "delete": "Padam",
+    "edit": "Edit",
+    "create": "Cipta",
+    "update": "Kemaskini",
+    "submit": "Hantar",
+    "search": "Cari",
+    "filter": "Tapis",
+    "actions": "Tindakan",
+    "back": "Kembali",
+    "next": "Seterusnya",
+    "previous": "Sebelumnya",
+    "close": "Tutup",
+    "confirm": "Sahkan",
+    "yes": "Ya",
+    "no": "Tidak",
+    "success": "Berjaya",
+    "error": "Ralat",
+    "warning": "Amaran",
+    "info": "Maklumat"
+  },
+  "nav": {
+    "home": "Laman Utama",
+    "howItWorks": "Cara Ia Berfungsi",
+    "viewReports": "Lihat Laporan",
+    "about": "Tentang Kami",
+    "contact": "Hubungi",
+    "reportIssue": "Laporkan Isu",
+    "login": "Log Masuk",
+    "register": "Daftar",
+    "loginRegister": "Log Masuk / Daftar",
+    "dashboard": "Papan Pemuka",
+    "issues": "Isu",
+    "notifications": "Notifikasi",
+    "households": "Isi Rumah",
+    "zones": "Zon",
+    "villages": "Kampung",
+    "sprVoters": "Pengundi SPR",
+    "referenceData": "Data Rujukan",
+    "aidsPrograms": "Program Bantuan",
+    "staff": "Kakitangan",
+    "roles": "Peranan & Pelantikan",
+    "users": "Pengguna Komuniti",
+    "announcements": "Pengumuman",
+    "reports": "Laporan",
+    "pages": "Halaman",
+    "settings": "Tetapan"
+  },
+  "home": {
+    "hero": {
+      "title": "Membina N.18 Inanam yang Lebih Baik, Bersama",
+      "titleHighlight": "Bersama",
+      "reportIssue": "Laporkan Isu",
+      "viewReports": "Lihat Laporan",
+      "description": "Platform rasmi untuk penduduk melaporkan isu tempatan dan memacu penyelesaian yang dipimpin komuniti. Suara anda penting, dan bersama-sama kita boleh membuat perbezaan."
+    },
+    "howItWorks": {
+      "title": "Langkah Mudah untuk Membuat Perbezaan",
+      "subtitle": "Memulakan adalah mudah. Ikuti tiga langkah mudah ini untuk menyumbang kepada komuniti anda.",
+      "step1": {
+        "title": "Perhatikan & Laporkan",
+        "description": "Hantar laporan terperinci dengan mudah tentang sebarang isu yang anda temui dalam komuniti. Tambah foto, lokasi, dan keterangan untuk membantu pihak berkuasa memahami masalah tersebut."
+      },
+      "step2": {
+        "title": "Semakan Komuniti & Pihak Berkuasa",
+        "description": "Laporan anda disemak oleh moderator komuniti dan pihak berkuasa tempatan yang berkaitan. Mereka menilai isu tersebut dan menentukan tindakan terbaik."
+      },
+      "step3": {
+        "title": "Pantau Kemajuan & Penyelesaian",
+        "description": "Ikuti status laporan anda dari penghantaran hingga penyelesaian akhir. Dapatkan kemas kini masa nyata dan lihat bagaimana laporan anda menyumbang kepada menjadikan N.18 Inanam lebih baik."
+      }
+    },
+    "statistics": {
+      "title": "Kesan Komuniti",
+      "subtitle": "Lihat bagaimana komuniti kita membuat perbezaan bersama",
+      "issuesReported": "Isu Dilaporkan",
+      "issuesResolved": "Isu Diselesaikan",
+      "activeMembers": "Ahli Aktif"
+    },
+    "features": {
+      "title": "Suara Anda, Komuniti Kami",
+      "subtitle": "Ciri-ciri berkuasa yang direka untuk menjadikan penglibatan komuniti mudah dan berkesan",
+      "transparentTracking": {
+        "title": "Penjejakan Telus",
+        "description": "Pantau kemajuan setiap laporan dari penghantaran hingga penyelesaian dalam masa nyata. Kekal dimaklumkan tentang apa yang berlaku dalam komuniti anda."
+      },
+      "directCommunication": {
+        "title": "Komunikasi Langsung",
+        "description": "Berkomunikasi dengan pihak berkuasa tempatan dan jiran untuk bekerjasama mencari penyelesaian. Bina hubungan yang lebih kuat dalam komuniti anda."
+      },
+      "collectiveProblemSolving": {
+        "title": "Penyelesaian Masalah Bersama",
+        "description": "Jadilah sebahagian daripada komuniti yang secara aktif menyumbang kepada menjadikan N.18 Inanam lebih baik. Bersama-sama, kita boleh mencapai lebih daripada yang kita boleh lakukan sendiri."
+      }
+    },
+    "cta": {
+      "title": "Bersedia untuk Membuat Impak?",
+      "description": "Sertai jiran anda dalam membina komuniti yang lebih kuat. Laporkan isu atau daftar untuk kekal dimaklumkan tentang apa yang berlaku di N.18 Inanam.",
+      "reportIssue": "Laporkan Isu Sekarang",
+      "createAccount": "Cipta Akaun"
+    },
+    "footer": {
+      "description": "Platform rasmi untuk penduduk melaporkan isu tempatan dan memacu penyelesaian yang dipimpin komuniti di N.18 Inanam.",
+      "quickLinks": "Pautan Pantas",
+      "getStarted": "Mula",
+      "howItWorks": "Cara Ia Berfungsi",
+      "viewReports": "Lihat Laporan",
+      "about": "Tentang Kami",
+      "contact": "Hubungi",
+      "reportIssue": "Laporkan Isu",
+      "login": "Log Masuk",
+      "register": "Daftar",
+      "privacyPolicy": "Dasar Privasi",
+      "termsOfService": "Terma Perkhidmatan",
+      "allRightsReserved": "© 2024 {appName} — Hak Cipta Terpelihara"
+    }
+  },
+  "about": {
+    "title": "Tentang Kami",
+    "subtitle": "Platform Komuniti N.18 Inanam",
+    "mission": {
+      "title": "Misi Kami",
+      "description": "Kami percaya dalam memperkasakan komuniti untuk bertindak. Platform kami menghubungkan penduduk dengan pihak berkuasa tempatan, memudahkan untuk melaporkan isu, menjejaki kemajuan, dan bekerjasama untuk membina N.18 Inanam yang lebih baik."
+    },
+    "whatWeDo": {
+      "title": "Apa Yang Kami Lakukan",
+      "issueReporting": "Pelaporan Isu: Cara mudah dan boleh diakses untuk melaporkan isu komuniti",
+      "transparency": "Ketelusan: Penjejakan masa nyata status isu dan penyelesaian",
+      "communityEngagement": "Penglibatan Komuniti: Menghubungkan jiran dan pihak berkuasa tempatan",
+      "accountability": "Akauntabiliti: Memastikan isu ditangani dan diselesaikan"
+    },
+    "values": {
+      "title": "Nilai Kami",
+      "transparency": "Ketelusan: Kami percaya dalam komunikasi terbuka dan proses yang jelas.",
+      "communityFirst": "Komuniti Pertama: Setiap ciri direka dengan mempertimbangkan keperluan komuniti.",
+      "actionOriented": "Berorientasikan Tindakan: Kami fokus pada hasil dan impak dunia sebenar.",
+      "collaboration": "Kolaborasi: Kami menyatukan penduduk, pihak berkuasa, dan pemegang kepentingan."
+    },
+    "joinUs": "Sertai kami dalam membina komuniti N.18 Inanam yang lebih kuat dan lebih terhubung."
+  },
+  "contact": {
+    "title": "Hubungi Kami",
+    "subtitle": "Berhubung",
+    "description": "Kami di sini untuk membantu! Hubungi kami melalui mana-mana saluran berikut.",
+    "careline": {
+      "title": "CARELINE",
+      "description": "Untuk perkara mendesak dan pertanyaan umum, hubungi CARELINE kami."
+    },
+    "whatsapp": {
+      "title": "WhatsApp",
+      "description": "Berhubung dengan kami di WhatsApp untuk respons cepat dan sokongan."
+    },
+    "officeHours": {
+      "title": "Waktu Pejabat",
+      "mondayFriday": "Isnin - Jumaat: 9:00 PG - 5:00 PTG",
+      "saturday": "Sabtu: 9:00 PG - 1:00 PTG",
+      "sunday": "Ahad: Tutup"
+    },
+    "visitUs": {
+      "title": "Lawati Kami",
+      "address": "Platform Komuniti N.18 Inanam\nInanam, Sabah, Malaysia"
+    },
+    "feedback": "Kami menghargai maklum balas anda dan komited untuk meningkatkan perkhidmatan kami."
+  },
+  "viewReports": {
+    "title": "Lihat Laporan",
+    "subtitle": "Laporan Isu Komuniti",
+    "description": "Kekal dimaklumkan tentang isu yang dilaporkan dalam komuniti anda. Layari laporan aktif, lihat status mereka, dan pantau kemajuan mereka.",
+    "categories": {
+      "title": "Kategori Laporan",
+      "infrastructure": "Infrastruktur: Jalan, jambatan, kemudahan awam",
+      "environment": "Alam Sekitar: Pengurusan sisa, pencemaran, ruang hijau",
+      "safety": "Keselamatan: Kebimbangan keselamatan, pencahayaan, bahaya",
+      "services": "Perkhidmatan: Utiliti, perkhidmatan awam, kemudahan",
+      "other": "Lain-lain: Sebarang kebimbangan komuniti lain"
+    },
+    "status": {
+      "title": "Status Laporan",
+      "open": "Terbuka: Isu yang baru dilaporkan menunggu semakan",
+      "underReview": "Dalam Semakan: Isu sedang dinilai oleh pihak berkuasa",
+      "inProgress": "Dalam Proses: Kerja aktif sedang dilakukan untuk menyelesaikan isu",
+      "resolved": "Diselesaikan: Isu yang telah berjaya ditangani",
+      "closed": "Tutup: Isu yang telah selesai atau tidak lagi relevan"
+    },
+    "browseReports": "Layari laporan untuk melihat apa yang berlaku dalam komuniti anda dan bagaimana anda boleh membantu."
+  },
+  "language": {
+    "switch": "Tukar Bahasa",
+    "english": "English",
+    "bahasaMalaysia": "Bahasa Malaysia"
+  }
+}

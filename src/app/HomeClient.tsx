@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from '@/i18n/routing';
+import { useTranslations } from 'next-intl';
 import Button from "@/components/ui/Button";
 import { 
   FileText, 
@@ -22,6 +23,8 @@ interface HomeClientProps {
 }
 
 export default function HomeClient({ appName }: HomeClientProps) {
+  const t = useTranslations('home');
+  
   return (
     <div className="font-display bg-background-light dark:bg-background-dark">
       <div className="flex flex-col min-h-screen">
@@ -35,22 +38,21 @@ export default function HomeClient({ appName }: HomeClientProps) {
               <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 p-8 md:p-12 lg:p-16">
                 <div className="relative z-10 flex flex-col items-center text-center max-w-3xl mx-auto gap-6">
                   <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-tight tracking-[-0.033em] text-gray-900 dark:text-white">
-                    Building a Better N.18 Inanam, <span className="text-primary">Together</span>
+                    {t('hero.title').replace(t('hero.titleHighlight'), '')} <span className="text-primary">{t('hero.titleHighlight')}</span>
                   </h1>
                   <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl leading-relaxed">
-                    The official platform for residents to report local issues and drive community-led solutions. 
-                    Your voice matters, and together we can make a difference.
+                    {t('hero.description')}
                   </p>
                   <div className="flex flex-wrap gap-4 justify-center mt-4">
                     <Button asChild className="rounded-lg h-12 md:h-14 px-6 md:px-8 bg-primary text-white text-base md:text-lg font-bold hover:bg-primary/90 transition-all hover:scale-105 shadow-lg">
                       <Link href="/report-issue" className="flex items-center gap-2">
-                        Report an Issue
+                        {t('hero.reportIssue')}
                         <ArrowRight className="size-5" />
                       </Link>
                     </Button>
                     <Button asChild variant="outline" className="rounded-lg h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-bold border-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
                       <Link href="/view-reports" className="flex items-center gap-2">
-                        View Reports
+                        {t('hero.viewReports')}
                         <Eye className="size-5" />
                       </Link>
                     </Button>
@@ -63,10 +65,10 @@ export default function HomeClient({ appName }: HomeClientProps) {
             <section className="py-12 md:py-16">
               <div className="text-center mb-12">
                 <h2 className="text-3xl md:text-4xl font-black tracking-[-0.015em] text-gray-900 dark:text-white mb-4">
-                  Simple Steps to Make a Difference
+                  {t('howItWorks.title')}
                 </h2>
                 <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                  Getting started is easy. Follow these three simple steps to contribute to your community.
+                  {t('howItWorks.subtitle')}
                 </p>
               </div>
 
@@ -75,22 +77,22 @@ export default function HomeClient({ appName }: HomeClientProps) {
                   {
                     step: "1",
                     icon: FileText,
-                    title: "Spot & Report",
-                    description: "Easily submit a detailed report about any issue you encounter in the community. Add photos, location, and description to help authorities understand the problem.",
+                    title: t('howItWorks.step1.title'),
+                    description: t('howItWorks.step1.description'),
                     color: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
                   },
                   {
                     step: "2",
                     icon: Users,
-                    title: "Community & Authority Review",
-                    description: "Your report is reviewed by community moderators and relevant local authorities. They assess the issue and determine the best course of action.",
+                    title: t('howItWorks.step2.title'),
+                    description: t('howItWorks.step2.description'),
                     color: "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
                   },
                   {
                     step: "3",
                     icon: CheckCircle2,
-                    title: "Track Progress & Resolution",
-                    description: "Follow the status of your report from submission to final resolution. Get real-time updates and see how your report contributes to making N.18 Inanam better.",
+                    title: t('howItWorks.step3.title'),
+                    description: t('howItWorks.step3.description'),
                     color: "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
                   }
                 ].map((item, i) => {
@@ -127,17 +129,17 @@ export default function HomeClient({ appName }: HomeClientProps) {
               <div className="px-6 md:px-12">
                 <div className="text-center mb-12">
                   <h2 className="text-3xl md:text-4xl font-black tracking-[-0.015em] text-gray-900 dark:text-white mb-4">
-                    Community Impact
+                    {t('statistics.title')}
                   </h2>
                   <p className="text-lg text-gray-600 dark:text-gray-400">
-                    See how our community is making a difference together
+                    {t('statistics.subtitle')}
                   </p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
                   {[
-                    { value: "1,200+", label: "Issues Reported", icon: FileText, color: "text-blue-600 dark:text-blue-400" },
-                    { value: "950+", label: "Issues Resolved", icon: CheckCircle2, color: "text-green-600 dark:text-green-400" },
-                    { value: "3,500+", label: "Active Members", icon: Users, color: "text-purple-600 dark:text-purple-400" }
+                    { value: "1,200+", label: t('statistics.issuesReported'), icon: FileText, color: "text-blue-600 dark:text-blue-400" },
+                    { value: "950+", label: t('statistics.issuesResolved'), icon: CheckCircle2, color: "text-green-600 dark:text-green-400" },
+                    { value: "3,500+", label: t('statistics.activeMembers'), icon: Users, color: "text-purple-600 dark:text-purple-400" }
                   ].map((stat, idx) => {
                     const Icon = stat.icon;
                     return (
@@ -162,10 +164,10 @@ export default function HomeClient({ appName }: HomeClientProps) {
             <section className="py-12 md:py-20">
               <div className="text-center mb-12">
                 <h2 className="text-3xl md:text-4xl font-black tracking-[-0.015em] text-gray-900 dark:text-white mb-4">
-                  Your Voice, Our Community
+                  {t('features.title')}
                 </h2>
                 <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                  Powerful features designed to make community engagement simple and effective
+                  {t('features.subtitle')}
                 </p>
               </div>
 
@@ -173,20 +175,20 @@ export default function HomeClient({ appName }: HomeClientProps) {
                 {[
                   {
                     icon: Eye,
-                    title: "Transparent Tracking",
-                    description: "Monitor the progress of every report from submission to resolution in real-time. Stay informed about what's happening in your community.",
+                    title: t('features.transparentTracking.title'),
+                    description: t('features.transparentTracking.description'),
                     color: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
                   },
                   {
                     icon: MessageSquare,
-                    title: "Direct Communication",
-                    description: "Engage with local authorities and neighbors to work together on solutions. Build stronger connections within your community.",
+                    title: t('features.directCommunication.title'),
+                    description: t('features.directCommunication.description'),
                     color: "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
                   },
                   {
                     icon: TrendingUp,
-                    title: "Collective Problem-Solving",
-                    description: "Be part of a community that actively contributes to making N.18 Inanam better. Together, we can achieve more than we ever could alone.",
+                    title: t('features.collectiveProblemSolving.title'),
+                    description: t('features.collectiveProblemSolving.description'),
                     color: "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
                   }
                 ].map((feature, idx) => {
@@ -216,21 +218,21 @@ export default function HomeClient({ appName }: HomeClientProps) {
               <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/80 dark:from-primary dark:to-primary/90 p-8 md:p-12 lg:p-16 text-center">
                 <div className="relative z-10 flex flex-col items-center gap-6 max-w-2xl mx-auto">
                   <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-[-0.033em] text-white">
-                    Ready to Make an Impact?
+                    {t('cta.title')}
                   </h2>
                   <p className="text-lg md:text-xl text-white/90 leading-relaxed">
-                    Join your neighbors in building a stronger community. Report an issue or register to stay informed about what's happening in N.18 Inanam.
+                    {t('cta.description')}
                   </p>
                   <div className="flex flex-wrap gap-4 justify-center mt-4">
-                    <Button asChild className="rounded-lg h-12 md:h-14 px-6 md:px-8 bg-white text-primary text-base md:text-lg font-bold hover:bg-gray-100 transition-all hover:scale-105 shadow-lg">
+                    <Button asChild variant="outline" className="!bg-white !text-primary !border-0 h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-bold hover:!bg-gray-100 transition-all hover:scale-105 shadow-lg">
                       <Link href="/report-issue" className="flex items-center gap-2">
-                        Report an Issue Now
+                        {t('cta.reportIssue')}
                         <ArrowRight className="size-5" />
                       </Link>
                     </Button>
                     <Button asChild variant="outline" className="rounded-lg h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-bold border-2 border-white text-white hover:bg-white/10 transition-all">
                       <Link href="/community/register" className="flex items-center gap-2">
-                        Create an Account
+                        {t('cta.createAccount')}
                         <Users className="size-5" />
                       </Link>
                     </Button>
@@ -261,47 +263,47 @@ export default function HomeClient({ appName }: HomeClientProps) {
               </div>
               
               <div>
-                <h3 className="font-bold text-gray-900 dark:text-white mb-4">Quick Links</h3>
+                <h3 className="font-bold text-gray-900 dark:text-white mb-4">{t('footer.quickLinks')}</h3>
                 <ul className="space-y-2 text-sm">
                   <li>
                     <Link href="/how-it-works" className="hover:text-primary transition-colors">
-                      How It Works
+                      {t('footer.howItWorks')}
                     </Link>
                   </li>
                   <li>
                     <Link href="/view-reports" className="hover:text-primary transition-colors">
-                      View Reports
+                      {t('footer.viewReports')}
                     </Link>
                   </li>
                   <li>
                     <Link href="/about" className="hover:text-primary transition-colors">
-                      About Us
+                      {t('footer.about')}
                     </Link>
                   </li>
                   <li>
                     <Link href="/contact" className="hover:text-primary transition-colors">
-                      Contact
+                      {t('footer.contact')}
                     </Link>
                   </li>
                 </ul>
               </div>
               
               <div>
-                <h3 className="font-bold text-gray-900 dark:text-white mb-4">Get Started</h3>
+                <h3 className="font-bold text-gray-900 dark:text-white mb-4">{t('footer.getStarted')}</h3>
                 <ul className="space-y-2 text-sm">
                   <li>
                     <Link href="/report-issue" className="hover:text-primary transition-colors">
-                      Report an Issue
+                      {t('footer.reportIssue')}
                     </Link>
                   </li>
                   <li>
                     <Link href="/community/login" className="hover:text-primary transition-colors">
-                      Login
+                      {t('footer.login')}
                     </Link>
                   </li>
                   <li>
                     <Link href="/community/register" className="hover:text-primary transition-colors">
-                      Register
+                      {t('footer.register')}
                     </Link>
                   </li>
                 </ul>
@@ -310,14 +312,14 @@ export default function HomeClient({ appName }: HomeClientProps) {
             
             <div className="border-t border-gray-200 dark:border-gray-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                © 2024 {appName} — All Rights Reserved
+                {t('footer.allRightsReserved', { appName })}
               </p>
               <div className="flex gap-6">
                 <Link href="/about" className="text-sm hover:text-primary transition-colors">
-                  Privacy Policy
+                  {t('footer.privacyPolicy')}
                 </Link>
                 <Link href="/contact" className="text-sm hover:text-primary transition-colors">
-                  Terms of Service
+                  {t('footer.termsOfService')}
                 </Link>
               </div>
             </div>

@@ -1,0 +1,168 @@
+import { ArrowLeft, Users, Home, DollarSign, Package, Plus, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import Button from "@/components/ui/Button";
+import { getHouseholdById } from "@/lib/actions/households";
+import { notFound } from "next/navigation";
+import HouseholdFormModal from "../HouseholdFormModal";
+import MembersSection from "./MembersSection";
+import IncomeSection from "./IncomeSection";
+import AidDistributionSection from "./AidDistributionSection";
+import { getUserWorkspaceType } from "@/lib/utils/accessControl";
+
+export default async function HouseholdDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const householdId = parseInt(id, 10);
+
+  if (Number.isNaN(householdId)) {
+    notFound();
+  }
+
+  const result = await getHouseholdById(householdId);
+
+  if (!result.success || !result.data) {
+    notFound();
+  }
+
+  const household = result.data;
+
+  // Check if user is admin (super_admin, adun, zone_leader, or staff_manager)
+  const workspaceType = await getUserWorkspaceType();
+  const isAdmin = workspaceType === "admin";
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link href="/admin/households">
+            <Button variant="outline" className="gap-2">
+              <ArrowLeft className="size-4" />
+              Back
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-black tracking-[-0.015em]">
+              {household.head_name}
+            </h1>
+            <p className="text-gray-600 mt-1">{household.address}</p>
+          </div>
+        </div>
+        <HouseholdFormModal
+          household={household}
+          trigger={
+            <Button variant="outline" className="gap-2">
+              Edit Household
+            </Button>
+          }
+        />
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <Users className="size-5 text-blue-600" />
+            <p className="text-sm text-gray-600">Total Members</p>
+          </div>
+          <p className="text-3xl font-bold">{household.total_members || 0}</p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <Home className="size-5 text-green-600" />
+            <p className="text-sm text-gray-600">Members at Home</p>
+          </div>
+          <p className="text-3xl font-bold">{household.members_at_home || 0}</p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <Users className="size-5 text-orange-600" />
+            <p className="text-sm text-gray-600">Dependents</p>
+          </div>
+          <p className="text-3xl font-bold">{household.total_dependents || 0}</p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <DollarSign className="size-5 text-purple-600" />
+            <p className="text-sm text-gray-600">Monthly Income</p>
+          </div>
+          <p className="text-3xl font-bold">
+            {household.latest_income !== null && household.latest_income !== undefined
+              ? `RM ${household.latest_income.toLocaleString()}`
+              : "—"}
+          </p>
+        </div>
+      </div>
+
+      {/* Warning if members at home don't match total */}
+      {household.total_members !== undefined &&
+        household.members_at_home !== undefined &&
+        household.total_members > 0 &&
+        household.members_at_home < household.total_members && (
+          <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="size-5 text-yellow-600 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-yellow-900 mb-1">Some Members Are Away</h3>
+                <p className="text-sm text-yellow-800">
+                  {household.total_members - household.members_at_home} member
+                  {household.total_members - household.members_at_home !== 1 ? "s are" : " is"} currently
+                  away from home. Make sure to account for this when distributing aid.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+      {/* Household Information */}
+      <div className="rounded-xl border border-gray-200 bg-white p-6">
+        <h2 className="text-lg font-bold text-gray-900 mb-4">Household Information</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm text-gray-600">Head IC Number</p>
+            <p className="font-medium">{household.head_ic_number || "—"}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-600">Phone Number</p>
+            <p className="font-medium">{household.head_phone || "—"}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-600">Area / Zone</p>
+            <p className="font-medium">
+              {household.area ? (
+                <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800">
+                  {household.area}
+                </span>
+              ) : (
+                "—"
+              )}
+            </p>
+          </div>
+          {household.notes && (
+            <div className="md:col-span-2">
+              <p className="text-sm text-gray-600">Notes</p>
+              <p className="font-medium">{household.notes}</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Members Section */}
+      <MembersSection householdId={householdId} members={household.members} isAdmin={isAdmin} />
+
+      {/* Income Section */}
+      <IncomeSection householdId={householdId} income={household.income} />
+
+      {/* Aid Distribution Section */}
+      <AidDistributionSection
+        householdId={householdId}
+        membersAtHome={household.members_at_home || 0}
+        totalDependents={household.total_dependents || 0}
+        distributions={household.latestAidDistributions}
+      />
+    </div>
+  );
+}

@@ -1,0 +1,197 @@
+{
+  "common": {
+    "appName": "N.18 Inanam Community Platform",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "update": "Update",
+    "submit": "Submit",
+    "search": "Search",
+    "filter": "Filter",
+    "actions": "Actions",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "close": "Close",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info"
+  },
+  "nav": {
+    "home": "Home",
+    "howItWorks": "How It Works",
+    "viewReports": "View Reports",
+    "about": "About Us",
+    "contact": "Contact",
+    "reportIssue": "Report an Issue",
+    "login": "Login",
+    "register": "Register",
+    "loginRegister": "Login / Register",
+    "dashboard": "Dashboard",
+    "issues": "Issues",
+    "notifications": "Notifications",
+    "households": "Households",
+    "zones": "Zones",
+    "villages": "Villages",
+    "sprVoters": "SPR Voters",
+    "referenceData": "Reference Data",
+    "aidsPrograms": "AIDS Programs",
+    "staff": "Staff",
+    "roles": "Roles & Appointments",
+    "users": "Community Users",
+    "announcements": "Announcements",
+    "reports": "Reports",
+    "pages": "Pages",
+    "settings": "Settings"
+  },
+  "home": {
+    "hero": {
+      "title": "Building a Better N.18 Inanam, Together",
+      "titleHighlight": "Together",
+      "reportIssue": "Report an Issue",
+      "viewReports": "View Reports",
+      "description": "The official platform for residents to report local issues and drive community-led solutions. Your voice matters, and together we can make a difference."
+    },
+    "howItWorks": {
+      "title": "Simple Steps to Make a Difference",
+      "subtitle": "Getting started is easy. Follow these three simple steps to contribute to your community.",
+      "step1": {
+        "title": "Spot & Report",
+        "description": "Easily submit a detailed report about any issue you encounter in the community. Add photos, location, and description to help authorities understand the problem."
+      },
+      "step2": {
+        "title": "Community & Authority Review",
+        "description": "Your report is reviewed by community moderators and relevant local authorities. They assess the issue and determine the best course of action."
+      },
+      "step3": {
+        "title": "Track Progress & Resolution",
+        "description": "Follow the status of your report from submission to final resolution. Get real-time updates and see how your report contributes to making N.18 Inanam better."
+      }
+    },
+    "statistics": {
+      "title": "Community Impact",
+      "subtitle": "See how our community is making a difference together",
+      "issuesReported": "Issues Reported",
+      "issuesResolved": "Issues Resolved",
+      "activeMembers": "Active Members"
+    },
+    "features": {
+      "title": "Your Voice, Our Community",
+      "subtitle": "Powerful features designed to make community engagement simple and effective",
+      "transparentTracking": {
+        "title": "Transparent Tracking",
+        "description": "Monitor the progress of every report from submission to resolution in real-time. Stay informed about what's happening in your community."
+      },
+      "directCommunication": {
+        "title": "Direct Communication",
+        "description": "Engage with local authorities and neighbors to work together on solutions. Build stronger connections within your community."
+      },
+      "collectiveProblemSolving": {
+        "title": "Collective Problem-Solving",
+        "description": "Be part of a community that actively contributes to making N.18 Inanam better. Together, we can achieve more than we ever could alone."
+      }
+    },
+    "cta": {
+      "title": "Ready to Make an Impact?",
+      "description": "Join your neighbors in building a stronger community. Report an issue or register to stay informed about what's happening in N.18 Inanam.",
+      "reportIssue": "Report an Issue Now",
+      "createAccount": "Create an Account"
+    },
+    "footer": {
+      "description": "The official platform for residents to report local issues and drive community-led solutions in N.18 Inanam.",
+      "quickLinks": "Quick Links",
+      "getStarted": "Get Started",
+      "howItWorks": "How It Works",
+      "viewReports": "View Reports",
+      "about": "About Us",
+      "contact": "Contact",
+      "reportIssue": "Report an Issue",
+      "login": "Login",
+      "register": "Register",
+      "privacyPolicy": "Privacy Policy",
+      "termsOfService": "Terms of Service",
+      "allRightsReserved": "© 2024 {appName} — All Rights Reserved"
+    }
+  },
+  "about": {
+    "title": "About Us",
+    "subtitle": "N.18 Inanam Community Platform",
+    "mission": {
+      "title": "Our Mission",
+      "description": "We believe in empowering communities to take action. Our platform connects residents with local authorities, making it easy to report issues, track progress, and work together to build a better N.18 Inanam."
+    },
+    "whatWeDo": {
+      "title": "What We Do",
+      "issueReporting": "Issue Reporting: Simple, accessible way to report community issues",
+      "transparency": "Transparency: Real-time tracking of issue status and resolution",
+      "communityEngagement": "Community Engagement: Connect neighbors and local authorities",
+      "accountability": "Accountability: Ensure issues are addressed and resolved"
+    },
+    "values": {
+      "title": "Our Values",
+      "transparency": "Transparency: We believe in open communication and clear processes.",
+      "communityFirst": "Community First: Every feature is designed with the community's needs in mind.",
+      "actionOriented": "Action-Oriented: We focus on results and real-world impact.",
+      "collaboration": "Collaboration: We bring together residents, authorities, and stakeholders."
+    },
+    "joinUs": "Join us in building a stronger, more connected N.18 Inanam community."
+  },
+  "contact": {
+    "title": "Contact Us",
+    "subtitle": "Get in Touch",
+    "description": "We're here to help! Reach out to us through any of the following channels.",
+    "careline": {
+      "title": "CARELINE",
+      "description": "For urgent matters and general inquiries, contact our CARELINE."
+    },
+    "whatsapp": {
+      "title": "WhatsApp",
+      "description": "Connect with us on WhatsApp for quick responses and support."
+    },
+    "officeHours": {
+      "title": "Office Hours",
+      "mondayFriday": "Monday - Friday: 9:00 AM - 5:00 PM",
+      "saturday": "Saturday: 9:00 AM - 1:00 PM",
+      "sunday": "Sunday: Closed"
+    },
+    "visitUs": {
+      "title": "Visit Us",
+      "address": "N.18 Inanam Community Platform\nInanam, Sabah, Malaysia"
+    },
+    "feedback": "We value your feedback and are committed to improving our services."
+  },
+  "viewReports": {
+    "title": "View Reports",
+    "subtitle": "Community Issue Reports",
+    "description": "Stay informed about issues reported in your community. Browse through active reports, see their status, and track their progress.",
+    "categories": {
+      "title": "Report Categories",
+      "infrastructure": "Infrastructure: Roads, bridges, public facilities",
+      "environment": "Environment: Waste management, pollution, green spaces",
+      "safety": "Safety: Security concerns, lighting, hazards",
+      "services": "Services: Utilities, public services, amenities",
+      "other": "Other: Any other community concerns"
+    },
+    "status": {
+      "title": "Report Status",
+      "open": "Open: Newly reported issues awaiting review",
+      "underReview": "Under Review: Issues being assessed by authorities",
+      "inProgress": "In Progress: Active work being done to resolve the issue",
+      "resolved": "Resolved: Issues that have been successfully addressed",
+      "closed": "Closed: Issues that have been completed or are no longer relevant"
+    },
+    "browseReports": "Browse reports to see what's happening in your community and how you can help."
+  },
+  "language": {
+    "switch": "Switch Language",
+    "english": "English",
+    "bahasaMalaysia": "Bahasa Malaysia"
+  }
+}

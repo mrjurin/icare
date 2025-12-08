@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { Link } from '@/i18n/routing';
+import { useTranslations } from 'next-intl';
 import Button from "@/components/ui/Button";
 import { Menu, X } from "lucide-react";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 interface PublicHeaderClientProps {
   appName: string;
@@ -11,6 +13,7 @@ interface PublicHeaderClientProps {
 
 export default function PublicHeaderClient({ appName }: PublicHeaderClientProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const t = useTranslations('nav');
 
   return (
     <>
@@ -29,24 +32,25 @@ export default function PublicHeaderClient({ appName }: PublicHeaderClientProps)
         <div className="hidden lg:flex flex-1 justify-end gap-8 items-center">
           <nav className="flex items-center gap-8">
             <Link href="/how-it-works" className="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary text-sm font-medium transition-colors">
-              How It Works
+              {t('howItWorks')}
             </Link>
             <Link href="/view-reports" className="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary text-sm font-medium transition-colors">
-              View Reports
+              {t('viewReports')}
             </Link>
             <Link href="/about" className="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary text-sm font-medium transition-colors">
-              About Us
+              {t('about')}
             </Link>
             <Link href="/contact" className="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary text-sm font-medium transition-colors">
-              Contact
+              {t('contact')}
             </Link>
           </nav>
-          <div className="flex gap-3">
+          <div className="flex gap-3 items-center">
+            <LanguageSwitcher />
             <Button asChild className="rounded-lg h-10 px-5 bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors">
-              <Link href="/report-issue">Report an Issue</Link>
+              <Link href="/report-issue">{t('reportIssue')}</Link>
             </Button>
             <Button asChild variant="outline" className="h-10 px-5">
-              <Link href="/community/login">Login / Register</Link>
+              <Link href="/community/login">{t('loginRegister')}</Link>
             </Button>
           </div>
         </div>
@@ -70,35 +74,38 @@ export default function PublicHeaderClient({ appName }: PublicHeaderClientProps)
               className="text-gray-700 dark:text-gray-300 hover:text-primary py-2 font-medium"
               onClick={() => setMobileMenuOpen(false)}
             >
-              How It Works
+              {t('howItWorks')}
             </Link>
             <Link 
               href="/view-reports" 
               className="text-gray-700 dark:text-gray-300 hover:text-primary py-2 font-medium"
               onClick={() => setMobileMenuOpen(false)}
             >
-              View Reports
+              {t('viewReports')}
             </Link>
             <Link 
               href="/about" 
               className="text-gray-700 dark:text-gray-300 hover:text-primary py-2 font-medium"
               onClick={() => setMobileMenuOpen(false)}
             >
-              About Us
+              {t('about')}
             </Link>
             <Link 
               href="/contact" 
               className="text-gray-700 dark:text-gray-300 hover:text-primary py-2 font-medium"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Contact
+              {t('contact')}
             </Link>
             <div className="flex flex-col gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+              <div className="flex justify-center">
+                <LanguageSwitcher />
+              </div>
               <Button asChild className="w-full rounded-lg h-12 bg-primary text-white font-bold">
-                <Link href="/report-issue" onClick={() => setMobileMenuOpen(false)}>Report an Issue</Link>
+                <Link href="/report-issue" onClick={() => setMobileMenuOpen(false)}>{t('reportIssue')}</Link>
               </Button>
               <Button asChild variant="outline" className="w-full h-12">
-                <Link href="/community/login" onClick={() => setMobileMenuOpen(false)}>Login / Register</Link>
+                <Link href="/community/login" onClick={() => setMobileMenuOpen(false)}>{t('loginRegister')}</Link>
               </Button>
             </div>
           </nav>

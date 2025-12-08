@@ -3,6 +3,7 @@
 import { getSupabaseServerClient, getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import { getAccessibleZoneIds, getAccessibleZoneIdsReadOnly } from "@/lib/utils/accessControl";
 import { isEligibleToVote, calculateAge } from "@/lib/utils/icNumber";
+import { getVoterVersions } from "@/lib/actions/spr-voters";
 
 export type ActionResult<T = void> = {
   success: boolean;
@@ -1456,6 +1457,820 @@ export async function getAdunDashboardStats(): Promise<ActionResult<AdunDashboar
         support_score: supportScore,
         support_percentage: supportPercentage,
       },
+    },
+  };
+}
+
+// SPR Voter Support Report
+export type SprVoterSupportData = {
+  versions: Array<{
+    version_id: number;
+    version_name: string;
+    total_voters: number;
+    white_supporters: number;
+    black_non_supporters: number;
+    red_undetermined: number;
+    unclassified: number;
+    support_score: number;
+    support_percentage: number;
+  }>;
+  by_locality: Array<{
+    locality: string;
+    total_voters: number;
+    white_supporters: number;
+    black_non_supporters: number;
+    red_undetermined: number;
+    unclassified: number;
+    support_score: number;
+  }>;
+  by_parliament: Array<{
+    parliament: string;
+    total_voters: number;
+    white_supporters: number;
+    black_non_supporters: number;
+    red_undetermined: number;
+    unclassified: number;
+    support_score: number;
+  }>;
+  by_polling_station: Array<{
+    polling_station: string;
+    total_voters: number;
+    white_supporters: number;
+    black_non_supporters: number;
+    red_undetermined: number;
+    unclassified: number;
+    support_score: number;
+  }>;
+  by_channel: Array<{
+    channel: number | null;
+    total_voters: number;
+    white_supporters: number;
+    black_non_supporters: number;
+    red_undetermined: number;
+    unclassified: number;
+    support_score: number;
+  }>;
+  overall_support_score: number;
+  total_voters: number;
+  total_white_supporters: number;
+  total_black_non_supporters: number;
+  total_red_undetermined: number;
+  total_unclassified: number;
+};
+
+export async function getSprVoterSupportReport(
+  versionId?: number
+): Promise<ActionResult<SprVoterSupportData>> {
+  const supabase = await getSupabaseReadOnlyClient();
+
+  // Fetch all voters in batches (Supabase has a default limit of 1000)
+  const allVoters: any[] = [];
+  const batchSize = 1000;
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    let votersQuery = supabase
+      .from("spr_voters")
+      .select("id, version_id, nama_lokaliti, nama_parlimen, nama_tm, saluran, voting_support_status")
+      .range(offset, offset + batchSize - 1);
+
+    if (versionId) {
+      votersQuery = votersQuery.eq("version_id", versionId);
+    }
+
+    const { data: batch, error: votersError } = await votersQuery;
+
+    if (votersError) {
+      return { success: false, error: votersError.message };
+    }
+
+    if (!batch || batch.length === 0) {
+      hasMore = false;
+    } else {
+      allVoters.push(...batch);
+      offset += batchSize;
+      // If we got fewer records than batch size, we've reached the end
+      if (batch.length < batchSize) {
+        hasMore = false;
+      }
+    }
+  }
+
+  const voters = allVoters;
+
+  if (!voters || voters.length === 0) {
+    return {
+      success: true,
+      data: {
+        versions: [],
+        by_locality: [],
+        by_parliament: [],
+        by_polling_station: [],
+        by_channel: [],
+        overall_support_score: 0,
+        total_voters: 0,
+        total_white_supporters: 0,
+        total_black_non_supporters: 0,
+        total_red_undetermined: 0,
+        total_unclassified: 0,
+      },
+    };
+  }
+
+  // Get versions
+  const versionsResult = await getVoterVersions();
+  const versions = versionsResult.success ? versionsResult.data || [] : [];
+  const versionsMap = new Map(versions.map((v) => [v.id, v.name]));
+
+  // Calculate by version
+  const versionStats = new Map<
+    number,
+    {
+      total: number;
+      white: number;
+      black: number;
+      red: number;
+      unclassified: number;
+    }
+  >();
+
+  voters.forEach((voter) => {
+    const stats = versionStats.get(voter.version_id) || {
+      total: 0,
+      white: 0,
+      black: 0,
+      red: 0,
+      unclassified: 0,
+    };
+    stats.total++;
+    if (voter.voting_support_status === "white") stats.white++;
+    else if (voter.voting_support_status === "black") stats.black++;
+    else if (voter.voting_support_status === "red") stats.red++;
+    else if (
+      voter.voting_support_status === null ||
+      voter.voting_support_status === undefined ||
+      voter.voting_support_status === ""
+    )
+      stats.unclassified++;
+    versionStats.set(voter.version_id, stats);
+  });
+
+  const versionData = Array.from(versionStats.entries()).map(([versionId, stats]) => {
+    const classified = stats.white + stats.black + stats.red;
+    const supportScore = classified > 0 ? Number(((stats.white / classified) * 100).toFixed(2)) : 0;
+    const supportPercentage =
+      stats.total > 0 ? Number(((stats.white / stats.total) * 100).toFixed(2)) : 0;
+
+    return {
+      version_id: versionId,
+      version_name: versionsMap.get(versionId) || `Version ${versionId}`,
+      total_voters: stats.total,
+      white_supporters: stats.white,
+      black_non_supporters: stats.black,
+      red_undetermined: stats.red,
+      unclassified: stats.unclassified,
+      support_score: supportScore,
+      support_percentage: supportPercentage,
+    };
+  });
+
+  // Calculate by locality
+  const localityStats = new Map<
+    string,
+    {
+      total: number;
+      white: number;
+      black: number;
+      red: number;
+      unclassified: number;
+    }
+  >();
+
+  voters.forEach((voter) => {
+    const locality = voter.nama_lokaliti || "Not Specified";
+    const stats = localityStats.get(locality) || {
+      total: 0,
+      white: 0,
+      black: 0,
+      red: 0,
+      unclassified: 0,
+    };
+    stats.total++;
+    if (voter.voting_support_status === "white") stats.white++;
+    else if (voter.voting_support_status === "black") stats.black++;
+    else if (voter.voting_support_status === "red") stats.red++;
+    else if (
+      voter.voting_support_status === null ||
+      voter.voting_support_status === undefined ||
+      voter.voting_support_status === ""
+    )
+      stats.unclassified++;
+    localityStats.set(locality, stats);
+  });
+
+  const localityData = Array.from(localityStats.entries())
+    .map(([locality, stats]) => {
+      const classified = stats.white + stats.black + stats.red;
+      const supportScore = classified > 0 ? Number(((stats.white / classified) * 100).toFixed(2)) : 0;
+
+      return {
+        locality,
+        total_voters: stats.total,
+        white_supporters: stats.white,
+        black_non_supporters: stats.black,
+        red_undetermined: stats.red,
+        unclassified: stats.unclassified,
+        support_score: supportScore,
+      };
+    })
+    .sort((a, b) => b.total_voters - a.total_voters);
+
+  // Calculate by polling station
+  const pollingStationStats = new Map<
+    string,
+    {
+      total: number;
+      white: number;
+      black: number;
+      red: number;
+      unclassified: number;
+    }
+  >();
+
+  voters.forEach((voter) => {
+    const pollingStation = voter.nama_tm || "Not Specified";
+    const stats = pollingStationStats.get(pollingStation) || {
+      total: 0,
+      white: 0,
+      black: 0,
+      red: 0,
+      unclassified: 0,
+    };
+    stats.total++;
+    if (voter.voting_support_status === "white") stats.white++;
+    else if (voter.voting_support_status === "black") stats.black++;
+    else if (voter.voting_support_status === "red") stats.red++;
+    else if (
+      voter.voting_support_status === null ||
+      voter.voting_support_status === undefined ||
+      voter.voting_support_status === ""
+    )
+      stats.unclassified++;
+    pollingStationStats.set(pollingStation, stats);
+  });
+
+  const pollingStationData = Array.from(pollingStationStats.entries())
+    .map(([pollingStation, stats]) => {
+      const classified = stats.white + stats.black + stats.red;
+      const supportScore = classified > 0 ? Number(((stats.white / classified) * 100).toFixed(2)) : 0;
+
+      return {
+        polling_station: pollingStation,
+        total_voters: stats.total,
+        white_supporters: stats.white,
+        black_non_supporters: stats.black,
+        red_undetermined: stats.red,
+        unclassified: stats.unclassified,
+        support_score: supportScore,
+      };
+    })
+    .sort((a, b) => b.total_voters - a.total_voters);
+
+  // Calculate by parliament
+  const parliamentStats = new Map<
+    string,
+    {
+      total: number;
+      white: number;
+      black: number;
+      red: number;
+      unclassified: number;
+    }
+  >();
+
+  voters.forEach((voter) => {
+    const parliament = voter.nama_parlimen || "Not Specified";
+    const stats = parliamentStats.get(parliament) || {
+      total: 0,
+      white: 0,
+      black: 0,
+      red: 0,
+      unclassified: 0,
+    };
+    stats.total++;
+    if (voter.voting_support_status === "white") stats.white++;
+    else if (voter.voting_support_status === "black") stats.black++;
+    else if (voter.voting_support_status === "red") stats.red++;
+    else if (
+      voter.voting_support_status === null ||
+      voter.voting_support_status === undefined ||
+      voter.voting_support_status === ""
+    )
+      stats.unclassified++;
+    parliamentStats.set(parliament, stats);
+  });
+
+  const parliamentData = Array.from(parliamentStats.entries())
+    .map(([parliament, stats]) => {
+      const classified = stats.white + stats.black + stats.red;
+      const supportScore = classified > 0 ? Number(((stats.white / classified) * 100).toFixed(2)) : 0;
+
+      return {
+        parliament,
+        total_voters: stats.total,
+        white_supporters: stats.white,
+        black_non_supporters: stats.black,
+        red_undetermined: stats.red,
+        unclassified: stats.unclassified,
+        support_score: supportScore,
+      };
+    })
+    .sort((a, b) => b.total_voters - a.total_voters);
+
+  // Calculate by channel
+  const channelStats = new Map<
+    number | null,
+    {
+      total: number;
+      white: number;
+      black: number;
+      red: number;
+      unclassified: number;
+    }
+  >();
+
+  voters.forEach((voter) => {
+    const channel = voter.saluran ?? null;
+    const stats = channelStats.get(channel) || {
+      total: 0,
+      white: 0,
+      black: 0,
+      red: 0,
+      unclassified: 0,
+    };
+    stats.total++;
+    if (voter.voting_support_status === "white") stats.white++;
+    else if (voter.voting_support_status === "black") stats.black++;
+    else if (voter.voting_support_status === "red") stats.red++;
+    else if (
+      voter.voting_support_status === null ||
+      voter.voting_support_status === undefined ||
+      voter.voting_support_status === ""
+    )
+      stats.unclassified++;
+    channelStats.set(channel, stats);
+  });
+
+  const channelData = Array.from(channelStats.entries())
+    .map(([channel, stats]) => {
+      const classified = stats.white + stats.black + stats.red;
+      const supportScore = classified > 0 ? Number(((stats.white / classified) * 100).toFixed(2)) : 0;
+
+      return {
+        channel,
+        total_voters: stats.total,
+        white_supporters: stats.white,
+        black_non_supporters: stats.black,
+        red_undetermined: stats.red,
+        unclassified: stats.unclassified,
+        support_score: supportScore,
+      };
+    })
+    .sort((a, b) => {
+      // Sort by channel number, with null last
+      if (a.channel === null && b.channel === null) return 0;
+      if (a.channel === null) return 1;
+      if (b.channel === null) return -1;
+      return a.channel - b.channel;
+    });
+
+  // Calculate overall totals
+  const totalVoters = voters.length;
+  const totalWhiteSupporters = voters.filter((v) => v.voting_support_status === "white").length;
+  const totalBlackNonSupporters = voters.filter((v) => v.voting_support_status === "black").length;
+  const totalRedUndetermined = voters.filter((v) => v.voting_support_status === "red").length;
+  // Unclassified: voters with null, undefined, or empty voting_support_status
+  const totalUnclassified = voters.filter(
+    (v) =>
+      v.voting_support_status === null ||
+      v.voting_support_status === undefined ||
+      v.voting_support_status === ""
+  ).length;
+
+  const totalClassified = totalWhiteSupporters + totalBlackNonSupporters + totalRedUndetermined;
+  const overallSupportScore =
+    totalClassified > 0 ? Number(((totalWhiteSupporters / totalClassified) * 100).toFixed(2)) : 0;
+
+  return {
+    success: true,
+    data: {
+      versions: versionData,
+      by_locality: localityData,
+      by_parliament: parliamentData,
+      by_polling_station: pollingStationData,
+      by_channel: channelData,
+      overall_support_score: overallSupportScore,
+      total_voters: totalVoters,
+      total_white_supporters: totalWhiteSupporters,
+      total_black_non_supporters: totalBlackNonSupporters,
+      total_red_undetermined: totalRedUndetermined,
+      total_unclassified: totalUnclassified,
+    },
+  };
+}
+
+// SPR Voter Demographic Report
+export type SprVoterDemographicData = {
+  total_voters: number;
+  age_distribution: Array<{
+    age_group: string;
+    count: number;
+    percentage: number;
+  }>;
+  gender_distribution: Array<{
+    gender: string;
+    count: number;
+    percentage: number;
+  }>;
+  race_distribution: Array<{
+    race: string;
+    count: number;
+    percentage: number;
+  }>;
+  religion_distribution: Array<{
+    religion: string;
+    count: number;
+    percentage: number;
+  }>;
+  ethnic_category_distribution: Array<{
+    category: string;
+    count: number;
+    percentage: number;
+  }>;
+  by_locality: Array<{
+    locality: string;
+    total_voters: number;
+    age_distribution: Array<{
+      age_group: string;
+      count: number;
+      percentage: number;
+    }>;
+    gender_distribution: Array<{
+      gender: string;
+      count: number;
+      percentage: number;
+    }>;
+  }>;
+  by_parliament: Array<{
+    parliament: string;
+    total_voters: number;
+    age_distribution: Array<{
+      age_group: string;
+      count: number;
+      percentage: number;
+    }>;
+  }>;
+};
+
+export async function getSprVoterDemographicReport(
+  versionId?: number
+): Promise<ActionResult<SprVoterDemographicData>> {
+  const supabase = await getSupabaseReadOnlyClient();
+
+  // Fetch all voters in batches (Supabase has a default limit of 1000)
+  const allVoters: any[] = [];
+  const batchSize = 1000;
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    let votersQuery = supabase
+      .from("spr_voters")
+      .select("id, version_id, nama_lokaliti, nama_parlimen, jantina, bangsa, agama, kategori_kaum, tarikh_lahir")
+      .range(offset, offset + batchSize - 1);
+
+    if (versionId) {
+      votersQuery = votersQuery.eq("version_id", versionId);
+    }
+
+    const { data: batch, error: votersError } = await votersQuery;
+
+    if (votersError) {
+      return { success: false, error: votersError.message };
+    }
+
+    if (!batch || batch.length === 0) {
+      hasMore = false;
+    } else {
+      allVoters.push(...batch);
+      offset += batchSize;
+      // If we got fewer records than batch size, we've reached the end
+      if (batch.length < batchSize) {
+        hasMore = false;
+      }
+    }
+  }
+
+  const voters = allVoters;
+
+  if (!voters || voters.length === 0) {
+    return {
+      success: true,
+      data: {
+        total_voters: 0,
+        age_distribution: [],
+        gender_distribution: [],
+        race_distribution: [],
+        religion_distribution: [],
+        ethnic_category_distribution: [],
+        by_locality: [],
+        by_parliament: [],
+      },
+    };
+  }
+
+  const totalVoters = voters.length;
+
+  // Helper function to calculate age from date of birth
+  const calculateAge = (dateOfBirth: string | null): number | null => {
+    if (!dateOfBirth) return null;
+    const birthDate = new Date(dateOfBirth);
+    if (isNaN(birthDate.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  // Age distribution
+  const ageGroups = {
+    "18-25": 0,
+    "26-35": 0,
+    "36-45": 0,
+    "46-55": 0,
+    "56-65": 0,
+    "65+": 0,
+    "Unknown": 0,
+  };
+
+  voters.forEach((voter) => {
+    const age = calculateAge(voter.tarikh_lahir);
+    if (age === null) {
+      ageGroups["Unknown"]++;
+    } else if (age >= 18 && age <= 25) {
+      ageGroups["18-25"]++;
+    } else if (age <= 35) {
+      ageGroups["26-35"]++;
+    } else if (age <= 45) {
+      ageGroups["36-45"]++;
+    } else if (age <= 55) {
+      ageGroups["46-55"]++;
+    } else if (age <= 65) {
+      ageGroups["56-65"]++;
+    } else {
+      ageGroups["65+"]++;
+    }
+  });
+
+  const ageDistribution = Object.entries(ageGroups)
+    .map(([age_group, count]) => ({
+      age_group,
+      count,
+      percentage: totalVoters > 0 ? Number(((count / totalVoters) * 100).toFixed(2)) : 0,
+    }))
+    .filter((item) => item.count > 0);
+
+  // Gender distribution
+  const genderMap = new Map<string, number>();
+  voters.forEach((voter) => {
+    const gender = voter.jantina || "Not Specified";
+    genderMap.set(gender, (genderMap.get(gender) || 0) + 1);
+  });
+
+  const genderDistribution = Array.from(genderMap.entries())
+    .map(([gender, count]) => ({
+      gender,
+      count,
+      percentage: totalVoters > 0 ? Number(((count / totalVoters) * 100).toFixed(2)) : 0,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  // Race distribution
+  const raceMap = new Map<string, number>();
+  voters.forEach((voter) => {
+    const race = voter.bangsa || "Not Specified";
+    raceMap.set(race, (raceMap.get(race) || 0) + 1);
+  });
+
+  const raceDistribution = Array.from(raceMap.entries())
+    .map(([race, count]) => ({
+      race,
+      count,
+      percentage: totalVoters > 0 ? Number(((count / totalVoters) * 100).toFixed(2)) : 0,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  // Religion distribution
+  const religionMap = new Map<string, number>();
+  voters.forEach((voter) => {
+    const religion = voter.agama || "Not Specified";
+    religionMap.set(religion, (religionMap.get(religion) || 0) + 1);
+  });
+
+  const religionDistribution = Array.from(religionMap.entries())
+    .map(([religion, count]) => ({
+      religion,
+      count,
+      percentage: totalVoters > 0 ? Number(((count / totalVoters) * 100).toFixed(2)) : 0,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  // Ethnic category distribution
+  const categoryMap = new Map<string, number>();
+  voters.forEach((voter) => {
+    const category = voter.kategori_kaum || "Not Specified";
+    categoryMap.set(category, (categoryMap.get(category) || 0) + 1);
+  });
+
+  const ethnicCategoryDistribution = Array.from(categoryMap.entries())
+    .map(([category, count]) => ({
+      category,
+      count,
+      percentage: totalVoters > 0 ? Number(((count / totalVoters) * 100).toFixed(2)) : 0,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  // By locality
+  const localityStats = new Map<
+    string,
+    {
+      voters: Array<{
+        jantina: string | null;
+        tarikh_lahir: string | null;
+      }>;
+    }
+  >();
+
+  voters.forEach((voter) => {
+    const locality = voter.nama_lokaliti || "Not Specified";
+    const stats = localityStats.get(locality) || { voters: [] };
+    stats.voters.push({
+      jantina: voter.jantina,
+      tarikh_lahir: voter.tarikh_lahir,
+    });
+    localityStats.set(locality, stats);
+  });
+
+  const localityData = Array.from(localityStats.entries())
+    .map(([locality, stats]) => {
+      const localityTotal = stats.voters.length;
+
+      // Age distribution for locality
+      const localityAgeGroups = {
+        "18-25": 0,
+        "26-35": 0,
+        "36-45": 0,
+        "46-55": 0,
+        "56-65": 0,
+        "65+": 0,
+        "Unknown": 0,
+      };
+
+      stats.voters.forEach((voter) => {
+        const age = calculateAge(voter.tarikh_lahir);
+        if (age === null) {
+          localityAgeGroups["Unknown"]++;
+        } else if (age >= 18 && age <= 25) {
+          localityAgeGroups["18-25"]++;
+        } else if (age <= 35) {
+          localityAgeGroups["26-35"]++;
+        } else if (age <= 45) {
+          localityAgeGroups["36-45"]++;
+        } else if (age <= 55) {
+          localityAgeGroups["46-55"]++;
+        } else if (age <= 65) {
+          localityAgeGroups["56-65"]++;
+        } else {
+          localityAgeGroups["65+"]++;
+        }
+      });
+
+      const localityAgeDistribution = Object.entries(localityAgeGroups)
+        .map(([age_group, count]) => ({
+          age_group,
+          count,
+          percentage: localityTotal > 0 ? Number(((count / localityTotal) * 100).toFixed(2)) : 0,
+        }))
+        .filter((item) => item.count > 0);
+
+      // Gender distribution for locality
+      const localityGenderMap = new Map<string, number>();
+      stats.voters.forEach((voter) => {
+        const gender = voter.jantina || "Not Specified";
+        localityGenderMap.set(gender, (localityGenderMap.get(gender) || 0) + 1);
+      });
+
+      const localityGenderDistribution = Array.from(localityGenderMap.entries())
+        .map(([gender, count]) => ({
+          gender,
+          count,
+          percentage: localityTotal > 0 ? Number(((count / localityTotal) * 100).toFixed(2)) : 0,
+        }))
+        .sort((a, b) => b.count - a.count);
+
+      return {
+        locality,
+        total_voters: localityTotal,
+        age_distribution: localityAgeDistribution,
+        gender_distribution: localityGenderDistribution,
+      };
+    })
+    .sort((a, b) => b.total_voters - a.total_voters);
+
+  // By parliament
+  const parliamentStats = new Map<
+    string,
+    {
+      voters: Array<{
+        tarikh_lahir: string | null;
+      }>;
+    }
+  >();
+
+  voters.forEach((voter) => {
+    const parliament = voter.nama_parlimen || "Not Specified";
+    const stats = parliamentStats.get(parliament) || { voters: [] };
+    stats.voters.push({
+      tarikh_lahir: voter.tarikh_lahir,
+    });
+    parliamentStats.set(parliament, stats);
+  });
+
+  const parliamentData = Array.from(parliamentStats.entries())
+    .map(([parliament, stats]) => {
+      const parliamentTotal = stats.voters.length;
+
+      // Age distribution for parliament
+      const parliamentAgeGroups = {
+        "18-25": 0,
+        "26-35": 0,
+        "36-45": 0,
+        "46-55": 0,
+        "56-65": 0,
+        "65+": 0,
+        "Unknown": 0,
+      };
+
+      stats.voters.forEach((voter) => {
+        const age = calculateAge(voter.tarikh_lahir);
+        if (age === null) {
+          parliamentAgeGroups["Unknown"]++;
+        } else if (age >= 18 && age <= 25) {
+          parliamentAgeGroups["18-25"]++;
+        } else if (age <= 35) {
+          parliamentAgeGroups["26-35"]++;
+        } else if (age <= 45) {
+          parliamentAgeGroups["36-45"]++;
+        } else if (age <= 55) {
+          parliamentAgeGroups["46-55"]++;
+        } else if (age <= 65) {
+          parliamentAgeGroups["56-65"]++;
+        } else {
+          parliamentAgeGroups["65+"]++;
+        }
+      });
+
+      const parliamentAgeDistribution = Object.entries(parliamentAgeGroups)
+        .map(([age_group, count]) => ({
+          age_group,
+          count,
+          percentage: parliamentTotal > 0 ? Number(((count / parliamentTotal) * 100).toFixed(2)) : 0,
+        }))
+        .filter((item) => item.count > 0);
+
+      return {
+        parliament,
+        total_voters: parliamentTotal,
+        age_distribution: parliamentAgeDistribution,
+      };
+    })
+    .sort((a, b) => b.total_voters - a.total_voters);
+
+  return {
+    success: true,
+    data: {
+      total_voters: totalVoters,
+      age_distribution: ageDistribution,
+      gender_distribution: genderDistribution,
+      race_distribution: raceDistribution,
+      religion_distribution: religionDistribution,
+      ethnic_category_distribution: ethnicCategoryDistribution,
+      by_locality: localityData,
+      by_parliament: parliamentData,
     },
   };
 }
