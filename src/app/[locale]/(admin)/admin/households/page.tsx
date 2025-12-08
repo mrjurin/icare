@@ -6,12 +6,14 @@ import { getHouseholdList, getHouseholdsWithoutRecentAid } from "@/lib/actions/h
 import { getZones } from "@/lib/actions/zones";
 import HouseholdFormModal from "./HouseholdFormModal";
 import HouseholdTable from "./HouseholdTable";
+import { getTranslations } from "next-intl/server";
 
 export default async function AdminHouseholdsPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const t = await getTranslations("households");
   const sp = await searchParams;
   const search = typeof sp.search === "string" ? sp.search : undefined;
   const area = typeof sp.area === "string" ? sp.area : undefined;
@@ -39,16 +41,16 @@ export default async function AdminHouseholdsPage({
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black tracking-[-0.015em]">Household Management</h1>
+          <h1 className="text-2xl md:text-3xl font-black tracking-[-0.015em]">{t("title")}</h1>
           <p className="text-gray-600 mt-1">
-            Manage households, members, income, and track aid distribution to ensure no one is left behind
+            {t("description")}
           </p>
         </div>
         <HouseholdFormModal
           trigger={
             <Button className="gap-2">
               <Plus className="size-5" />
-              <span>Add Household</span>
+              <span>{t("addHousehold")}</span>
             </Button>
           }
         />
@@ -59,28 +61,28 @@ export default async function AdminHouseholdsPage({
         <div className="rounded-xl border border-gray-200 bg-white p-6">
           <div className="flex items-center gap-3 mb-2">
             <Home className="size-5 text-primary" />
-            <p className="text-sm text-gray-600">Total Households</p>
+            <p className="text-sm text-gray-600">{t("statistics.totalHouseholds")}</p>
           </div>
           <p className="text-3xl font-bold">{totalHouseholds}</p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-6">
           <div className="flex items-center gap-3 mb-2">
             <Users className="size-5 text-blue-600" />
-            <p className="text-sm text-gray-600">Total Members</p>
+            <p className="text-sm text-gray-600">{t("statistics.totalMembers")}</p>
           </div>
           <p className="text-3xl font-bold">{totalMembers}</p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-6">
           <div className="flex items-center gap-3 mb-2">
             <Home className="size-5 text-green-600" />
-            <p className="text-sm text-gray-600">Members at Home</p>
+            <p className="text-sm text-gray-600">{t("statistics.membersAtHome")}</p>
           </div>
           <p className="text-3xl font-bold">{totalAtHome}</p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-6">
           <div className="flex items-center gap-3 mb-2">
             <Users className="size-5 text-orange-600" />
-            <p className="text-sm text-gray-600">Total Dependents</p>
+            <p className="text-sm text-gray-600">{t("statistics.totalDependents")}</p>
           </div>
           <p className="text-3xl font-bold">{totalDependents}</p>
         </div>
@@ -93,10 +95,10 @@ export default async function AdminHouseholdsPage({
             <AlertCircle className="size-5 text-orange-600 mt-0.5" />
             <div className="flex-1">
               <h3 className="font-semibold text-orange-900 mb-1">
-                {householdsWithoutAid.length} Household{householdsWithoutAid.length !== 1 ? "s" : ""} Without Recent Aid
+                {t("alert.title", { count: householdsWithoutAid.length })}
               </h3>
               <p className="text-sm text-orange-800">
-                These households haven't received aid in the last 30 days. Make sure to include them in the next distribution.
+                {t("alert.description")}
               </p>
             </div>
           </div>
@@ -112,7 +114,7 @@ export default async function AdminHouseholdsPage({
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" aria-hidden />
                 <Input
                   name="search"
-                  placeholder="Search by name, address, or area..."
+                  placeholder={t("filters.searchPlaceholder")}
                   defaultValue={search}
                   className="pl-9 w-full"
                 />
@@ -122,7 +124,7 @@ export default async function AdminHouseholdsPage({
                 className="h-10 px-3 text-sm rounded-lg border border-gray-200 bg-white text-gray-900"
                 defaultValue={area || ""}
               >
-                <option value="">All Zones</option>
+                <option value="">{t("filters.allZones")}</option>
                 {zones.map((zone) => (
                   <option key={zone.id} value={zone.name}>
                     {zone.name}
@@ -131,7 +133,7 @@ export default async function AdminHouseholdsPage({
               </select>
               {(search || area) && (
                 <Link href="/admin/households">
-                  <Button type="button" variant="outline">Reset Filters</Button>
+                  <Button type="button" variant="outline">{t("filters.resetFilters")}</Button>
                 </Link>
               )}
               <button type="submit" className="sr-only">Search</button>

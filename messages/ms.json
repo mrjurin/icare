@@ -408,5 +408,37 @@
         "body": "{announcementContent}"
       }
     }
+  },
+  "households": {
+    "title": "Pengurusan Isi Rumah",
+    "description": "Urus isi rumah, ahli, pendapatan, dan jejaki pengagihan bantuan untuk memastikan tiada sesiapa yang tertinggal",
+    "addHousehold": "Tambah Isi Rumah",
+    "statistics": {
+      "totalHouseholds": "Jumlah Isi Rumah",
+      "totalMembers": "Jumlah Ahli",
+      "membersAtHome": "Ahli di Rumah",
+      "totalDependents": "Jumlah Tanggungan"
+    },
+    "alert": {
+      "title": "{count, plural, =1 {# Isi Rumah Tanpa Bantuan Terkini} other {# Isi Rumah Tanpa Bantuan Terkini}}",
+      "description": "Isi rumah ini tidak menerima bantuan dalam 30 hari yang lalu. Pastikan untuk memasukkan mereka dalam pengagihan seterusnya."
+    },
+    "filters": {
+      "searchPlaceholder": "Cari mengikut nama, alamat, atau kawasan...",
+      "allZones": "Semua Zon",
+      "resetFilters": "Set Semula Penapis"
+    },
+    "table": {
+      "noHouseholdsFound": "Tiada isi rumah ditemui",
+      "getStarted": "Mula dengan menambah isi rumah pertama anda.",
+      "headOfHousehold": "Ketua Isi Rumah",
+      "address": "Alamat",
+      "area": "Kawasan",
+      "members": "Ahli",
+      "atHome": "Di Rumah",
+      "dependents": "Tanggungan",
+      "income": "Pendapatan",
+      "view": "Lihat →"
+    }
   }
 }

@@ -2,19 +2,23 @@
 
 import Link from "next/link";
 import { Users, Home, DollarSign, AlertCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { Household } from "@/lib/actions/households";
 
 type Props = {
   households: Household[];
+  translations?: Record<string, string>;
 };
 
-export default function HouseholdTable({ households }: Props) {
+export default function HouseholdTable({ households, translations }: Props) {
+  const t = useTranslations("households.table");
+  
   if (households.length === 0) {
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
         <Home className="size-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No households found</h3>
-        <p className="text-gray-600">Get started by adding your first household.</p>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">{t("noHouseholdsFound")}</h3>
+        <p className="text-gray-600">{t("getStarted")}</p>
       </div>
     );
   }
@@ -24,13 +28,13 @@ export default function HouseholdTable({ households }: Props) {
       <table className="min-w-full text-sm">
         <thead className="text-left">
           <tr className="border-b border-gray-200">
-            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Head of Household</th>
-            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Address</th>
-            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Area</th>
-            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Members</th>
-            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">At Home</th>
-            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Dependents</th>
-            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Income</th>
+            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("headOfHousehold")}</th>
+            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("address")}</th>
+            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("area")}</th>
+            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("members")}</th>
+            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("atHome")}</th>
+            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("dependents")}</th>
+            <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("income")}</th>
             <th className="px-4 py-3"></th>
           </tr>
         </thead>
@@ -91,7 +95,7 @@ export default function HouseholdTable({ households }: Props) {
                   href={`/admin/households/${household.id}`}
                   className="text-primary hover:underline text-sm font-medium"
                 >
-                  View →
+                  {t("view")}
                 </Link>
               </td>
             </tr>

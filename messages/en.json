@@ -408,5 +408,37 @@
         "body": "{announcementContent}"
       }
     }
+  },
+  "households": {
+    "title": "Household Management",
+    "description": "Manage households, members, income, and track aid distribution to ensure no one is left behind",
+    "addHousehold": "Add Household",
+    "statistics": {
+      "totalHouseholds": "Total Households",
+      "totalMembers": "Total Members",
+      "membersAtHome": "Members at Home",
+      "totalDependents": "Total Dependents"
+    },
+    "alert": {
+      "title": "{count, plural, =1 {# Household Without Recent Aid} other {# Households Without Recent Aid}}",
+      "description": "These households haven't received aid in the last 30 days. Make sure to include them in the next distribution."
+    },
+    "filters": {
+      "searchPlaceholder": "Search by name, address, or area...",
+      "allZones": "All Zones",
+      "resetFilters": "Reset Filters"
+    },
+    "table": {
+      "noHouseholdsFound": "No households found",
+      "getStarted": "Get started by adding your first household.",
+      "headOfHousehold": "Head of Household",
+      "address": "Address",
+      "area": "Area",
+      "members": "Members",
+      "atHome": "At Home",
+      "dependents": "Dependents",
+      "income": "Income",
+      "view": "View →"
+    }
   }
 }
