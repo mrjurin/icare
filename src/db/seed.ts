@@ -41,7 +41,7 @@ const pool = new Pool({
 
 const db = drizzle(pool);
 
-import { profiles, staff, issues, issueMedia, issueFeedback, announcements, notifications, issueAssignments, supportRequests, duns, zones, villages, households, householdMembers, householdIncome, aidDistributions, roles, roleAssignments, permissions, staffPermissions, appSettings, aidsPrograms, aidsProgramZones, aidsProgramAssignments, aidsDistributionRecords } from "./schema";
+import { profiles, staff, issues, issueMedia, issueFeedback, announcements, notifications, issueAssignments, supportRequests, duns, zones, cawangan, villages, households, householdMembers, householdIncome, aidDistributions, roles, roleAssignments, permissions, staffPermissions, appSettings, aidsPrograms, aidsProgramZones, aidsProgramAssignments, aidsDistributionRecords } from "./schema";
 import { sql } from "drizzle-orm";
 
 async function seed() {
@@ -663,36 +663,73 @@ async function seed() {
 
     console.log(`✅ Inserted ${zoneLeaders.length} zone leaders`);
 
-    // 12b. Insert Villages
+    // 12c. Insert Cawangan (one per zone for seed data)
+    console.log("🏛️  Inserting cawangan...");
+    const insertedCawangan = await db.insert(cawangan).values([
+      {
+        zoneId: insertedZones[0].id,
+        name: "Cawangan A",
+        code: "CA",
+        description: "Default cawangan for Zone A",
+      },
+      {
+        zoneId: insertedZones[1].id,
+        name: "Cawangan B",
+        code: "CB",
+        description: "Default cawangan for Zone B",
+      },
+      {
+        zoneId: insertedZones[2].id,
+        name: "Cawangan C",
+        code: "CC",
+        description: "Default cawangan for Zone C",
+      },
+      {
+        zoneId: insertedZones[3].id,
+        name: "Cawangan D",
+        code: "CD",
+        description: "Default cawangan for Zone D",
+      },
+    ]).returning();
+
+    console.log(`✅ Inserted ${insertedCawangan.length} cawangan`);
+
+    // 12d. Insert Villages
     console.log("🏘️  Inserting villages...");
     const insertedVillages = await db.insert(villages).values([
       {
-        zoneId: insertedZones[0].id, // Zone A
+        cawanganId: insertedCawangan[0].id, // Zone A
+        zoneId: insertedZones[0].id, // Keep for backward compatibility
         name: "Kampung Inanam",
         description: "Main village in Zone A",
       },
       {
-        zoneId: insertedZones[0].id, // Zone A
+        cawanganId: insertedCawangan[0].id, // Zone A
+        zoneId: insertedZones[0].id, // Keep for backward compatibility
         name: "Kampung Likas",
         description: "Secondary village in Zone A",
       },
       {
-        zoneId: insertedZones[1].id, // Zone B
+        cawanganId: insertedCawangan[1].id, // Zone B
+        zoneId: insertedZones[1].id, // Keep for backward compatibility
         name: "Kampung Menggatal",
         description: "Main village in Zone B",
       },
       {
-        zoneId: insertedZones[1].id, // Zone B
+        cawanganId: insertedCawangan[1].id, // Zone B
+        zoneId: insertedZones[1].id, // Keep for backward compatibility
         name: "Kampung Telipok",
         description: "Secondary village in Zone B",
       },
       {
-        zoneId: insertedZones[2].id, // Zone C
+        cawanganId: insertedCawangan[2].id, // Zone C
+        zoneId: insertedZones[2].id, // Keep for backward compatibility
         name: "Kampung Sepanggar",
         description: "Main village in Zone C",
       },
       {
-        zoneId: insertedZones[2].id, // Zone C
+        cawanganId: insertedCawangan[2].id, // Zone C
+        zoneId: insertedZones[2].id, // Keep for backward compatibility
         name: "Kampung Tuaran",
         description: "Secondary village in Zone C",
       },

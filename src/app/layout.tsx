@@ -1,19 +1,28 @@
 import { Public_Sans } from "next/font/google";
 import "./globals.css";
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages } from 'next-intl/server';
 
 const publicSans = Public_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "700", "900"],
 });
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Get messages for the default locale
+  const messages = await getMessages();
+
   return (
     <html className="light" lang="ms" suppressHydrationWarning>
-      <body className={publicSans.className}>{children}</body>
+      <body className={publicSans.className}>
+        <NextIntlClientProvider messages={messages}>
+          {children}
+        </NextIntlClientProvider>
+      </body>
     </html>
   );
 }

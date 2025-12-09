@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { getCurrentUserAccessReadOnly, getWorkspaceAccess } from "@/lib/utils/accessControl";
+import { getCurrentUserAccessReadOnly, getWorkspaceAccess } from "@/lib/utils/access-control";
 import { getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import StaffLayoutWrapper from "./StaffLayoutWrapper";
 

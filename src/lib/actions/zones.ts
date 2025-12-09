@@ -1,11 +1,12 @@
 "use server";
 
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseServerClient, getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { getAccessibleZoneIds, canAccessZone } from "@/lib/utils/accessControl";
+import { getAccessibleZoneIds, canAccessZone, getAccessibleZoneIdsReadOnly } from "@/lib/utils/access-control";
 
 export type Zone = {
   id: number;
+  dun_id: number;
   name: string;
   description: string | null;
   polling_station_id: number | null;
@@ -41,20 +42,78 @@ export type ActionResult<T = void> = {
 };
 
 export type CreateZoneInput = {
+  dunId: number;
   name: string;
   description?: string;
 };
 
 export type UpdateZoneInput = {
   id: number;
+  dunId?: number;
   name?: string;
   description?: string;
 };
 
 /**
+ * Get all zones (public - no authentication required)
+ * Used for public forms like membership applications
+ */
+export async function getZonesPublic(): Promise<ActionResult<Zone[]>> {
+  const supabase = await getSupabaseReadOnlyClient();
+
+  const { data, error } = await supabase
+    .from("zones")
+    .select("*")
+    .order("name", { ascending: true });
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, data: (data || []) as Zone[] };
+}
+
+/**
+ * Get all zones accessible to the current user (read-only version for Server Components)
+ * Zone leaders only see their assigned zone
+ * Super admin and ADUN see all zones
+ * Use this in Server Components to avoid cookie modification errors
+ */
+export async function getZonesReadOnly(): Promise<ActionResult<Zone[]>> {
+  const supabase = await getSupabaseReadOnlyClient();
+
+  // Get accessible zone IDs based on user role
+  const accessibleZoneIds = await getAccessibleZoneIdsReadOnly();
+
+  let query = supabase
+    .from("zones")
+    .select("*")
+    .order("name", { ascending: true });
+
+  // Apply zone-based access control
+  if (accessibleZoneIds !== null) {
+    // User is restricted to specific zones (zone leader)
+    if (accessibleZoneIds.length === 0) {
+      // No zones accessible, return empty
+      return { success: true, data: [] };
+    }
+    query = query.in("id", accessibleZoneIds);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, data: (data || []) as Zone[] };
+}
+
+/**
  * Get all zones accessible to the current user
  * Zone leaders only see their assigned zone
  * Super admin and ADUN see all zones
+ * Use this in Server Actions where cookie modification is allowed
  */
 export async function getZones(): Promise<ActionResult<Zone[]>> {
   const supabase = await getSupabaseServerClient();
@@ -139,6 +198,7 @@ export async function getZoneById(id: number): Promise<ActionResult<ZoneWithPoll
 
   const result: ZoneWithPollingStation = {
     id: zone.id,
+    dun_id: zone.dun_id,
     name: zone.name,
     description: zone.description,
     polling_station_id: zone.polling_station_id || null,
@@ -159,8 +219,12 @@ export async function createZone(input: CreateZoneInput): Promise<ActionResult<Z
     return { success: false, error: "Zone name is required" };
   }
 
+  if (!input.dunId || Number.isNaN(input.dunId)) {
+    return { success: false, error: "DUN is required" };
+  }
+
   const supabase = await getSupabaseServerClient();
-  const { getCurrentUserAccess } = await import("@/lib/utils/accessControl");
+  const { getCurrentUserAccess } = await import("@/lib/utils/access-control");
 
   // Check if user has permission to create zones
   const access = await getCurrentUserAccess();
@@ -168,20 +232,33 @@ export async function createZone(input: CreateZoneInput): Promise<ActionResult<Z
     return { success: false, error: "Access denied: Only super admin and ADUN can create zones" };
   }
 
-  // Check if zone with same name already exists
+  // Verify DUN exists
+  const { data: dun } = await supabase
+    .from("duns")
+    .select("id")
+    .eq("id", input.dunId)
+    .single();
+
+  if (!dun) {
+    return { success: false, error: "Selected DUN does not exist" };
+  }
+
+  // Check if zone with same name already exists in this DUN
   const { data: existing } = await supabase
     .from("zones")
     .select("id")
     .eq("name", input.name.trim())
+    .eq("dun_id", input.dunId)
     .single();
 
   if (existing) {
-    return { success: false, error: "A zone with this name already exists" };
+    return { success: false, error: "A zone with this name already exists in this DUN" };
   }
 
   const { data, error } = await supabase
     .from("zones")
     .insert({
+      dun_id: input.dunId,
       name: input.name.trim(),
       description: input.description?.trim() || null,
     })
@@ -206,7 +283,7 @@ export async function updateZone(input: UpdateZoneInput): Promise<ActionResult<Z
   }
 
   const supabase = await getSupabaseServerClient();
-  const { getCurrentUserAccess, canAccessZone } = await import("@/lib/utils/accessControl");
+  const { getCurrentUserAccess, canAccessZone } = await import("@/lib/utils/access-control");
 
   // Check if user has permission to update zones
   const access = await getCurrentUserAccess();
@@ -223,6 +300,20 @@ export async function updateZone(input: UpdateZoneInput): Promise<ActionResult<Z
   const updates: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
   };
+
+  if (input.dunId !== undefined) {
+    // Verify DUN exists
+    const { data: dun } = await supabase
+      .from("duns")
+      .select("id")
+      .eq("id", input.dunId)
+      .single();
+
+    if (!dun) {
+      return { success: false, error: "Selected DUN does not exist" };
+    }
+    updates.dun_id = input.dunId;
+  }
 
   if (input.name !== undefined) {
     if (!input.name.trim()) {
@@ -261,7 +352,7 @@ export async function deleteZone(id: number): Promise<ActionResult> {
   }
 
   const supabase = await getSupabaseServerClient();
-  const { getCurrentUserAccess, canAccessZone } = await import("@/lib/utils/accessControl");
+  const { getCurrentUserAccess, canAccessZone } = await import("@/lib/utils/access-control");
 
   // Check if user has permission to delete zones
   const access = await getCurrentUserAccess();
@@ -324,7 +415,7 @@ export async function getZoneStatistics(zoneId?: number): Promise<ActionResult<Z
 
   if (zoneId) {
     // Also check if user can access the requested zone
-    const { canAccessZone } = await import("@/lib/utils/accessControl");
+    const { canAccessZone } = await import("@/lib/utils/access-control");
     if (!await canAccessZone(zoneId)) {
       return { success: false, error: "Access denied: You do not have permission to view this zone" };
     }
@@ -380,7 +471,7 @@ export async function getZoneStatistics(zoneId?: number): Promise<ActionResult<Z
   }
 
   // Import utility functions
-  const { isChild, isEligibleToVote } = await import("@/lib/utils/icNumber");
+  const { isChild, isEligibleToVote } = await import("@/lib/utils/ic-number");
 
   // Calculate statistics for each zone
   const statistics: ZoneStatistics[] = zones.map((zone) => {
@@ -431,7 +522,7 @@ export async function linkPollingStationToZone(
   }
 
   const supabase = await getSupabaseServerClient();
-  const { getCurrentUserAccess, canAccessZone } = await import("@/lib/utils/accessControl");
+  const { getCurrentUserAccess, canAccessZone } = await import("@/lib/utils/access-control");
 
   // Check if user has permission to update zones
   const access = await getCurrentUserAccess();

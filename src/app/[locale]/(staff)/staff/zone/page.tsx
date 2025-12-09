@@ -1,4 +1,4 @@
-import { getCurrentUserAccessReadOnly } from "@/lib/utils/accessControl";
+import { getCurrentUserAccessReadOnly } from "@/lib/utils/access-control";
 import { getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 
 export default async function StaffZonePage() {

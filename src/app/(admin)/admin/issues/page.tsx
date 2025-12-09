@@ -2,6 +2,7 @@ import { Plus, Search } from "lucide-react";
 import Link from "next/link";
 import Input from "@/components/ui/Input";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import IssueFormModal from "./IssueFormModal";
 
 type DbIssue = {
   id: number;
@@ -70,10 +71,14 @@ export default async function AdminIssuesPage() {
               <input placeholder="Select date range" />
             </Input>
             <button className="h-10 px-3 text-sm rounded-lg border border-gray-200 bg-white">Reset Filters</button>
-            <button className="flex items-center justify-center gap-2 rounded-lg h-10 bg-primary px-4 text-white text-sm font-bold">
-              <Plus className="size-5" />
-              <span>New Issue</span>
-            </button>
+            <IssueFormModal
+              trigger={
+                <button className="flex items-center justify-center gap-2 rounded-lg h-10 bg-primary px-4 text-white text-sm font-bold">
+                  <Plus className="size-5" />
+                  <span>New Issue</span>
+                </button>
+              }
+            />
           </div>
         </div>
         <div className="h-px bg-gray-200" />

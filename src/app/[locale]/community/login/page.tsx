@@ -2,12 +2,15 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
+import { useTranslations } from "next-intl";
+import Link from "next/link";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Eye, EyeOff, AlertCircle, Loader2, Mail, Lock, CheckCircle2 } from "lucide-react";
 import { getSetting } from "@/lib/actions/settings";
 
 export default function CommunityLoginPage() {
+  const t = useTranslations("communityLogin");
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,12 +45,12 @@ export default function CommunityLoginPage() {
   // Validate email on blur
   const validateEmail = (value: string) => {
     if (!value.trim()) {
-      setEmailError("Email is required");
+      setEmailError(t("emailRequired"));
       return false;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value.trim())) {
-      setEmailError("Please enter a valid email address");
+      setEmailError(t("emailInvalid"));
       return false;
     }
     setEmailError(null);
@@ -57,11 +60,11 @@ export default function CommunityLoginPage() {
   // Validate password on blur
   const validatePassword = (value: string) => {
     if (!value) {
-      setPasswordError("Password is required");
+      setPasswordError(t("passwordRequired"));
       return false;
     }
     if (value.length < 6) {
-      setPasswordError("Password must be at least 6 characters");
+      setPasswordError(t("passwordMinLength"));
       return false;
     }
     setPasswordError(null);
@@ -94,11 +97,11 @@ export default function CommunityLoginPage() {
       if (signInError) {
         // Provide user-friendly error messages
         if (signInError.message.includes("Invalid login credentials")) {
-          setError("Invalid email or password. Please check your credentials and try again.");
+          setError(t("errors.invalidCredentials"));
         } else if (signInError.message.includes("Email not confirmed")) {
-          setError("Please verify your email address before signing in.");
+          setError(t("errors.emailNotConfirmed"));
         } else {
-          setError(signInError.message || "An error occurred. Please try again.");
+          setError(signInError.message || t("errors.genericError"));
         }
         setLoading(false);
         return;
@@ -113,7 +116,7 @@ export default function CommunityLoginPage() {
         }, 500);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred. Please try again.");
+      setError(err instanceof Error ? err.message : t("errors.unexpectedError"));
       setLoading(false);
     }
   };
@@ -134,8 +137,8 @@ export default function CommunityLoginPage() {
             >
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
               <div className="absolute bottom-8 left-8 right-8 text-white">
-                <h2 className="text-2xl font-bold mb-2">Welcome Back!</h2>
-                <p className="text-sm text-gray-200">Join your neighbors in making N.18 Inanam a better place.</p>
+                <h2 className="text-2xl font-bold mb-2">{t("welcomeBack")}</h2>
+                <p className="text-sm text-gray-200">{t("welcomeDescription")}</p>
               </div>
             </div>
           </div>
@@ -146,10 +149,10 @@ export default function CommunityLoginPage() {
               {/* Header */}
               <div className="flex flex-col gap-2">
                 <h1 className="text-[#111418] dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">
-                  Community Login
+                  {t("title")}
                 </h1>
                 <p className="text-[#617589] dark:text-gray-400 text-base">
-                  Sign in to report issues and connect with your neighbors in N.18 Inanam.
+                  {t("subtitle")}
                 </p>
               </div>
 
@@ -157,7 +160,7 @@ export default function CommunityLoginPage() {
               {success && (
                 <div className="rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 flex items-center gap-3 transition-all duration-300 ease-in-out opacity-100">
                   <CheckCircle2 className="size-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                  <p className="text-sm text-green-800 dark:text-green-200 font-medium">Login successful! Redirecting...</p>
+                  <p className="text-sm text-green-800 dark:text-green-200 font-medium">{t("loginSuccessful")}</p>
                 </div>
               )}
 
@@ -175,11 +178,11 @@ export default function CommunityLoginPage() {
                 <label className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <Mail className="size-4 text-[#617589] dark:text-gray-400" />
-                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">Email Address</span>
+                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">{t("emailAddress")}</span>
                   </div>
                   <Input
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder={t("emailPlaceholder")}
                     className={`h-14 transition-all duration-200 ${
                       emailError ? "border-red-300 dark:border-red-700 focus:border-red-500 focus:ring-red-200 dark:focus:ring-red-900" : ""
                     }`}
@@ -206,7 +209,7 @@ export default function CommunityLoginPage() {
                 <label className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <Lock className="size-4 text-[#617589] dark:text-gray-400" />
-                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">Password</span>
+                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">{t("password")}</span>
                   </div>
                   <PasswordField
                     password={password}
@@ -238,15 +241,15 @@ export default function CommunityLoginPage() {
                       className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-primary focus:ring-2 focus:ring-primary/50 cursor-pointer transition-all"
                     />
                     <span className="text-sm text-[#617589] dark:text-gray-400 group-hover:text-[#111418] dark:group-hover:text-gray-300 transition-colors">
-                      Remember me
+                      {t("rememberMe")}
                     </span>
                   </label>
-                  <a
-                    href="#"
+                  <Link
+                    href="/community/forgot-password"
                     className="text-primary text-sm font-medium hover:text-primary/80 underline underline-offset-2 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 rounded"
                   >
-                    Forgot Password?
-                  </a>
+                    {t("forgotPassword")}
+                  </Link>
                 </div>
               </div>
 
@@ -272,12 +275,12 @@ export default function CommunityLoginPage() {
                   )}
                 </Button>
                 <p className="text-[#617589] dark:text-gray-400 text-center text-sm">
-                  Don&apos;t have an account?{" "}
+                  {t("dontHaveAccount")}{" "}
                   <a
                     className="font-semibold text-primary hover:text-primary/80 underline underline-offset-2 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 rounded"
                     href="/community/register"
                   >
-                    Register here
+                    {t("registerHere")}
                   </a>
                 </p>
               </div>
@@ -304,6 +307,7 @@ function PasswordField({
   onBlur?: () => void;
   onFocus?: () => void;
 }) {
+  const t = useTranslations("communityLogin");
   const [show, setShow] = useState(false);
   const [focused, setFocused] = useState(false);
 
@@ -312,7 +316,7 @@ function PasswordField({
       <div className="flex-1 relative">
         <Input
           type={show ? "text" : "password"}
-          placeholder="Enter your password"
+          placeholder={t("passwordPlaceholder")}
           className={`h-14 w-full rounded-r-none border-r-0 transition-all duration-200 ${
             error ? "border-red-300 dark:border-red-700 focus:border-red-500 focus:ring-red-200 dark:focus:ring-red-900" : ""
           } ${focused ? "ring-2 ring-primary/20" : ""}`}
@@ -341,7 +345,7 @@ function PasswordField({
           e.stopPropagation();
           setShow((s) => !s);
         }}
-        aria-label={show ? "Hide password" : "Show password"}
+        aria-label={show ? t("hidePassword") : t("showPassword")}
         disabled={disabled}
         className={`flex-shrink-0 h-14 flex items-center justify-center px-4 rounded-r-lg border border-l-0 text-[#617589] dark:text-gray-400 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
           error ? "border-red-300 dark:border-red-700" : "border-[#dbe0e6] dark:border-gray-700"

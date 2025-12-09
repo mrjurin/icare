@@ -71,7 +71,7 @@ export default function AidsProgramForm({
         setVillages(villagesResult.data.map((v) => ({
           id: v.id,
           name: v.name,
-          zone_id: v.zone_id,
+          zone_id: v.zone_id || 0, // zone_id may be null, use 0 as fallback
         })));
       }
     };

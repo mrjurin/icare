@@ -2,7 +2,7 @@
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { getCurrentUserAccess, getAccessibleZoneIds } from "@/lib/utils/accessControl";
+import { getCurrentUserAccess, getAccessibleZoneIds } from "@/lib/utils/access-control";
 
 export type AidsProgram = {
   id: number;

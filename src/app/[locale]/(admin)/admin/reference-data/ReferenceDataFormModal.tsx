@@ -38,6 +38,9 @@ export default function ReferenceDataFormModal({
   const [duns, setDuns] = useState<ReferenceData[]>([]);
   const [districts, setDistricts] = useState<ReferenceData[]>([]);
   const [localities, setLocalities] = useState<ReferenceData[]>([]);
+  const [pollingStations, setPollingStations] = useState<ReferenceData[]>([]);
+  const [zones, setZones] = useState<ReferenceData[]>([]);
+  const [cawangan, setCawangan] = useState<ReferenceData[]>([]);
   const displayName = getTableDisplayName(table, t);
 
   const [formData, setFormData] = useState<CreateReferenceDataInput>({
@@ -47,9 +50,9 @@ export default function ReferenceDataFormModal({
     isActive: true,
   });
 
-  // Load related data for localities and polling stations
+  // Load related data for localities, polling stations, zones, cawangan, villages, and duns
   useEffect(() => {
-    if (open && (table === "localities" || table === "polling_stations")) {
+    if (open && (table === "localities" || table === "polling_stations" || table === "zones" || table === "cawangan" || table === "villages" || table === "duns")) {
       const loadData = async () => {
         const [parlResult, dunResult, districtResult] = await Promise.all([
           getReferenceDataList("parliaments"),
@@ -64,6 +67,15 @@ export default function ReferenceDataFormModal({
         if (table === "polling_stations") {
           const localityResult = await getReferenceDataList("localities");
           if (localityResult.success) setLocalities(localityResult.data || []);
+        } else if (table === "zones") {
+          const pollingStationResult = await getReferenceDataList("polling_stations");
+          if (pollingStationResult.success) setPollingStations(pollingStationResult.data || []);
+        } else if (table === "cawangan") {
+          const zoneResult = await getReferenceDataList("zones");
+          if (zoneResult.success) setZones(zoneResult.data || []);
+        } else if (table === "villages") {
+          const cawanganResult = await getReferenceDataList("cawangan");
+          if (cawanganResult.success) setCawangan(cawanganResult.data || []);
         }
       };
       loadData();
@@ -83,6 +95,9 @@ export default function ReferenceDataFormModal({
         districtId: (data as any).district_id || undefined,
         localityId: (data as any).locality_id || undefined,
         address: (data as any).address || "",
+        pollingStationId: (data as any).polling_station_id || undefined,
+        zoneId: (data as any).zone_id || undefined,
+        cawanganId: (data as any).cawangan_id || undefined,
       });
     } else if (open) {
       setFormData({
@@ -99,6 +114,20 @@ export default function ReferenceDataFormModal({
 
     if (!formData.name?.trim()) {
       alert(t("form.nameRequired"));
+      return;
+    }
+
+    // Validate required fields for zones, cawangan, and villages
+    if (table === "zones" && !formData.dunId) {
+      alert(t("form.selectDun") || "Please select a DUN");
+      return;
+    }
+    if (table === "cawangan" && !formData.zoneId) {
+      alert(t("form.selectZone") || "Please select a Zone");
+      return;
+    }
+    if (table === "villages" && !formData.cawanganId) {
+      alert(t("form.selectCawangan") || "Please select a Cawangan");
       return;
     }
 
@@ -155,17 +184,39 @@ export default function ReferenceDataFormModal({
               />
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
-                {t("form.code")}
-              </label>
-              <Input
-                type="text"
-                value={formData.code || ""}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                disabled={isPending}
-              />
-            </div>
+            {/* Hide code field for zones and villages (they don't have code column) */}
+            {(table !== "zones" && table !== "villages") && (
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
+                  {t("form.code")}
+                </label>
+                <Input
+                  type="text"
+                  value={formData.code || ""}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                  disabled={isPending}
+                />
+              </div>
+            )}
+
+            {table === "duns" && (
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
+                  {t("form.parliament")}
+                </label>
+                <SearchableSelect
+                  options={parliaments.map((p) => ({ value: p.id, label: p.name }))}
+                  value={formData.parliamentId?.toString() || ""}
+                  onChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      parliamentId: value ? parseInt(String(value), 10) : undefined,
+                    })
+                  }
+                  placeholder={t("form.selectParliament")}
+                />
+              </div>
+            )}
 
             {table === "localities" && (
               <>
@@ -256,6 +307,88 @@ export default function ReferenceDataFormModal({
               </>
             )}
 
+            {table === "zones" && (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
+                    {t("form.dun")} *
+                  </label>
+                  <SearchableSelect
+                    options={duns.map((d) => ({ value: d.id, label: d.name }))}
+                    value={formData.dunId?.toString() || ""}
+                    onChange={(value) =>
+                      setFormData({
+                        ...formData,
+                        dunId: value ? parseInt(String(value), 10) : undefined,
+                      })
+                    }
+                    placeholder={t("form.selectDun")}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
+                    {t("form.pollingStation") || "Polling Station"}
+                  </label>
+                  <SearchableSelect
+                    options={pollingStations.map((ps) => ({ 
+                      value: ps.id, 
+                      label: `${ps.name}${ps.code ? ` (${ps.code})` : ""}` 
+                    }))}
+                    value={formData.pollingStationId?.toString() || ""}
+                    onChange={(value) =>
+                      setFormData({
+                        ...formData,
+                        pollingStationId: value ? parseInt(String(value), 10) : undefined,
+                      })
+                    }
+                    placeholder={t("form.selectPollingStation") || "Select polling station..."}
+                  />
+                </div>
+              </>
+            )}
+
+            {table === "cawangan" && (
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
+                  {t("form.zone") || "Zone"} <span className="text-red-500">*</span>
+                </label>
+                <SearchableSelect
+                  options={zones.map((z) => ({ value: z.id, label: z.name }))}
+                  value={formData.zoneId?.toString() || ""}
+                  onChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      zoneId: value ? parseInt(String(value), 10) : undefined,
+                    })
+                  }
+                  placeholder={t("form.selectZone") || "Select zone..."}
+                  required
+                />
+              </div>
+            )}
+
+            {table === "villages" && (
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
+                  {t("form.cawangan") || "Cawangan"} <span className="text-red-500">*</span>
+                </label>
+                <SearchableSelect
+                  options={cawangan.map((c) => ({ value: c.id, label: c.name }))}
+                  value={formData.cawanganId?.toString() || ""}
+                  onChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      cawanganId: value ? parseInt(String(value), 10) : undefined,
+                    })
+                  }
+                  placeholder={t("form.selectCawangan") || "Select cawangan..."}
+                  required
+                />
+              </div>
+            )}
+
             <div>
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
                 {t("form.description")}
@@ -269,22 +402,25 @@ export default function ReferenceDataFormModal({
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="is-active"
-                checked={formData.isActive ?? true}
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                disabled={isPending}
-                className="rounded border-gray-300"
-              />
-              <label
-                htmlFor="is-active"
-                className="text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                {t("form.active")}
-              </label>
-            </div>
+            {/* Hide is_active checkbox for tables that don't have this column (duns, zones, villages) */}
+            {table !== "duns" && table !== "zones" && table !== "villages" && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="is-active"
+                  checked={formData.isActive ?? true}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  disabled={isPending}
+                  className="rounded border-gray-300"
+                />
+                <label
+                  htmlFor="is-active"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  {t("form.active")}
+                </label>
+              </div>
+            )}
 
             <div className="flex justify-end gap-3 mt-6">
               <Dialog.Close asChild>

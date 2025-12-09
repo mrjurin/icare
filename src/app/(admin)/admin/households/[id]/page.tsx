@@ -7,7 +7,7 @@ import HouseholdFormModal from "../HouseholdFormModal";
 import MembersSection from "./MembersSection";
 import IncomeSection from "./IncomeSection";
 import AidDistributionSection from "./AidDistributionSection";
-import { getUserWorkspaceType } from "@/lib/utils/accessControl";
+import { getUserWorkspaceType } from "@/lib/utils/access-control";
 
 export default async function HouseholdDetailPage({
   params,

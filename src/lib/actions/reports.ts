@@ -1,8 +1,8 @@
 "use server";
 
 import { getSupabaseServerClient, getSupabaseReadOnlyClient } from "@/lib/supabase/server";
-import { getAccessibleZoneIds, getAccessibleZoneIdsReadOnly, getCurrentUserAccessReadOnly } from "@/lib/utils/accessControl";
-import { isEligibleToVote, calculateAge } from "@/lib/utils/icNumber";
+import { getAccessibleZoneIds, getAccessibleZoneIdsReadOnly, getCurrentUserAccessReadOnly } from "@/lib/utils/access-control";
+import { isEligibleToVote, calculateAge } from "@/lib/utils/ic-number";
 import { getVoterVersions } from "@/lib/actions/spr-voters";
 
 export type ActionResult<T = void> = {
@@ -271,7 +271,7 @@ export async function getSupportLevelReport(): Promise<ActionResult<SupportLevel
   }
 
   // Import utility functions
-  const { isEligibleToVote } = await import("@/lib/utils/icNumber");
+  const { isEligibleToVote } = await import("@/lib/utils/ic-number");
 
   // Filter to eligible voters only
   const eligibleVoters = (members || []).filter(m => isEligibleToVote(m.date_of_birth));
@@ -998,7 +998,7 @@ export async function getZoneLevelReport(): Promise<ActionResult<ZoneLevelData>>
   }
 
   // Import utility functions
-  const { isEligibleToVote } = await import("@/lib/utils/icNumber");
+  const { isEligibleToVote } = await import("@/lib/utils/ic-number");
 
   // Calculate per zone
   const zoneStats = zones.map(zone => {
@@ -1181,7 +1181,7 @@ export async function getVillageLevelReport(): Promise<ActionResult<VillageLevel
   }
 
   // Import utility functions
-  const { isEligibleToVote } = await import("@/lib/utils/icNumber");
+  const { isEligibleToVote } = await import("@/lib/utils/ic-number");
 
   // Match households to villages by area field (case-insensitive partial match)
   const villageStats = villages.map(village => {

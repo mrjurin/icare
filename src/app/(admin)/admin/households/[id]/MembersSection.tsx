@@ -17,7 +17,7 @@ import {
   type DependencyStatus,
   type VotingSupportStatus,
 } from "@/lib/actions/households";
-import { extractDateOfBirthFromIC, isEligibleToVote } from "@/lib/utils/icNumber";
+import { extractDateOfBirthFromIC, isEligibleToVote } from "@/lib/utils/ic-number";
 
 type Props = {
   householdId: number;

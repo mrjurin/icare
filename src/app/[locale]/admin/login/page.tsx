@@ -1,14 +1,16 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Eye, EyeOff, AlertCircle, Loader2, Mail, Lock, CheckCircle2, Shield } from "lucide-react";
 import { getSetting } from "@/lib/actions/settings";
+import Link from "next/link";
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const params = useParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -366,12 +368,12 @@ export default function AdminLoginPage() {
                       Remember me
                     </span>
                   </label>
-                  <a
-                    href="#"
+                  <Link
+                    href={`/${params?.locale || "en"}/admin/forgot-password`}
                     className="text-primary text-sm font-medium hover:text-primary/80 underline underline-offset-2 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 rounded"
                   >
                     Forgot Password?
-                  </a>
+                  </Link>
                 </div>
               </div>
 

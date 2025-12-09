@@ -2,7 +2,7 @@
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { getAccessibleZoneIds } from "@/lib/utils/accessControl";
+import { getAccessibleZoneIds } from "@/lib/utils/access-control";
 
 export type MemberRelationship = "head" | "spouse" | "child" | "parent" | "sibling" | "other";
 export type MemberStatus = "at_home" | "away" | "deceased";
@@ -232,7 +232,7 @@ export async function getHouseholdById(id: number): Promise<ActionResult<Househo
   }
 
   const supabase = await getSupabaseServerClient();
-  const { canAccessHousehold } = await import("@/lib/utils/accessControl");
+  const { canAccessHousehold } = await import("@/lib/utils/access-control");
 
   // Get household
   const { data: household, error: householdError } = await supabase
@@ -305,7 +305,7 @@ export async function createHousehold(input: CreateHouseholdInput): Promise<Acti
   }
 
   const supabase = await getSupabaseServerClient();
-  const { getCurrentUserAccess, canAccessZone, hasPermission } = await import("@/lib/utils/accessControl");
+  const { getCurrentUserAccess, canAccessZone, hasPermission } = await import("@/lib/utils/access-control");
 
   // Check access control
   const access = await getCurrentUserAccess();
@@ -368,7 +368,7 @@ export async function updateHousehold(input: UpdateHouseholdInput): Promise<Acti
   }
 
   const supabase = await getSupabaseServerClient();
-  const { canAccessHousehold, canAccessZone } = await import("@/lib/utils/accessControl");
+  const { canAccessHousehold, canAccessZone } = await import("@/lib/utils/access-control");
 
   // First, check if user can access the current household
   const { data: currentHousehold } = await supabase
@@ -459,7 +459,7 @@ export async function deleteHousehold(id: number): Promise<ActionResult> {
   }
 
   const supabase = await getSupabaseServerClient();
-  const { canAccessHousehold } = await import("@/lib/utils/accessControl");
+  const { canAccessHousehold } = await import("@/lib/utils/access-control");
 
   // Check if user can access this household
   const { data: household } = await supabase

@@ -1,6 +1,11 @@
 "use server";
 
-import { getSupabaseReadOnlyClient, getSupabaseServerClient } from "@/lib/supabase/server";
+import { 
+  getSupabaseReadOnlyClient, 
+  getSupabaseServerClient,
+  getAuthenticatedUser,
+  getAuthenticatedUserReadOnly 
+} from "@/lib/supabase/server";
 
 export type UserAccess = {
   isAuthenticated: boolean;
@@ -34,10 +39,10 @@ export type WorkspaceAccess = {
 export async function getCurrentUserAccessReadOnly(): Promise<UserAccess> {
   const supabase = await getSupabaseReadOnlyClient();
   
-  // Get current user from Supabase auth
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  // Get current user from Supabase auth (using safe helper)
+  const user = await getAuthenticatedUserReadOnly();
   
-  if (authError || !user || !user.email) {
+  if (!user || !user.email) {
     return {
       isAuthenticated: false,
       isSuperAdmin: false,
@@ -98,10 +103,10 @@ export async function getCurrentUserAccessReadOnly(): Promise<UserAccess> {
 export async function getCurrentUserAccess(): Promise<UserAccess> {
   const supabase = await getSupabaseServerClient();
   
-  // Get current user from Supabase auth
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  // Get current user from Supabase auth (using safe helper)
+  const user = await getAuthenticatedUser();
   
-  if (authError || !user || !user.email) {
+  if (!user || !user.email) {
     return {
       isAuthenticated: false,
       isSuperAdmin: false,
@@ -270,10 +275,10 @@ export async function hasPermission(permissionCode: string): Promise<boolean> {
 export async function getUserWorkspaceType(): Promise<WorkspaceType> {
   const supabase = await getSupabaseReadOnlyClient();
   
-  // Get current user from Supabase auth
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  // Get current user from Supabase auth (using safe helper)
+  const user = await getAuthenticatedUserReadOnly();
   
-  if (authError || !user || !user.email) {
+  if (!user || !user.email) {
     return null;
   }
 

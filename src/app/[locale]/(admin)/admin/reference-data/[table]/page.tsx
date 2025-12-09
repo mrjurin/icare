@@ -13,6 +13,9 @@ const validTables: ReferenceTable[] = [
   "localities",
   "polling_stations",
   "duns",
+  "zones",
+  "cawangan",
+  "villages",
 ];
 
 export default async function ReferenceDataPage({

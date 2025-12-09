@@ -12,7 +12,7 @@ import {
   type Village,
   type CreateVillageInput,
 } from "@/lib/actions/villages";
-import { getZones, type Zone } from "@/lib/actions/zones";
+import { getCawangan, type Cawangan } from "@/lib/actions/cawangan";
 
 type Props = {
   trigger: ReactNode;
@@ -25,34 +25,32 @@ export default function VillageFormModal({ trigger, village, defaultZoneId }: Pr
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [zones, setZones] = useState<Zone[]>([]);
+  const [cawangan, setCawangan] = useState<Cawangan[]>([]);
 
   const isEdit = !!village;
-  // If defaultZoneId is provided and we're not editing, the zone is pre-selected and cannot be changed
-  const isZonePreSelected = !isEdit && !!defaultZoneId;
 
   const [formData, setFormData] = useState<CreateVillageInput>({
-    zoneId: village?.zone_id || defaultZoneId || 0,
+    cawanganId: village?.cawangan_id || 0,
     name: village?.name || "",
     description: village?.description || "",
   });
 
-  // Fetch zones when modal opens
+  // Fetch cawangan when modal opens (filtered by zone if defaultZoneId provided)
   useEffect(() => {
     if (open) {
-      getZones().then((result) => {
+      getCawangan(defaultZoneId || undefined).then((result) => {
         if (result.success && result.data) {
-          setZones(result.data);
+          setCawangan(result.data);
         }
       });
     }
-  }, [open]);
+  }, [open, defaultZoneId]);
 
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
     if (newOpen) {
       setFormData({
-        zoneId: village?.zone_id || defaultZoneId || 0,
+        cawanganId: village?.cawangan_id || 0,
         name: village?.name || "",
         description: village?.description || "",
       });
@@ -64,8 +62,8 @@ export default function VillageFormModal({ trigger, village, defaultZoneId }: Pr
     e.preventDefault();
     setError(null);
 
-    if (!formData.zoneId || formData.zoneId === 0) {
-      setError("Please select a zone");
+    if (!formData.cawanganId || formData.cawanganId === 0) {
+      setError("Please select a cawangan");
       return;
     }
 
@@ -120,32 +118,21 @@ export default function VillageFormModal({ trigger, village, defaultZoneId }: Pr
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Zone <span className="text-red-500">*</span>
-                {isZonePreSelected && (
-                  <span className="ml-2 text-xs text-gray-500 font-normal">
-                    (Pre-selected from zone context)
-                  </span>
-                )}
+                Cawangan <span className="text-red-500">*</span>
               </label>
-              {isZonePreSelected ? (
-                <div className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white">
-                  {zones.find((z) => z.id === defaultZoneId)?.name || `Zone ID: ${defaultZoneId}`}
-                </div>
-              ) : (
                 <select
-                  value={formData.zoneId}
-                  onChange={(e) => setFormData({ ...formData, zoneId: parseInt(e.target.value, 10) })}
+                value={formData.cawanganId}
+                onChange={(e) => setFormData({ ...formData, cawanganId: parseInt(e.target.value, 10) })}
                   required
                   className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark text-gray-900 dark:text-white"
                 >
-                  <option value={0}>Select a zone</option>
-                  {zones.map((zone) => (
-                    <option key={zone.id} value={zone.id}>
-                      {zone.name}
+                <option value={0}>Select a cawangan</option>
+                {cawangan.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
                     </option>
                   ))}
                 </select>
-              )}
             </div>
 
             <div>

@@ -1,7 +1,7 @@
 "use server";
 
 import { getSupabaseReadOnlyClient, getSupabaseServerClient } from "@/lib/supabase/server";
-import { getCurrentUserAccessReadOnly } from "@/lib/utils/accessControl";
+import { getCurrentUserAccessReadOnly } from "@/lib/utils/access-control";
 import { revalidatePath } from "next/cache";
 
 export type ActionResult<T = void> = {

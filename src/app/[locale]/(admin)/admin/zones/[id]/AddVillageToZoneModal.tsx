@@ -13,6 +13,7 @@ import {
   type Village,
   type CreateVillageInput,
 } from "@/lib/actions/villages";
+import { getCawangan } from "@/lib/actions/cawangan";
 import { useTranslations } from "next-intl";
 
 type Props = {
@@ -34,13 +35,30 @@ export default function AddVillageToZoneModal({ trigger, zoneId, zoneName }: Pro
   const [loadingVillages, setLoadingVillages] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedVillageIds, setSelectedVillageIds] = useState<Set<number>>(new Set());
+  const [cawangan, setCawangan] = useState<Array<{ id: number; name: string }>>([]);
+  const [defaultCawanganId, setDefaultCawanganId] = useState<number>(0);
 
   // Form data for creating new village
   const [formData, setFormData] = useState<CreateVillageInput>({
-    zoneId: zoneId,
+    cawanganId: 0,
     name: "",
     description: "",
   });
+
+  // Load cawangan for this zone when modal opens
+  useEffect(() => {
+    if (open) {
+      const loadCawangan = async () => {
+        const result = await getCawangan(zoneId);
+        if (result.success && result.data && result.data.length > 0) {
+          setCawangan(result.data.map((c) => ({ id: c.id, name: c.name })));
+          setDefaultCawanganId(result.data[0].id);
+          setFormData((prev) => ({ ...prev, cawanganId: result.data![0].id }));
+        }
+      };
+      loadCawangan();
+    }
+  }, [open, zoneId]);
 
   // Load existing villages when modal opens and existing tab is active
   useEffect(() => {
@@ -69,7 +87,7 @@ export default function AddVillageToZoneModal({ trigger, zoneId, zoneName }: Pro
       setSearchQuery("");
       setSelectedVillageIds(new Set());
       setFormData({
-        zoneId: zoneId,
+        cawanganId: defaultCawanganId || 0,
         name: "",
         description: "",
       });
@@ -89,10 +107,18 @@ export default function AddVillageToZoneModal({ trigger, zoneId, zoneName }: Pro
       let successCount = 0;
       let errorMessages: string[] = [];
 
+      // Get a cawangan from this zone to assign villages to
+      const cawanganResult = await getCawangan(zoneId);
+      if (!cawanganResult.success || !cawanganResult.data || cawanganResult.data.length === 0) {
+        setError("No cawangan found for this zone. Please create a cawangan first.");
+        return;
+      }
+      const targetCawanganId = cawanganResult.data[0].id;
+
       for (const villageId of villageIds) {
         const result = await updateVillage({
           id: villageId,
-          zoneId: zoneId,
+          cawanganId: targetCawanganId,
         });
 
         if (result.success) {
@@ -301,11 +327,21 @@ export default function AddVillageToZoneModal({ trigger, zoneId, zoneName }: Pro
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    {t("zoneLabel")}
+                    {t("cawanganLabel") || "Cawangan"} <span className="text-red-500">*</span>
                   </label>
-                  <div className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white">
-                    {zoneName}
-                  </div>
+                  <select
+                    value={formData.cawanganId}
+                    onChange={(e) => setFormData({ ...formData, cawanganId: parseInt(e.target.value, 10) })}
+                    required
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark text-gray-900 dark:text-white"
+                  >
+                    <option value={0}>{t("selectCawangan") || "Select a cawangan"}</option>
+                    {cawangan.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>

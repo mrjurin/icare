@@ -1,5 +1,5 @@
 import { getAidsProgramById, getProgramAssignments } from "@/lib/actions/aidsPrograms";
-import { getCurrentUserAccess } from "@/lib/utils/accessControl";
+import { getCurrentUserAccess } from "@/lib/utils/access-control";
 import { notFound, redirect } from "next/navigation";
 import HouseholdDistributionList from "./HouseholdDistributionList";
 

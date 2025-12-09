@@ -3,6 +3,7 @@ import Link from "next/link";
 import Input from "@/components/ui/Input";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getTranslations } from "next-intl/server";
+import IssueFormModal from "./IssueFormModal";
 
 type DbIssue = {
   id: number;
@@ -80,10 +81,14 @@ export default async function AdminIssuesPage() {
               <input placeholder={t("filters.dateRange")} />
             </Input>
             <button className="h-10 px-3 text-sm rounded-lg border border-gray-200 bg-white">{t("filters.resetFilters")}</button>
-            <button className="flex items-center justify-center gap-2 rounded-lg h-10 bg-primary px-4 text-white text-sm font-bold">
-              <Plus className="size-5" />
-              <span>{t("newIssue")}</span>
-            </button>
+            <IssueFormModal
+              trigger={
+                <button className="flex items-center justify-center gap-2 rounded-lg h-10 bg-primary px-4 text-white text-sm font-bold">
+                  <Plus className="size-5" />
+                  <span>{t("newIssue")}</span>
+                </button>
+              }
+            />
           </div>
         </div>
         <div className="h-px bg-gray-200" />

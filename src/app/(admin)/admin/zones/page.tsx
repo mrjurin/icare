@@ -1,17 +1,17 @@
 import { Plus, MapPin } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
-import { getZones } from "@/lib/actions/zones";
-import { getVillageCountsByZone } from "@/lib/actions/villages";
+import { getZonesReadOnly } from "@/lib/actions/zones";
+import { getVillageCountsByZoneReadOnly } from "@/lib/actions/villages";
 import ZoneTable from "./ZoneTable";
 import ZoneFormModal from "./ZoneFormModal";
 
 export default async function AdminZonesPage() {
-  const zonesResult = await getZones();
+  const zonesResult = await getZonesReadOnly();
   const zones = zonesResult.success ? zonesResult.data || [] : [];
 
   const zoneIds = zones.map((z) => z.id);
-  const villageCountsResult = await getVillageCountsByZone(zoneIds);
+  const villageCountsResult = await getVillageCountsByZoneReadOnly(zoneIds);
   const villageCounts = villageCountsResult.success ? villageCountsResult.data || {} : {};
 
   return (

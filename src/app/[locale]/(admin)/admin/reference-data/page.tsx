@@ -20,6 +20,9 @@ const referenceTables: Array<{ table: ReferenceTable; icon: typeof Users }> = [
   { table: "districts", icon: MapPin },
   { table: "parliaments", icon: Landmark },
   { table: "duns", icon: Building2 },
+  { table: "zones", icon: MapPin },
+  { table: "cawangan", icon: Building2 },
+  { table: "villages", icon: Building2 },
   { table: "localities", icon: Vote },
   { table: "polling_stations", icon: School },
 ];

@@ -31,7 +31,7 @@ export default function AidsProgramForm({
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(!!program);
   const [zones, setZones] = useState<Array<{ id: number; name: string }>>([]);
-  const [villages, setVillages] = useState<Array<{ id: number; name: string; zone_id: number }>>([]);
+  const [villages, setVillages] = useState<Array<{ id: number; name: string; zone_id: number | null }>>([]);
   const [selectedZones, setSelectedZones] = useState<number[]>([]);
   const [selectedVillages, setSelectedVillages] = useState<number[]>([]);
 
@@ -73,7 +73,7 @@ export default function AidsProgramForm({
         setVillages(villagesResult.data.map((v) => ({
           id: v.id,
           name: v.name,
-          zone_id: v.zone_id,
+          zone_id: v.zone_id || null,
         })));
       }
     };

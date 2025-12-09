@@ -63,12 +63,25 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
                 Name
               </th>
-              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                Code
-              </th>
-              {(table === "localities" || table === "polling_stations") && (
+              {/* Hide code column for zones and villages (they don't have code column) */}
+              {(table !== "zones" && table !== "villages") && (
                 <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                  {table === "localities" ? "Parliament / DUN" : "Locality"}
+                  Code
+                </th>
+              )}
+              {(table === "localities" || table === "polling_stations" || table === "zones" || table === "cawangan" || table === "villages" || table === "duns") && (
+                <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
+                  {table === "duns"
+                    ? "Parliament"
+                    : table === "localities" 
+                    ? "Parliament / DUN" 
+                    : table === "zones"
+                    ? "DUN / Polling Station"
+                    : table === "cawangan"
+                    ? "Zone"
+                    : table === "villages"
+                    ? "Cawangan"
+                    : "Locality"}
                 </th>
               )}
               {table === "polling_stations" && (
@@ -76,9 +89,12 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
                   Address
                 </th>
               )}
-              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                Status
-              </th>
+              {/* Hide status column for tables that don't have is_active (duns, zones, villages) */}
+              {table !== "duns" && table !== "zones" && table !== "villages" && (
+                <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
+                  Status
+                </th>
+              )}
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400 text-right">
                 Actions
               </th>
@@ -87,7 +103,17 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
           <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
             {data.length === 0 ? (
               <DataTableEmpty
-                colSpan={table === "polling_stations" ? 6 : table === "localities" ? 5 : 4}
+                colSpan={
+                  table === "polling_stations" 
+                    ? 6 
+                    : table === "localities" 
+                    ? 5 
+                    : table === "zones" || table === "villages"
+                    ? 3
+                    : table === "duns" || table === "cawangan"
+                    ? 5
+                    : 4
+                }
                 message={`No ${displayName.toLowerCase()}s found. Create your first one.`}
               />
             ) : (
@@ -99,13 +125,24 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                     {item.name}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                    {item.code || "-"}
-                  </td>
-                  {(table === "localities" || table === "polling_stations") && (
+                  {/* Hide code column for zones and villages (they don't have code column) */}
+                  {(table !== "zones" && table !== "villages") && (
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                      {table === "localities"
+                      {item.code || "-"}
+                    </td>
+                  )}
+                  {(table === "localities" || table === "polling_stations" || table === "zones" || table === "cawangan" || table === "villages" || table === "duns") && (
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                      {table === "duns"
+                        ? (item as any).parliament_name || "-"
+                        : table === "localities"
                         ? `${(item as any).parliament_name || "-"} / ${(item as any).dun_name || "-"}`
+                        : table === "zones"
+                        ? `${(item as any).dun_name || "-"}${(item as any).polling_station_name ? ` / ${(item as any).polling_station_name}` : ""}`
+                        : table === "cawangan"
+                        ? (item as any).zone_name || "-"
+                        : table === "villages"
+                        ? (item as any).cawangan_name || "-"
                         : (item as any).locality_name || "-"}
                     </td>
                   )}
@@ -114,17 +151,20 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
                       {(item as any).address || "-"}
                     </td>
                   )}
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        (item.is_active ?? false)
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300"
-                          : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
-                      }`}
-                    >
-                      {(item.is_active ?? false) ? "Active" : "Inactive"}
-                    </span>
-                  </td>
+                  {/* Hide status column for tables that don't have is_active (duns, zones, villages) */}
+                  {table !== "duns" && table !== "zones" && table !== "villages" && (
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          (item.is_active ?? false)
+                            ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300"
+                            : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        {(item.is_active ?? false) ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="flex items-center justify-end gap-2">
                       <ReferenceDataFormModal

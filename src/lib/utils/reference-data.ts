@@ -18,6 +18,9 @@ export function getTableDisplayName(
     localities: "Locality",
     polling_stations: "Polling Station",
     duns: "DUN",
+    zones: "Zone",
+    cawangan: "Cawangan",
+    villages: "Village",
   };
   return names[table];
 }

@@ -12,7 +12,8 @@ import {
   Package,
   Download,
   MapPin,
-  Home
+  Home,
+  Vote
 } from "lucide-react";
 import VoterAnalysisReport from "./VoterAnalysisReport";
 import SupportLevelReport from "./SupportLevelReport";
@@ -22,6 +23,8 @@ import IssueResolutionReport from "./IssueResolutionReport";
 import AidDistributionReport from "./AidDistributionReport";
 import ZoneLevelReport from "./ZoneLevelReport";
 import VillageLevelReport from "./VillageLevelReport";
+import SprSupportReport from "./SprSupportReport";
+import SprDemographicReport from "./SprDemographicReport";
 import Button from "@/components/ui/Button";
 
 type ReportType = 
@@ -32,7 +35,9 @@ type ReportType =
   | "issue-resolution"
   | "aid-distribution"
   | "zone-level"
-  | "village-level";
+  | "village-level"
+  | "spr-support"
+  | "spr-demographic";
 
 const reportMenuItems: Array<{
   id: ReportType;
@@ -87,6 +92,18 @@ const reportMenuItems: Array<{
     label: "Village Level",
     icon: Home,
     description: "Detailed statistics and support levels for each village",
+  },
+  {
+    id: "spr-support",
+    label: "SPR Support",
+    icon: Vote,
+    description: "SPR voter support analysis by locality, polling station, and channel",
+  },
+  {
+    id: "spr-demographic",
+    label: "SPR Demographics",
+    icon: PieChart,
+    description: "SPR voter demographics including age, gender, race, and religion",
   },
 ];
 
@@ -174,6 +191,8 @@ function ReportsContent() {
         {activeReport === "aid-distribution" && <AidDistributionReport />}
         {activeReport === "zone-level" && <ZoneLevelReport />}
         {activeReport === "village-level" && <VillageLevelReport />}
+        {activeReport === "spr-support" && <SprSupportReport />}
+        {activeReport === "spr-demographic" && <SprDemographicReport />}
       </div>
     </div>
   );

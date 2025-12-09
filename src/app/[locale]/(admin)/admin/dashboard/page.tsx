@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getCurrentUserAccessReadOnly } from "@/lib/utils/accessControl";
+import { getCurrentUserAccessReadOnly } from "@/lib/utils/access-control";
 import { getAdunDashboardStats, getAdunDashboardStatsFromSpr } from "@/lib/actions/reports";
 import ReportsTable from "./ReportsTable";
 import { getTranslations } from "next-intl/server";

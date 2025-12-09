@@ -2,7 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { getBackupsList } from "@/lib/actions/backups";
 import BackupsTable from "./BackupsTable";
 import CreateBackupButton from "./CreateBackupButton";
-import { getCurrentUserAccessReadOnly } from "@/lib/utils/accessControl";
+import { getCurrentUserAccessReadOnly } from "@/lib/utils/access-control";
 import { redirect } from "next/navigation";
 
 export default async function BackupsPage() {

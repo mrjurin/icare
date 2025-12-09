@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { getWorkspaceAccess } from "@/lib/utils/accessControl";
+import { getWorkspaceAccess } from "@/lib/utils/access-control";
 import CommunityLayoutClient from "./CommunityLayoutClient";
 
 export default async function CommunityLayout({ children }: { children: ReactNode }) {

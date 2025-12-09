@@ -2,7 +2,7 @@
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { getCurrentUserAccess } from "@/lib/utils/accessControl";
+import { getCurrentUserAccess } from "@/lib/utils/access-control";
 
 export type Role = {
   id: number;

@@ -4,7 +4,7 @@ import styles from "./layout.module.css";
 import AdminNav from "./nav";
 import LogoutButton from "./LogoutButton";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import { getCurrentUserAccessReadOnly, getWorkspaceAccess } from "@/lib/utils/accessControl";
+import { getCurrentUserAccessReadOnly, getWorkspaceAccess } from "@/lib/utils/access-control";
 import { getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import { getSetting } from "@/lib/actions/settings";
 

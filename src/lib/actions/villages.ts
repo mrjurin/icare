@@ -1,16 +1,21 @@
 "use server";
 
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseServerClient, getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { getAccessibleZoneIds, canAccessZone } from "@/lib/utils/accessControl";
+import { getAccessibleZoneIds, canAccessZone, getAccessibleZoneIdsReadOnly } from "@/lib/utils/access-control";
 
 export type Village = {
   id: number;
-  zone_id: number;
+  cawangan_id: number;
+  zone_id: number | null; // Keep for backward compatibility
   name: string;
   description: string | null;
   created_at: string;
   updated_at: string;
+  cawangan?: {
+    id: number;
+    name: string;
+  };
   zones?: {
     id: number;
     name: string;
@@ -24,17 +29,41 @@ export type ActionResult<T = void> = {
 };
 
 export type CreateVillageInput = {
-  zoneId: number;
+  cawanganId: number;
   name: string;
   description?: string;
 };
 
 export type UpdateVillageInput = {
   id: number;
-  zoneId?: number;
+  cawanganId?: number;
   name?: string;
   description?: string;
 };
+
+/**
+ * Get villages for a specific zone (public - no authentication required)
+ * Used for public forms like community registration
+ */
+export async function getVillagesPublic(zoneId: number): Promise<ActionResult<Village[]>> {
+  if (!zoneId || Number.isNaN(zoneId)) {
+    return { success: false, error: "Zone ID is required" };
+  }
+
+  const supabase = await getSupabaseReadOnlyClient();
+
+  const { data, error } = await supabase
+    .from("villages")
+    .select("*")
+    .eq("zone_id", zoneId)
+    .order("name", { ascending: true });
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, data: (data || []) as Village[] };
+}
 
 /**
  * Get all villages accessible to the current user
@@ -127,8 +156,19 @@ export async function getVillageById(id: number): Promise<ActionResult<Village>>
     return { success: false, error: "Village not found" };
   }
 
+  // Get cawangan to find zone
+  const { data: cawanganData } = await supabase
+    .from("cawangan")
+    .select("id, name, zone_id")
+    .eq("id", data.cawangan_id)
+    .single();
+
+  if (!cawanganData) {
+    return { success: false, error: "Cawangan not found for this village" };
+  }
+
   // Check if user can access the zone this village belongs to
-  const canAccess = await canAccessZone(data.zone_id);
+  const canAccess = await canAccessZone(cawanganData.zone_id);
   if (!canAccess) {
     return { success: false, error: "Access denied: You do not have permission to view this village" };
   }
@@ -137,10 +177,13 @@ export async function getVillageById(id: number): Promise<ActionResult<Village>>
   const { data: zoneData } = await supabase
     .from("zones")
     .select("id, name")
-    .eq("id", data.zone_id)
+    .eq("id", cawanganData.zone_id)
     .single();
 
   const village = data as Village;
+  if (cawanganData) {
+    village.cawangan = { id: cawanganData.id, name: cawanganData.name };
+  }
   if (zoneData) {
     village.zones = zoneData;
   }
@@ -157,12 +200,12 @@ export async function createVillage(input: CreateVillageInput): Promise<ActionRe
     return { success: false, error: "Village name is required" };
   }
 
-  if (!input.zoneId || Number.isNaN(input.zoneId)) {
-    return { success: false, error: "Zone is required" };
+  if (!input.cawanganId || Number.isNaN(input.cawanganId)) {
+    return { success: false, error: "Cawangan is required" };
   }
 
   const supabase = await getSupabaseServerClient();
-  const { getCurrentUserAccess } = await import("@/lib/utils/accessControl");
+  const { getCurrentUserAccess } = await import("@/lib/utils/access-control");
 
   // Check if user has permission to create villages
   const access = await getCurrentUserAccess();
@@ -170,28 +213,40 @@ export async function createVillage(input: CreateVillageInput): Promise<ActionRe
     return { success: false, error: "Access denied: Only super admin and ADUN can create villages" };
   }
 
+  // Get cawangan to check zone access
+  const { data: cawanganData } = await supabase
+    .from("cawangan")
+    .select("id, name, zone_id")
+    .eq("id", input.cawanganId)
+    .single();
+
+  if (!cawanganData) {
+    return { success: false, error: "Selected cawangan does not exist" };
+  }
+
   // Check if user can access the zone
-  const canAccess = await canAccessZone(input.zoneId);
+  const canAccess = await canAccessZone(cawanganData.zone_id);
   if (!canAccess) {
     return { success: false, error: "Access denied: You do not have permission to create villages in this zone" };
   }
 
-  // Check if village with same name already exists in this zone
+  // Check if village with same name already exists in this cawangan
   const { data: existing } = await supabase
     .from("villages")
     .select("id")
     .eq("name", input.name.trim())
-    .eq("zone_id", input.zoneId)
+    .eq("cawangan_id", input.cawanganId)
     .single();
 
   if (existing) {
-    return { success: false, error: "A village with this name already exists in this zone" };
+    return { success: false, error: "A village with this name already exists in this cawangan" };
   }
 
   const { data, error } = await supabase
     .from("villages")
     .insert({
-      zone_id: input.zoneId,
+      cawangan_id: input.cawanganId,
+      zone_id: cawanganData.zone_id, // Keep for backward compatibility
       name: input.name.trim(),
       description: input.description?.trim() || null,
     })
@@ -202,20 +257,22 @@ export async function createVillage(input: CreateVillageInput): Promise<ActionRe
     return { success: false, error: error.message };
   }
 
-  // Fetch zone information
+  // Fetch cawangan and zone information
+  const village = data as Village;
+  village.cawangan = { id: cawanganData.id, name: cawanganData.name };
+  
   const { data: zoneData } = await supabase
     .from("zones")
     .select("id, name")
-    .eq("id", input.zoneId)
+    .eq("id", cawanganData.zone_id)
     .single();
 
-  const village = data as Village;
   if (zoneData) {
     village.zones = zoneData;
   }
 
   revalidatePath("/admin/villages");
-  revalidatePath(`/admin/zones/${input.zoneId}`);
+  revalidatePath(`/admin/zones/${cawanganData.zone_id}`);
   return { success: true, data: village };
 }
 
@@ -229,7 +286,7 @@ export async function updateVillage(input: UpdateVillageInput): Promise<ActionRe
   }
 
   const supabase = await getSupabaseServerClient();
-  const { getCurrentUserAccess } = await import("@/lib/utils/accessControl");
+  const { getCurrentUserAccess } = await import("@/lib/utils/access-control");
 
   // Check if user has permission to update villages
   const access = await getCurrentUserAccess();
@@ -240,7 +297,7 @@ export async function updateVillage(input: UpdateVillageInput): Promise<ActionRe
   // Get the current village to check zone access
   const { data: currentVillage } = await supabase
     .from("villages")
-    .select("zone_id")
+    .select("cawangan_id, zone_id")
     .eq("id", input.id)
     .single();
 
@@ -248,30 +305,55 @@ export async function updateVillage(input: UpdateVillageInput): Promise<ActionRe
     return { success: false, error: "Village not found" };
   }
 
-  const zoneIdToCheck = input.zoneId || currentVillage.zone_id;
-  const canAccess = await canAccessZone(zoneIdToCheck);
-  if (!canAccess) {
-    return { success: false, error: "Access denied: You do not have permission to update this village" };
+  // Get current cawangan to find zone
+  const { data: currentCawangan } = await supabase
+    .from("cawangan")
+    .select("id, zone_id")
+    .eq("id", currentVillage.cawangan_id)
+    .single();
+
+  if (!currentCawangan) {
+    return { success: false, error: "Cawangan not found for this village" };
   }
 
-  // If zone is being changed, check if user can access the new zone
-  if (input.zoneId && input.zoneId !== currentVillage.zone_id) {
-    const canAccessNewZone = await canAccessZone(input.zoneId);
-    if (!canAccessNewZone) {
-      return { success: false, error: "Access denied: You do not have permission to assign villages to this zone" };
+  // Determine which cawangan to check access for
+  let cawanganIdToCheck = input.cawanganId || currentVillage.cawangan_id;
+  let zoneIdToCheck = currentCawangan.zone_id;
+
+  // If cawangan is being changed, get the new cawangan's zone
+  if (input.cawanganId && input.cawanganId !== currentVillage.cawangan_id) {
+    const { data: newCawangan } = await supabase
+      .from("cawangan")
+      .select("id, zone_id")
+      .eq("id", input.cawanganId)
+      .single();
+
+    if (!newCawangan) {
+      return { success: false, error: "Selected cawangan does not exist" };
     }
 
-    // Check if village with same name already exists in the new zone
+    zoneIdToCheck = newCawangan.zone_id;
+    const canAccessNewZone = await canAccessZone(zoneIdToCheck);
+    if (!canAccessNewZone) {
+      return { success: false, error: "Access denied: You do not have permission to assign villages to this cawangan" };
+    }
+
+    // Check if village with same name already exists in the new cawangan
     const { data: existing } = await supabase
       .from("villages")
       .select("id")
       .eq("name", input.name?.trim() || "")
-      .eq("zone_id", input.zoneId)
+      .eq("cawangan_id", input.cawanganId)
       .neq("id", input.id)
       .single();
 
     if (existing) {
-      return { success: false, error: "A village with this name already exists in the target zone" };
+      return { success: false, error: "A village with this name already exists in the target cawangan" };
+    }
+  } else {
+    const canAccess = await canAccessZone(zoneIdToCheck);
+    if (!canAccess) {
+      return { success: false, error: "Access denied: You do not have permission to update this village" };
     }
   }
 
@@ -279,8 +361,18 @@ export async function updateVillage(input: UpdateVillageInput): Promise<ActionRe
     updated_at: new Date().toISOString(),
   };
 
-  if (input.zoneId !== undefined) {
-    updates.zone_id = input.zoneId;
+  if (input.cawanganId !== undefined) {
+    // Get the new cawangan's zone_id for backward compatibility
+    const { data: newCawangan } = await supabase
+      .from("cawangan")
+      .select("zone_id")
+      .eq("id", input.cawanganId)
+      .single();
+
+    if (newCawangan) {
+      updates.cawangan_id = input.cawanganId;
+      updates.zone_id = newCawangan.zone_id; // Keep for backward compatibility
+    }
   }
 
   if (input.name !== undefined) {
@@ -305,23 +397,33 @@ export async function updateVillage(input: UpdateVillageInput): Promise<ActionRe
     return { success: false, error: error.message };
   }
 
-  // Fetch zone information
-  const finalZoneId = input.zoneId || currentVillage.zone_id;
-  const { data: zoneData } = await supabase
-    .from("zones")
-    .select("id, name")
-    .eq("id", finalZoneId)
+  // Fetch cawangan and zone information
+  const finalCawanganId = input.cawanganId || currentVillage.cawangan_id;
+  const { data: cawanganData } = await supabase
+    .from("cawangan")
+    .select("id, name, zone_id")
+    .eq("id", finalCawanganId)
     .single();
 
   const village = data as Village;
+  if (cawanganData) {
+    village.cawangan = { id: cawanganData.id, name: cawanganData.name };
+    
+    const { data: zoneData } = await supabase
+      .from("zones")
+      .select("id, name")
+      .eq("id", cawanganData.zone_id)
+      .single();
+
   if (zoneData) {
     village.zones = zoneData;
+    }
   }
 
   revalidatePath("/admin/villages");
-  revalidatePath(`/admin/zones/${currentVillage.zone_id}`);
-  if (input.zoneId && input.zoneId !== currentVillage.zone_id) {
-    revalidatePath(`/admin/zones/${input.zoneId}`);
+  revalidatePath(`/admin/zones/${currentCawangan.zone_id}`);
+  if (input.cawanganId && input.cawanganId !== currentVillage.cawangan_id && cawanganData) {
+    revalidatePath(`/admin/zones/${cawanganData.zone_id}`);
   }
   return { success: true, data: village };
 }
@@ -336,7 +438,7 @@ export async function deleteVillage(id: number): Promise<ActionResult> {
   }
 
   const supabase = await getSupabaseServerClient();
-  const { getCurrentUserAccess } = await import("@/lib/utils/accessControl");
+  const { getCurrentUserAccess } = await import("@/lib/utils/access-control");
 
   // Check if user has permission to delete villages
   const access = await getCurrentUserAccess();
@@ -347,7 +449,7 @@ export async function deleteVillage(id: number): Promise<ActionResult> {
   // Get the village to check zone access
   const { data: village } = await supabase
     .from("villages")
-    .select("zone_id")
+    .select("cawangan_id")
     .eq("id", id)
     .single();
 
@@ -355,8 +457,19 @@ export async function deleteVillage(id: number): Promise<ActionResult> {
     return { success: false, error: "Village not found" };
   }
 
+  // Get cawangan to find zone
+  const { data: cawanganData } = await supabase
+    .from("cawangan")
+    .select("zone_id")
+    .eq("id", village.cawangan_id)
+    .single();
+
+  if (!cawanganData) {
+    return { success: false, error: "Cawangan not found for this village" };
+  }
+
   // Check if user can access the zone
-  const canAccess = await canAccessZone(village.zone_id);
+  const canAccess = await canAccessZone(cawanganData.zone_id);
   if (!canAccess) {
     return { success: false, error: "Access denied: You do not have permission to delete this village" };
   }
@@ -368,7 +481,7 @@ export async function deleteVillage(id: number): Promise<ActionResult> {
   }
 
   revalidatePath("/admin/villages");
-  revalidatePath(`/admin/zones/${village.zone_id}`);
+  revalidatePath(`/admin/zones/${cawanganData.zone_id}`);
   return { success: true };
 }
 
@@ -439,7 +552,48 @@ export async function getVillagesNotInZone(zoneId: number): Promise<ActionResult
 }
 
 /**
+ * Get village count for zones (read-only version for Server Components)
+ * Use this in Server Components to avoid cookie modification errors
+ */
+export async function getVillageCountsByZoneReadOnly(zoneIds?: number[]): Promise<ActionResult<Record<number, number>>> {
+  const supabase = await getSupabaseReadOnlyClient();
+
+  // Get accessible zone IDs based on user role
+  const accessibleZoneIds = await getAccessibleZoneIdsReadOnly();
+
+  let query = supabase.from("villages").select("zone_id");
+
+  // Apply zone-based access control
+  if (accessibleZoneIds !== null) {
+    if (accessibleZoneIds.length === 0) {
+      return { success: true, data: {} };
+    }
+    query = query.in("zone_id", accessibleZoneIds);
+  }
+
+  // Filter by specific zones if provided
+  if (zoneIds && zoneIds.length > 0) {
+    query = query.in("zone_id", zoneIds);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  // Count villages per zone
+  const counts: Record<number, number> = {};
+  (data || []).forEach((village) => {
+    counts[village.zone_id] = (counts[village.zone_id] || 0) + 1;
+  });
+
+  return { success: true, data: counts };
+}
+
+/**
  * Get village count for zones
+ * Use this in Server Actions where cookie modification is allowed
  */
 export async function getVillageCountsByZone(zoneIds?: number[]): Promise<ActionResult<Record<number, number>>> {
   const supabase = await getSupabaseServerClient();

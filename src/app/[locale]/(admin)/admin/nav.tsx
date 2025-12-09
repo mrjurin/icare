@@ -4,7 +4,7 @@ import { usePathname } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import styles from "./layout.module.css";
 import type { ElementType } from "react";
-import { LayoutDashboard, FileText, Users, Megaphone, ChartPie, Settings, Bell, UserCog, Home, MapPin, UserCheck, Building2, FileEdit, Package, Vote, Database, HardDrive } from "lucide-react";
+import { LayoutDashboard, FileText, Users, Megaphone, ChartPie, Settings, Bell, UserCog, Home, MapPin, UserCheck, Building2, FileEdit, Package, Vote, Database, HardDrive, UserPlus } from "lucide-react";
 
 type NavItem = { href: string; labelKey: string; icon: ElementType };
 const items: NavItem[] = [
@@ -12,14 +12,13 @@ const items: NavItem[] = [
   { href: "/admin/issues", labelKey: "issues", icon: FileText },
   { href: "/admin/notifications", labelKey: "notifications", icon: Bell },
   { href: "/admin/households", labelKey: "households", icon: Home },
-  { href: "/admin/zones", labelKey: "zones", icon: MapPin },
-  { href: "/admin/villages", labelKey: "villages", icon: Building2 },
   { href: "/admin/spr-voters", labelKey: "sprVoters", icon: Vote },
   { href: "/admin/reference-data", labelKey: "referenceData", icon: Database },
   { href: "/admin/aids-programs", labelKey: "aidsPrograms", icon: Package },
   { href: "/admin/staff", labelKey: "staff", icon: UserCog },
   { href: "/admin/roles", labelKey: "roles", icon: UserCheck },
   { href: "/admin/users", labelKey: "users", icon: Users },
+  { href: "/admin/memberships", labelKey: "memberships", icon: UserPlus },
   { href: "/admin/announcements", labelKey: "announcements", icon: Megaphone },
   { href: "/admin/reports", labelKey: "reports", icon: ChartPie },
   { href: "/admin/pages", labelKey: "pages", icon: FileEdit },

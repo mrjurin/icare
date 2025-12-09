@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X, Loader2, MapPin, Save } from "lucide-react";
@@ -12,6 +12,8 @@ import {
   type Zone,
   type CreateZoneInput,
 } from "@/lib/actions/zones";
+import { getReferenceDataList } from "@/lib/actions/reference-data";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 type Props = {
   trigger: ReactNode;
@@ -23,18 +25,34 @@ export default function ZoneFormModal({ trigger, zone }: Props) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [duns, setDuns] = useState<Array<{ id: number; name: string }>>([]);
 
   const isEdit = !!zone;
 
   const [formData, setFormData] = useState<CreateZoneInput>({
+    dunId: (zone as any)?.dun_id || 0,
     name: zone?.name || "",
     description: zone?.description || "",
   });
+
+  // Load DUNs when modal opens
+  useEffect(() => {
+    if (open) {
+      const loadDuns = async () => {
+        const result = await getReferenceDataList("duns");
+        if (result.success && result.data) {
+          setDuns(result.data.map((d: any) => ({ id: d.id, name: d.name })));
+        }
+      };
+      loadDuns();
+    }
+  }, [open]);
 
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
     if (newOpen) {
       setFormData({
+        dunId: (zone as any)?.dun_id || 0,
         name: zone?.name || "",
         description: zone?.description || "",
       });
@@ -87,6 +105,26 @@ export default function ZoneFormModal({ trigger, zone }: Props) {
             {error && (
               <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-sm">
                 {error}
+              </div>
+            )}
+
+            {!isEdit && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  DUN <span className="text-red-500">*</span>
+                </label>
+                <SearchableSelect
+                  options={duns.map((d) => ({ value: d.id, label: d.name }))}
+                  value={formData.dunId?.toString() || ""}
+                  onChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      dunId: value ? parseInt(String(value), 10) : 0,
+                    })
+                  }
+                  placeholder="Select DUN..."
+                  required
+                />
               </div>
             )}
 

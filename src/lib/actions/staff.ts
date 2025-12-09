@@ -130,7 +130,7 @@ export async function getStaffList(options?: {
   limit?: number;
 }): Promise<ActionResult<PaginatedResult<Staff>>> {
   const supabase = await getSupabaseServerClient();
-  const { getCurrentUserAccess } = await import("@/lib/utils/accessControl");
+  const { getCurrentUserAccess } = await import("@/lib/utils/access-control");
 
   // Check access control
   const access = await getCurrentUserAccess();
@@ -304,7 +304,7 @@ export async function createStaff(
   }
 
   const supabase = await getSupabaseServerClient();
-  const { getCurrentUserAccess } = await import("@/lib/utils/accessControl");
+  const { getCurrentUserAccess } = await import("@/lib/utils/access-control");
 
   // Check if user has permission to create staff
   const access = await getCurrentUserAccess();
@@ -414,7 +414,7 @@ export async function updateStaff(
   }
 
   const supabase = await getSupabaseServerClient();
-  const { getCurrentUserAccess } = await import("@/lib/utils/accessControl");
+  const { getCurrentUserAccess } = await import("@/lib/utils/access-control");
 
   // Check access control
   const access = await getCurrentUserAccess();
@@ -615,7 +615,7 @@ export async function deleteStaff(id: number): Promise<ActionResult> {
   }
 
   const supabase = await getSupabaseServerClient();
-  const { getCurrentUserAccess } = await import("@/lib/utils/accessControl");
+  const { getCurrentUserAccess } = await import("@/lib/utils/access-control");
 
   // Check if user has permission to delete staff
   const access = await getCurrentUserAccess();

@@ -18,6 +18,88 @@ const STATUS_LABELS: Record<string, string> = {
   closed: "Closed",
 };
 
+export type CreateIssueInput = {
+  title: string;
+  description: string;
+  category: "road_maintenance" | "drainage" | "public_safety" | "sanitation" | "other";
+  address: string;
+  lat?: number;
+  lng?: number;
+  status?: "pending" | "in_progress" | "resolved" | "closed";
+  reporterId?: number;
+  media?: Array<{ url: string; type?: string; size_bytes?: number }>;
+};
+
+/**
+ * Create a new issue
+ */
+export async function createIssue(input: CreateIssueInput): Promise<ActionResult & { data?: { id: number } }> {
+  const supabase = await getSupabaseServerClient();
+
+  // Validate required fields
+  if (!input.title?.trim()) {
+    return { success: false, error: "Title is required" };
+  }
+  if (!input.description?.trim()) {
+    return { success: false, error: "Description is required" };
+  }
+  if (!input.category) {
+    return { success: false, error: "Category is required" };
+  }
+  if (!input.address?.trim()) {
+    return { success: false, error: "Address is required" };
+  }
+
+  const validCategories = ["road_maintenance", "drainage", "public_safety", "sanitation", "other"];
+  if (!validCategories.includes(input.category)) {
+    return { success: false, error: "Invalid category" };
+  }
+
+  const { data: inserted, error } = await supabase
+    .from("issues")
+    .insert({
+      title: input.title.trim(),
+      description: input.description.trim(),
+      category: input.category,
+      address: input.address.trim(),
+      lat: input.lat,
+      lng: input.lng,
+      status: input.status || "pending",
+      reporter_id: input.reporterId || null,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  if (inserted?.id) {
+    // Insert media if provided
+    if (input.media && input.media.length > 0) {
+      try {
+        await supabase.from("issue_media").insert(
+          input.media.map((m) => ({
+            issue_id: inserted.id,
+            url: m.url,
+            type: (m.type ?? "image").slice(0, 16),
+            size_bytes: m.size_bytes ?? null,
+          }))
+        );
+      } catch (mediaError) {
+        // Log error but don't fail the issue creation
+        console.error("Failed to insert media:", mediaError);
+      }
+    }
+
+    revalidatePath("/admin/issues");
+    revalidatePath("/[locale]/(admin)/admin/issues");
+    return { success: true, data: { id: inserted.id } };
+  }
+
+  return { success: false, error: "Failed to create issue" };
+}
+
 /**
  * Log an activity to the issue_feedback table
  * Activities are stored with a JSON prefix for machine parsing

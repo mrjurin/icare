@@ -5,8 +5,8 @@ import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Eye, EyeOff, AlertCircle, Loader2, Mail, Lock, CheckCircle2, User, CreditCard, MapPin, Building2 } from "lucide-react";
 import { registerCommunityUser } from "@/lib/actions/auth";
-import { getZones } from "@/lib/actions/zones";
-import { getVillages } from "@/lib/actions/villages";
+import { getZonesPublic } from "@/lib/actions/zones";
+import { getVillagesPublic } from "@/lib/actions/villages";
 import type { Zone } from "@/lib/actions/zones";
 import type { Village } from "@/lib/actions/villages";
 
@@ -42,7 +42,7 @@ export default function CommunityRegisterPage() {
   useEffect(() => {
     const fetchZones = async () => {
       setLoadingZones(true);
-      const result = await getZones();
+      const result = await getZonesPublic();
       if (result.success && result.data) {
         setZones(result.data);
       }
@@ -57,7 +57,7 @@ export default function CommunityRegisterPage() {
       if (zoneId && zoneId > 0) {
         setLoadingVillages(true);
         setVillageId(0); // Reset village selection
-        const result = await getVillages(zoneId);
+        const result = await getVillagesPublic(zoneId);
         if (result.success && result.data) {
           setVillages(result.data);
         } else {

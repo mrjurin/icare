@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp, varchar, doublePrecision, index, pgEnum, boolean, type PgTableWithColumns } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, timestamp, varchar, doublePrecision, index, pgEnum, boolean, unique, type PgTableWithColumns } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 // Enums for profile verification (must be declared before profiles table)
@@ -53,6 +53,7 @@ export const duns = pgTable(
   "duns",
   {
     id: serial("id").primaryKey(),
+    parliamentId: integer("parliament_id").references(() => parliaments.id, { onDelete: "set null" }),
     name: text("name").notNull(), // e.g., "N.18 Inanam"
     code: varchar("code", { length: 20 }), // e.g., "N18"
     description: text("description"),
@@ -62,6 +63,7 @@ export const duns = pgTable(
   (table) => [
     index("duns_name_idx").on(table.name),
     index("duns_code_idx").on(table.code),
+    index("duns_parliament_idx").on(table.parliamentId),
   ]
 );
 
@@ -291,12 +293,33 @@ export const zones = pgTable(
   ]
 );
 
-// Villages table for managing villages within zones
+// Cawangan table for managing cawangan within zones
+export const cawangan = pgTable(
+  "cawangan",
+  {
+    id: serial("id").primaryKey(),
+    zoneId: integer("zone_id").references(() => zones.id, { onDelete: "cascade" }).notNull(),
+    name: text("name").notNull(),
+    code: varchar("code", { length: 20 }),
+    description: text("description"),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("cawangan_zone_idx").on(table.zoneId),
+    index("cawangan_name_idx").on(table.name),
+    index("cawangan_code_idx").on(table.code),
+  ]
+);
+
+// Villages table for managing villages within cawangan
 export const villages = pgTable(
   "villages",
   {
     id: serial("id").primaryKey(),
-    zoneId: integer("zone_id").references(() => zones.id, { onDelete: "cascade" }).notNull(),
+    cawanganId: integer("cawangan_id").references(() => cawangan.id, { onDelete: "cascade" }).notNull(),
+    zoneId: integer("zone_id").references(() => zones.id, { onDelete: "cascade" }), // Keep for backward compatibility, will be removed later
     name: text("name").notNull(),
     description: text("description"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -304,6 +327,7 @@ export const villages = pgTable(
   },
   (table) => [
     index("villages_name_idx").on(table.name),
+    index("villages_cawangan_idx").on(table.cawanganId),
     index("villages_zone_idx").on(table.zoneId),
   ]
 );
@@ -479,7 +503,11 @@ export const staffPermissions = pgTable(
 );
 
 // Relations for DUNs
-export const dunsRelations = relations(duns, ({ many }) => ({
+export const dunsRelations = relations(duns, ({ one, many }) => ({
+  parliament: one(parliaments, {
+    fields: [duns.parliamentId],
+    references: [parliaments.id],
+  }),
   zones: many(zones),
 }));
 
@@ -496,11 +524,25 @@ export const zonesRelations = relations(zones, ({ one, many }) => ({
   households: many(households),
   leaders: many(staff),
   roleAssignments: many(roleAssignments),
+  cawangan: many(cawangan),
+  villages: many(villages),
+}));
+
+// Relations for cawangan
+export const cawanganRelations = relations(cawangan, ({ one, many }) => ({
+  zone: one(zones, {
+    fields: [cawangan.zoneId],
+    references: [zones.id],
+  }),
   villages: many(villages),
 }));
 
 // Relations for villages
 export const villagesRelations = relations(villages, ({ one }) => ({
+  cawangan: one(cawangan, {
+    fields: [villages.cawanganId],
+    references: [cawangan.id],
+  }),
   zone: one(zones, {
     fields: [villages.zoneId],
     references: [zones.id],
@@ -1009,6 +1051,7 @@ export const pollingStationsRelations = relations(pollingStations, ({ one, many 
 }));
 
 export const parliamentsRelations = relations(parliaments, ({ many }) => ({
+  duns: many(duns),
   localities: many(localities),
 }));
 
@@ -1047,3 +1090,211 @@ export const backupsRelations = relations(backups, ({ one }) => ({
     references: [staff.id],
   }),
 }));
+
+// Enums for membership applications
+export const membershipApplicationStatusEnum = pgEnum("membership_application_status", [
+  "draft",
+  "submitted",
+  "zone_reviewed",
+  "approved",
+  "rejected",
+]);
+
+// Membership Applications table - stores party membership applications
+export const membershipApplications = pgTable(
+  "membership_applications",
+  {
+    id: serial("id").primaryKey(),
+    zoneId: integer("zone_id").references(() => zones.id, { onDelete: "cascade" }).notNull(),
+    cawanganId: integer("cawangan_id").references(() => cawangan.id, { onDelete: "cascade" }).notNull(),
+    // Personal Details
+    fullName: text("full_name").notNull(),
+    icNumber: varchar("ic_number", { length: 20 }).notNull(),
+    phone: varchar("phone", { length: 20 }),
+    email: text("email"),
+    address: text("address"),
+    dateOfBirth: timestamp("date_of_birth"),
+    gender: varchar("gender", { length: 1 }), // P/L
+    race: text("race"),
+    religion: text("religion"),
+    // Photo URLs
+    photoUrl: text("photo_url"), // Photo for membership certificate and card
+    // Previous Membership Questions
+    wasPreviousMember: boolean("was_previous_member").default(false).notNull(), // Was previously a member of this party
+    // Zone Office Review
+    zoneReviewedBy: integer("zone_reviewed_by").references(() => staff.id, { onDelete: "set null" }), // Staff who reviewed
+    zoneReviewedAt: timestamp("zone_reviewed_at"), // When reviewed
+    zoneSupports: boolean("zone_supports"), // Whether zone staff supports the application
+    zoneRemarks: text("zone_remarks"), // Remarks from zone staff
+    // Admin Review
+    membershipNumber: varchar("membership_number", { length: 50 }), // Generated membership number
+    approvedBy: integer("approved_by").references(() => staff.id, { onDelete: "set null" }), // Admin who approved
+    approvedAt: timestamp("approved_at"), // When approved
+    status: membershipApplicationStatusEnum("status").default("draft").notNull(),
+    adminRemarks: text("admin_remarks"), // Remarks from admin
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("membership_applications_zone_idx").on(table.zoneId),
+    index("membership_applications_cawangan_idx").on(table.cawanganId),
+    index("membership_applications_status_idx").on(table.status),
+    index("membership_applications_ic_number_idx").on(table.icNumber),
+    index("membership_applications_membership_number_idx").on(table.membershipNumber),
+  ]
+);
+
+// Previous Party Memberships table - stores previous party memberships if applicable
+export const membershipApplicationPreviousParties = pgTable(
+  "membership_application_previous_parties",
+  {
+    id: serial("id").primaryKey(),
+    applicationId: integer("application_id").references(() => membershipApplications.id, { onDelete: "cascade" }).notNull(),
+    partyName: text("party_name").notNull(), // Name of the previous party
+    fromDate: timestamp("from_date"), // Start date of membership
+    toDate: timestamp("to_date"), // End date of membership
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("membership_app_prev_parties_application_idx").on(table.applicationId),
+  ]
+);
+
+// Memberships table - stores approved party memberships
+export const memberships = pgTable(
+  "memberships",
+  {
+    id: serial("id").primaryKey(),
+    applicationId: integer("application_id").references(() => membershipApplications.id, { onDelete: "set null" }), // Link to original application
+    membershipNumber: varchar("membership_number", { length: 50 }).notNull().unique(), // Unique membership number
+    zoneId: integer("zone_id").references(() => zones.id, { onDelete: "cascade" }).notNull(),
+    cawanganId: integer("cawangan_id").references(() => cawangan.id, { onDelete: "cascade" }).notNull(),
+    // Personal Details (denormalized for quick access)
+    fullName: text("full_name").notNull(),
+    icNumber: varchar("ic_number", { length: 20 }).notNull(),
+    phone: varchar("phone", { length: 20 }),
+    email: text("email"),
+    address: text("address"),
+    dateOfBirth: timestamp("date_of_birth"),
+    gender: varchar("gender", { length: 1 }),
+    race: text("race"),
+    religion: text("religion"),
+    photoUrl: text("photo_url"),
+    // Membership Details
+    joinedDate: timestamp("joined_date").defaultNow().notNull(), // When membership was approved/joined
+    status: varchar("status", { length: 20 }).default("active").notNull(), // active, inactive, suspended, terminated
+    approvedBy: integer("approved_by").references(() => staff.id, { onDelete: "set null" }), // Admin who approved
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("memberships_membership_number_idx").on(table.membershipNumber),
+    index("memberships_zone_idx").on(table.zoneId),
+    index("memberships_cawangan_idx").on(table.cawanganId),
+    index("memberships_status_idx").on(table.status),
+    index("memberships_ic_number_idx").on(table.icNumber),
+  ]
+);
+
+// Relations for membership applications
+export const membershipApplicationsRelations = relations(membershipApplications, ({ one, many }) => ({
+  zone: one(zones, {
+    fields: [membershipApplications.zoneId],
+    references: [zones.id],
+  }),
+  cawangan: one(cawangan, {
+    fields: [membershipApplications.cawanganId],
+    references: [cawangan.id],
+  }),
+  zoneReviewedByStaff: one(staff, {
+    fields: [membershipApplications.zoneReviewedBy],
+    references: [staff.id],
+  }),
+  approvedByStaff: one(staff, {
+    fields: [membershipApplications.approvedBy],
+    references: [staff.id],
+  }),
+  previousParties: many(membershipApplicationPreviousParties),
+  membership: one(memberships, {
+    fields: [membershipApplications.id],
+    references: [memberships.applicationId],
+  }),
+}));
+
+// Relations for previous party memberships
+export const membershipApplicationPreviousPartiesRelations = relations(
+  membershipApplicationPreviousParties,
+  ({ one }) => ({
+    application: one(membershipApplications, {
+      fields: [membershipApplicationPreviousParties.applicationId],
+      references: [membershipApplications.id],
+    }),
+  })
+);
+
+// Membership Application SPR Voters linking table - links membership applications to SPR voters across versions
+export const membershipApplicationSprVoters = pgTable(
+  "membership_application_spr_voters",
+  {
+    id: serial("id").primaryKey(),
+    membershipApplicationId: integer("membership_application_id").references(() => membershipApplications.id, { onDelete: "cascade" }).notNull(),
+    sprVoterId: integer("spr_voter_id").references(() => sprVoters.id, { onDelete: "cascade" }).notNull(),
+    linkedBy: integer("linked_by").references(() => staff.id, { onDelete: "set null" }),
+    linkedAt: timestamp("linked_at").defaultNow().notNull(),
+    isAutoLinked: boolean("is_auto_linked").default(false).notNull(),
+    notes: text("notes"),
+  },
+  (table) => [
+    index("membership_application_spr_voters_application_idx").on(table.membershipApplicationId),
+    index("membership_application_spr_voters_spr_voter_idx").on(table.sprVoterId),
+    index("membership_application_spr_voters_linked_by_idx").on(table.linkedBy),
+    unique("membership_application_spr_voters_unique").on(table.membershipApplicationId, table.sprVoterId),
+  ]
+);
+
+// Relations for memberships
+export const membershipsRelations = relations(memberships, ({ one }) => ({
+  application: one(membershipApplications, {
+    fields: [memberships.applicationId],
+    references: [membershipApplications.id],
+  }),
+  zone: one(zones, {
+    fields: [memberships.zoneId],
+    references: [zones.id],
+  }),
+  cawangan: one(cawangan, {
+    fields: [memberships.cawanganId],
+    references: [cawangan.id],
+  }),
+  approvedByStaff: one(staff, {
+    fields: [memberships.approvedBy],
+    references: [staff.id],
+  }),
+}));
+
+// Relations for membership application SPR voters
+export const membershipApplicationSprVotersRelations = relations(
+  membershipApplicationSprVoters,
+  ({ one }) => ({
+    membershipApplication: one(membershipApplications, {
+      fields: [membershipApplicationSprVoters.membershipApplicationId],
+      references: [membershipApplications.id],
+    }),
+    sprVoter: one(sprVoters, {
+      fields: [membershipApplicationSprVoters.sprVoterId],
+      references: [sprVoters.id],
+    }),
+    linkedByStaff: one(staff, {
+      fields: [membershipApplicationSprVoters.linkedBy],
+      references: [staff.id],
+    }),
+  })
+);
+
+// Add SPR voters relation to membership applications
+export const membershipApplicationsSprVotersRelations = relations(
+  membershipApplications,
+  ({ many }) => ({
+    sprVoters: many(membershipApplicationSprVoters),
+  })
+);

@@ -2,7 +2,7 @@
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { normalizeIcNumber } from "@/lib/utils/icNumber";
+import { normalizeIcNumber } from "@/lib/utils/ic-number";
 
 export type RegisterInput = {
   fullName: string;

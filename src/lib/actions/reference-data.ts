@@ -1,7 +1,7 @@
 "use server";
 
 import { getSupabaseServerClient, getSupabaseReadOnlyClient } from "@/lib/supabase/server";
-import { getCurrentUserAccess } from "@/lib/utils/accessControl";
+import { getCurrentUserAccess } from "@/lib/utils/access-control";
 import { revalidatePath } from "next/cache";
 
 export type ActionResult<T = void> = {
@@ -32,7 +32,10 @@ export type ReferenceTable =
   | "parliaments"
   | "localities"
   | "polling_stations"
-  | "duns";
+  | "duns"
+  | "zones"
+  | "cawangan"
+  | "villages";
 
 export type CreateReferenceDataInput = {
   name: string;
@@ -45,6 +48,9 @@ export type CreateReferenceDataInput = {
   districtId?: number;
   localityId?: number;
   address?: string;
+  pollingStationId?: number;
+  zoneId?: number;
+  cawanganId?: number;
 };
 
 export type UpdateReferenceDataInput = {
@@ -59,7 +65,32 @@ export type UpdateReferenceDataInput = {
   districtId?: number;
   localityId?: number;
   address?: string;
+  pollingStationId?: number;
+  zoneId?: number;
+  cawanganId?: number;
 };
+
+/**
+ * Get all reference data items (public - no authentication required)
+ * Used for public forms like membership applications
+ */
+export async function getReferenceDataListPublic(
+  table: "genders" | "races" | "religions"
+): Promise<ActionResult<ReferenceData[]>> {
+  const supabase = await getSupabaseReadOnlyClient();
+
+  const { data, error } = await supabase
+    .from(table)
+    .select("*")
+    .eq("is_active", true)
+    .order("name", { ascending: true });
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, data: (data || []) as ReferenceData[] };
+}
 
 /**
  * Get all reference data items
@@ -71,11 +102,19 @@ export async function getReferenceDataList(
 
   let selectQuery = "*";
 
-  // Add joins for localities and polling stations
+  // Add joins for localities, polling stations, zones, cawangan, villages, and duns
   if (table === "localities") {
     selectQuery = "*, parliaments(name), duns(name), districts(name)";
   } else if (table === "polling_stations") {
     selectQuery = "*, localities(name)";
+  } else if (table === "duns") {
+    selectQuery = "*, parliaments(name)";
+  } else if (table === "zones") {
+    selectQuery = "*, duns(name), polling_stations(name, code)";
+  } else if (table === "cawangan") {
+    selectQuery = "*, zones(name)";
+  } else if (table === "villages") {
+    selectQuery = "*, cawangan(name), zones(name)";
   }
 
   const { data, error } = await supabase
@@ -104,6 +143,23 @@ export async function getReferenceDataList(
     } else if (table === "polling_stations") {
       result.locality_name = item.localities?.name || null;
       delete result.localities;
+    } else if (table === "duns") {
+      result.parliament_name = item.parliaments?.name || null;
+      delete result.parliaments;
+    } else if (table === "zones") {
+      result.dun_name = item.duns?.name || null;
+      result.polling_station_name = item.polling_stations?.name || null;
+      result.polling_station_code = item.polling_stations?.code || null;
+      delete result.duns;
+      delete result.polling_stations;
+    } else if (table === "cawangan") {
+      result.zone_name = item.zones?.name || null;
+      delete result.zones;
+    } else if (table === "villages") {
+      result.cawangan_name = item.cawangan?.name || null;
+      result.zone_name = item.zones?.name || null;
+      delete result.cawangan;
+      delete result.zones;
     }
     return result;
   });
@@ -163,12 +219,25 @@ export async function createReferenceData(
   // Build insert object based on table type
   const insertData: Record<string, unknown> = {
     name: input.name.trim(),
-    code: input.code?.trim() || null,
+    // Include code only for tables that have this column (exclude zones and villages)
+    ...(table !== "zones" && table !== "villages" && { code: input.code?.trim() || null }),
     description: input.description?.trim() || null,
-    // Include is_active for all tables except duns (duns doesn't have this column)
+    // Include is_active for all tables except duns, zones, and villages (they don't have this column)
     // For duns, we default to inactive but don't include the column
-    ...(table !== "duns" && { is_active: input.isActive ?? true }),
+    // Note: cawangan has is_active column, so it's included
+    ...(table !== "duns" && table !== "zones" && table !== "villages" && { is_active: input.isActive ?? true }),
   };
+
+  // Validate required fields for zones, cawangan, and villages
+  if (table === "zones" && !input.dunId) {
+    return { success: false, error: "DUN is required for zones" };
+  }
+  if (table === "cawangan" && !input.zoneId) {
+    return { success: false, error: "Zone is required for cawangan" };
+  }
+  if (table === "villages" && !input.cawanganId) {
+    return { success: false, error: "Cawangan is required for villages" };
+  }
 
   // Add table-specific fields
   if (table === "localities") {
@@ -178,6 +247,26 @@ export async function createReferenceData(
   } else if (table === "polling_stations") {
     if (input.localityId) insertData.locality_id = input.localityId;
     if (input.address) insertData.address = input.address;
+  } else if (table === "duns") {
+    if (input.parliamentId) insertData.parliament_id = input.parliamentId;
+  } else if (table === "zones") {
+    if (input.dunId) insertData.dun_id = input.dunId;
+    if (input.pollingStationId) insertData.polling_station_id = input.pollingStationId;
+  } else if (table === "cawangan") {
+    if (input.zoneId) insertData.zone_id = input.zoneId;
+  } else if (table === "villages") {
+    if (input.cawanganId) insertData.cawangan_id = input.cawanganId;
+    // Keep zone_id for backward compatibility - get it from cawangan
+    if (input.cawanganId) {
+      const { data: cawanganData } = await supabase
+        .from("cawangan")
+        .select("zone_id")
+        .eq("id", input.cawanganId)
+        .single();
+      if (cawanganData) {
+        insertData.zone_id = cawanganData.zone_id;
+      }
+    }
   }
 
   const { data, error } = await supabase.from(table).insert(insertData).select().single();
@@ -225,7 +314,8 @@ export async function updateReferenceData(
     updates.name = input.name.trim();
   }
 
-  if (input.code !== undefined) {
+  // Update code only for tables that have this column (exclude zones and villages)
+  if (input.code !== undefined && table !== "zones" && table !== "villages") {
     updates.code = input.code?.trim() || null;
   }
 
@@ -233,9 +323,9 @@ export async function updateReferenceData(
     updates.description = input.description?.trim() || null;
   }
 
-  // Update is_active for all tables except duns (duns doesn't have this column)
+  // Update is_active for all tables except duns, zones, and villages (they don't have this column)
   // For duns, we default to inactive but don't include the column
-  if (input.isActive !== undefined && table !== "duns") {
+  if (input.isActive !== undefined && table !== "duns" && table !== "zones" && table !== "villages") {
     updates.is_active = input.isActive;
   }
 
@@ -247,6 +337,26 @@ export async function updateReferenceData(
   } else if (table === "polling_stations") {
     if (input.localityId !== undefined) updates.locality_id = input.localityId || null;
     if (input.address !== undefined) updates.address = input.address || null;
+  } else if (table === "duns") {
+    if (input.parliamentId !== undefined) updates.parliament_id = input.parliamentId || null;
+  } else if (table === "zones") {
+    if (input.dunId !== undefined) updates.dun_id = input.dunId || null;
+    if (input.pollingStationId !== undefined) updates.polling_station_id = input.pollingStationId || null;
+  } else if (table === "cawangan") {
+    if (input.zoneId !== undefined) updates.zone_id = input.zoneId;
+  } else if (table === "villages") {
+    if (input.cawanganId !== undefined) {
+      updates.cawangan_id = input.cawanganId;
+      // Keep zone_id for backward compatibility - get it from cawangan
+      const { data: cawanganData } = await supabase
+        .from("cawangan")
+        .select("zone_id")
+        .eq("id", input.cawanganId)
+        .single();
+      if (cawanganData) {
+        updates.zone_id = cawanganData.zone_id;
+      }
+    }
   }
 
   updates.updated_at = new Date().toISOString();

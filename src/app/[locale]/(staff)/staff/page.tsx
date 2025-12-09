@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCurrentUserAccessReadOnly } from "@/lib/utils/accessControl";
+import { getCurrentUserAccessReadOnly } from "@/lib/utils/access-control";
 
 export default async function StaffPage() {
   // Check authentication and staff status
