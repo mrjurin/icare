@@ -8,6 +8,7 @@ import {
   Vote,
   School,
   Landmark,
+  AlertTriangle,
 } from "lucide-react";
 import { type ReferenceTable } from "@/lib/actions/reference-data";
 import { getTableDisplayName } from "@/lib/utils/reference-data";
@@ -60,6 +61,24 @@ export default function ReferenceDataIndexPage() {
             </div>
           </Link>
         ))}
+        <Link
+          href="/admin/issue-types"
+          className="p-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark hover:border-primary hover:shadow-lg transition-all"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-lg bg-primary/10">
+              <AlertTriangle className="size-6 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900 dark:text-white">
+                Issue Types
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Manage issue types for community reporting
+              </p>
+            </div>
+          </div>
+        </Link>
       </div>
     </div>
   );

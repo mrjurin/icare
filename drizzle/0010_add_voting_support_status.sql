@@ -7,3 +7,4 @@ END $$;
 --> statement-breakpoint
 -- Add voting_support_status column to household_members table
 ALTER TABLE "household_members" ADD COLUMN "voting_support_status" "voting_support_status";
+

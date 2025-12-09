@@ -1,5 +1,7 @@
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages } from 'next-intl/server';
 import styles from "./layout.module.css";
 import AdminNav from "./nav";
 import LogoutButton from "./LogoutButton";
@@ -56,8 +58,12 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     ? appNameResult.data 
     : "Community Watch";
 
+  // Get messages for intl provider
+  const messages = await getMessages();
+
   return (
-    <div className={styles.shell}>
+    <NextIntlClientProvider messages={messages}>
+      <div className={styles.shell}>
       <div className={styles.body}>
         <aside className={styles.sidebar}>
           <div className={styles.sidebarBrand}>
@@ -97,6 +103,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           <main className={styles.main}>{children}</main>
         </div>
       </div>
-    </div>
+      </div>
+    </NextIntlClientProvider>
   );
 }

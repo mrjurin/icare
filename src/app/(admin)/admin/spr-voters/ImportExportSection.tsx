@@ -1,14 +1,19 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, Download, FileText, AlertCircle, CheckCircle, Link2 } from "lucide-react";
+import { Upload, Download, FileText, AlertCircle, CheckCircle, Link2, MapPin, Pause, Play } from "lucide-react";
+import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import Button from "@/components/ui/Button";
 import {
   importVotersFromCSV,
   importVotersFromCSVChunk,
   exportVotersToCSV,
   matchVotersWithHouseholds,
+  startGeocodingJob,
+  getLatestGeocodingJob,
+  pauseGeocodingJob,
+  resumeGeocodingJob,
   type ActionResult,
 } from "@/lib/actions/spr-voters";
 
@@ -30,6 +35,93 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
     unmatched: number;
     total: number;
   } | null>(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [geocodeJob, setGeocodeJob] = useState<{
+    id: number;
+    status: "pending" | "running" | "paused" | "completed" | "failed";
+    totalVoters: number;
+    processedVoters: number;
+    geocodedCount: number;
+    failedCount: number;
+    skippedCount: number;
+    errorMessage: string | null;
+  } | null>(null);
+  const [isPausing, setIsPausing] = useState(false);
+  const [isResuming, setIsResuming] = useState(false);
+  const [showGeocodeConfirm, setShowGeocodeConfirm] = useState(false);
+
+  // Poll for geocoding job status
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    let shouldPoll = true;
+
+    const checkJobStatus = async () => {
+      if (!shouldPoll) return;
+      
+      const result = await getLatestGeocodingJob(versionId);
+      if (result.success && result.data) {
+        const jobStatus = result.data.status;
+        setGeocodeJob(result.data);
+        setIsGeocoding(jobStatus === "pending" || jobStatus === "running");
+        // Stop polling if job is completed or failed
+        if (jobStatus === "completed" || jobStatus === "failed") {
+          shouldPoll = false;
+          if (intervalId) {
+            clearInterval(intervalId);
+            intervalId = null;
+          }
+          router.refresh();
+        }
+        // Stop polling if paused
+        if (jobStatus === "paused") {
+          shouldPoll = false;
+          if (intervalId) {
+            clearInterval(intervalId);
+            intervalId = null;
+          }
+        }
+      } else if (result.success && !result.data) {
+        // No job found, stop polling
+        shouldPoll = false;
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+        setGeocodeJob(null);
+        setIsGeocoding(false);
+      }
+    };
+
+    // Check immediately
+    checkJobStatus();
+
+    // Poll every 2 seconds
+    intervalId = setInterval(checkJobStatus, 2000);
+
+    return () => {
+      shouldPoll = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [versionId]);
+
+  // Load latest job on mount
+  useEffect(() => {
+    const loadLatestJob = async () => {
+      const result = await getLatestGeocodingJob(versionId);
+      if (result.success && result.data) {
+        setGeocodeJob(result.data);
+        if (result.data.status === "pending" || result.data.status === "running") {
+          setIsGeocoding(true);
+        } else if (result.data.status === "paused") {
+          setIsGeocoding(false);
+        }
+      }
+    };
+    loadLatestJob();
+  }, [versionId]);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [selectedFileSize, setSelectedFileSize] = useState<number | null>(null);
   const [uploadProgress, setUploadProgress] = useState<{
@@ -250,11 +342,80 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
     }
   };
 
+  const handleGeocode = async () => {
+    setIsGeocoding(true);
+    setShowGeocodeConfirm(false);
+    try {
+      const result = await startGeocodingJob(versionId);
+      if (!result.success) {
+        alert(result.error || "Failed to start geocoding job");
+        setIsGeocoding(false);
+        return;
+      }
+
+      if (result.data) {
+        // Fetch the job details to show initial status
+        const jobResult = await getLatestGeocodingJob(versionId);
+        if (jobResult.success && jobResult.data) {
+          setGeocodeJob(jobResult.data);
+        }
+      }
+    } catch (error) {
+      alert("Failed to start geocoding job");
+      setIsGeocoding(false);
+    }
+  };
+
+  const handlePause = async () => {
+    if (!geocodeJob) return;
+    setIsPausing(true);
+    try {
+      const result = await pauseGeocodingJob(geocodeJob.id);
+      if (!result.success) {
+        alert(result.error || "Failed to pause geocoding");
+        return;
+      }
+      // Refresh job status
+      const jobResult = await getLatestGeocodingJob(versionId);
+      if (jobResult.success && jobResult.data) {
+        setGeocodeJob(jobResult.data);
+        setIsGeocoding(false);
+      }
+    } catch (error) {
+      alert("Failed to pause geocoding");
+    } finally {
+      setIsPausing(false);
+    }
+  };
+
+  const handleResume = async () => {
+    if (!geocodeJob) return;
+    setIsResuming(true);
+    try {
+      const result = await resumeGeocodingJob(geocodeJob.id);
+      if (!result.success) {
+        alert(result.error || "Failed to resume geocoding");
+        return;
+      }
+      setIsGeocoding(true);
+      // Refresh job status and restart polling
+      const jobResult = await getLatestGeocodingJob(versionId);
+      if (jobResult.success && jobResult.data) {
+        setGeocodeJob(jobResult.data);
+        router.refresh();
+      }
+    } catch (error) {
+      alert("Failed to resume geocoding");
+    } finally {
+      setIsResuming(false);
+    }
+  };
+
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">
       <h3 className="text-lg font-semibold mb-4">Import, Export & Matching</h3>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Import Section */}
         <div className="space-y-3">
           <div>
@@ -428,7 +589,156 @@ export default function ImportExportSection({ versionId }: ImportExportSectionPr
             </div>
           )}
         </div>
+
+        {/* Geocoding Section */}
+        <div className="space-y-3">
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Geocode Addresses
+            </h4>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+              Retrieve latitude and longitude for all voter addresses. This process may take some time.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowGeocodeConfirm(true)}
+                disabled={isGeocoding || (geocodeJob?.status === "pending" || geocodeJob?.status === "running" || geocodeJob?.status === "paused")}
+                className="flex-1 gap-2"
+                variant="outline"
+              >
+                <MapPin className="size-4" />
+                {isGeocoding || geocodeJob?.status === "running" || geocodeJob?.status === "pending"
+                  ? "Geocoding..."
+                  : geocodeJob?.status === "paused"
+                  ? "Resume"
+                  : "Geocode Addresses"}
+              </Button>
+              {geocodeJob?.status === "running" && (
+                <Button
+                  onClick={handlePause}
+                  disabled={isPausing}
+                  className="gap-2"
+                  variant="outline"
+                >
+                  <Pause className="size-4" />
+                  {isPausing ? "Pausing..." : "Pause"}
+                </Button>
+              )}
+              {geocodeJob?.status === "paused" && (
+                <Button
+                  onClick={handleResume}
+                  disabled={isResuming}
+                  className="gap-2"
+                  variant="outline"
+                >
+                  <Play className="size-4" />
+                  {isResuming ? "Resuming..." : "Resume"}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {geocodeJob && (
+            <div
+              className={`p-3 rounded-lg ${
+                geocodeJob.status === "failed"
+                  ? "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
+                  : geocodeJob.status === "paused"
+                  ? "bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800"
+                  : geocodeJob.status === "completed" && geocodeJob.failedCount > 0
+                  ? "bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800"
+                  : geocodeJob.status === "completed"
+                  ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
+                  : "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+              }`}
+            >
+              <div className="flex items-start gap-2">
+                {geocodeJob.status === "failed" ? (
+                  <AlertCircle className="size-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                ) : geocodeJob.status === "paused" ? (
+                  <Pause className="size-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                ) : geocodeJob.status === "completed" && geocodeJob.failedCount > 0 ? (
+                  <AlertCircle className="size-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                ) : geocodeJob.status === "completed" ? (
+                  <CheckCircle className="size-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <div className="size-5 flex-shrink-0 mt-0.5 flex items-center justify-center">
+                    <div className="size-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    {geocodeJob.status === "paused"
+                      ? `Paused: ${geocodeJob.processedVoters} of ${geocodeJob.totalVoters} addresses processed`
+                      : geocodeJob.status === "running" || geocodeJob.status === "pending"
+                      ? `Processing ${geocodeJob.processedVoters} of ${geocodeJob.totalVoters} addresses...`
+                      : geocodeJob.status === "completed"
+                      ? `Geocoded ${geocodeJob.geocodedCount} of ${geocodeJob.totalVoters} addresses`
+                      : "Geocoding failed"}
+                  </p>
+                  {(geocodeJob.status === "running" || geocodeJob.status === "pending" || geocodeJob.status === "paused") && (
+                    <div className="mt-2">
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div
+                          className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-300"
+                          style={{
+                            width: `${Math.min(
+                              (geocodeJob.processedVoters / geocodeJob.totalVoters) * 100,
+                              100
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        {Math.round((geocodeJob.processedVoters / geocodeJob.totalVoters) * 100)}% complete
+                      </p>
+                    </div>
+                  )}
+                  {geocodeJob.status === "completed" && geocodeJob.failedCount > 0 && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      {geocodeJob.failedCount} addresses failed to geocode
+                    </p>
+                  )}
+                  {geocodeJob.status === "completed" && geocodeJob.skippedCount > 0 && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      {geocodeJob.skippedCount} addresses skipped (no address data)
+                    </p>
+                  )}
+                  {geocodeJob.status === "failed" && geocodeJob.errorMessage && (
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">{geocodeJob.errorMessage}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Geocoding Confirmation Dialog */}
+      <AlertDialog.Root open={showGeocodeConfirm} onOpenChange={setShowGeocodeConfirm}>
+        <AlertDialog.Portal>
+          <AlertDialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+          <AlertDialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 rounded-xl p-6 shadow-xl z-50 w-full max-w-md">
+            <AlertDialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
+              Confirm Geocoding
+            </AlertDialog.Title>
+            <AlertDialog.Description className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              This will geocode all voter addresses that don't have location data yet. The process will run in the background and may take several minutes depending on the number of voters. You can navigate away and check progress later. Continue?
+            </AlertDialog.Description>
+            <div className="mt-6 flex justify-end gap-3">
+              <AlertDialog.Cancel asChild>
+                <Button variant="outline">Cancel</Button>
+              </AlertDialog.Cancel>
+              <AlertDialog.Action asChild>
+                <Button onClick={handleGeocode} disabled={isGeocoding} className="gap-2">
+                  <MapPin className="size-4" />
+                  Start Geocoding
+                </Button>
+              </AlertDialog.Action>
+            </div>
+          </AlertDialog.Content>
+        </AlertDialog.Portal>
+      </AlertDialog.Root>
     </div>
   );
 }

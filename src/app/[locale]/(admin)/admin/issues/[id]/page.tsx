@@ -69,12 +69,13 @@ export default async function AdminIssueDetailPage({ params }: { params: Promise
   const media: Media[] = Array.isArray(mediaRows) ? mediaRows : [];
 
   const { data: assigneesData } = await supabase
-    .from("profiles")
-    .select("id,full_name")
+    .from("staff")
+    .select("id,name")
+    .eq("status", "active")
     .order("created_at", { ascending: false })
-    .limit(20);
+    .limit(50);
   const assignees: Array<{ id: number; name?: string | null }> = Array.isArray(assigneesData)
-    ? (assigneesData as Array<{ id: number; full_name?: string | null }>).map((p) => ({ id: p.id, name: p.full_name ?? null }))
+    ? (assigneesData as Array<{ id: number; name?: string | null }>).map((s) => ({ id: s.id, name: s.name ?? null }))
     : [];
 
   // Get activity log using shared function
@@ -99,7 +100,7 @@ export default async function AdminIssueDetailPage({ params }: { params: Promise
       <div className="flex flex-wrap gap-2 text-sm">
         <Link href="/" className="text-gray-500 hover:text-primary">{t("dashboard")}</Link>
         <span className="text-gray-400">/</span>
-        <Link href="/issues" className="text-gray-500 hover:text-primary">{t("allIssues")}</Link>
+        <Link href="/admin/issues" className="text-gray-500 hover:text-primary">{t("allIssues")}</Link>
         <span className="text-gray-400">/</span>
         <span className="text-gray-900 dark:text-white font-medium">#{issue.id}</span>
       </div>

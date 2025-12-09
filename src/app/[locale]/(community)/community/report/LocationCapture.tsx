@@ -88,8 +88,8 @@ export default function LocationCapture() {
     }
   }
   return (
-    <div className="mt-2 flex flex-col sm:flex-row items-stretch sm:items-start gap-3">
-      <div className="w-full sm:w-56 h-48 sm:h-32 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 overflow-hidden flex-shrink-0">
+    <div className="mt-2 flex flex-col sm:flex-row items-stretch sm:items-start gap-3 sm:gap-4">
+      <div className="w-full sm:w-56 lg:w-64 h-56 sm:h-40 lg:h-48 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 overflow-hidden flex-shrink-0 shadow-sm">
         {lat !== null && lng !== null ? (
           <iframe
             src={mapSrc}
@@ -97,35 +97,44 @@ export default function LocationCapture() {
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
             title="Location Map"
+            allowFullScreen
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-xs text-gray-500 px-2 text-center">Pin will appear here</div>
+          <div className="w-full h-full flex items-center justify-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 px-3 sm:px-4 text-center">
+            Pin will appear here after capturing location
+          </div>
         )}
       </div>
-      <div className="flex flex-col gap-2 flex-1 sm:flex-initial">
-        <div className="flex gap-2">
+      <div className="flex flex-col gap-3 flex-1 sm:flex-initial sm:min-w-[140px]">
+        <div className="flex gap-2 sm:gap-2.5">
           <Button
             type="button"
             variant="outline"
-            className="!h-12 !w-12 sm:!w-12 !px-0 !gap-0 flex-shrink-0"
+            className="!h-12 !min-h-[48px] !w-full sm:!w-12 !px-0 !gap-0 flex-1 sm:flex-initial flex-shrink-0"
             aria-label="Use Current Location"
             onClick={capture}
             disabled={loading}
           >
-            <Crosshair className="size-5" />
+            <Crosshair className="size-5 sm:size-4" aria-hidden="true" />
+            <span className="sm:sr-only ml-2 text-sm">Current Location</span>
           </Button>
           <Button
             type="button"
             variant="outline"
-            className="!h-12 !w-12 sm:!w-12 !px-0 !gap-0 flex-shrink-0"
+            className="!h-12 !min-h-[48px] !w-full sm:!w-12 !px-0 !gap-0 flex-1 sm:flex-initial flex-shrink-0"
             aria-label="Use Address"
             onClick={useAddress}
             disabled={loading}
           >
-            <MapPin className="size-5" />
+            <MapPin className="size-5 sm:size-4" aria-hidden="true" />
+            <span className="sm:sr-only ml-2 text-sm">From Address</span>
           </Button>
         </div>
-        <span className="text-xs text-gray-500 dark:text-gray-400 break-words">{status || "Ready to capture location"}</span>
+        <div className="min-h-[20px]">
+          <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 break-words leading-relaxed">
+            {status || "Ready to capture location"}
+          </span>
+        </div>
       </div>
       <input type="hidden" name="lat" value={lat ?? ""} />
       <input type="hidden" name="lng" value={lng ?? ""} />

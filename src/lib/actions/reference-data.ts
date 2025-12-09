@@ -51,6 +51,9 @@ export type CreateReferenceDataInput = {
   pollingStationId?: number;
   zoneId?: number;
   cawanganId?: number;
+  // Location fields for localities
+  lat?: number;
+  lng?: number;
 };
 
 export type UpdateReferenceDataInput = {
@@ -68,6 +71,9 @@ export type UpdateReferenceDataInput = {
   pollingStationId?: number;
   zoneId?: number;
   cawanganId?: number;
+  // Location fields for localities
+  lat?: number;
+  lng?: number;
 };
 
 /**
@@ -244,6 +250,8 @@ export async function createReferenceData(
     if (input.parliamentId) insertData.parliament_id = input.parliamentId;
     if (input.dunId) insertData.dun_id = input.dunId;
     if (input.districtId) insertData.district_id = input.districtId;
+    if (input.lat !== undefined) insertData.lat = input.lat;
+    if (input.lng !== undefined) insertData.lng = input.lng;
   } else if (table === "polling_stations") {
     if (input.localityId) insertData.locality_id = input.localityId;
     if (input.address) insertData.address = input.address;
@@ -334,6 +342,8 @@ export async function updateReferenceData(
     if (input.parliamentId !== undefined) updates.parliament_id = input.parliamentId || null;
     if (input.dunId !== undefined) updates.dun_id = input.dunId || null;
     if (input.districtId !== undefined) updates.district_id = input.districtId || null;
+    if (input.lat !== undefined) updates.lat = input.lat || null;
+    if (input.lng !== undefined) updates.lng = input.lng || null;
   } else if (table === "polling_stations") {
     if (input.localityId !== undefined) updates.locality_id = input.localityId || null;
     if (input.address !== undefined) updates.address = input.address || null;

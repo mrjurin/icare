@@ -3,6 +3,7 @@
 import { getSupabaseServerClient, getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { parseActivity, type ActivityType } from "@/lib/utils/activity";
+import { getCurrentUserAccess } from "@/lib/utils/access-control";
 
 export type ActionResult = {
   success: boolean;
@@ -210,20 +211,20 @@ export async function assignIssue(
 
   const supabase = await getSupabaseServerClient();
 
-  // Get assignee name if not provided
+  // Get assignee name if not provided (from staff table)
   let name = assigneeName;
   if (!name) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("full_name")
+    const { data: staff } = await supabase
+      .from("staff")
+      .select("name")
       .eq("id", assigneeId)
       .single();
-    name = profile?.full_name || `User #${assigneeId}`;
+    name = staff?.name || `Staff #${assigneeId}`;
   }
 
   const { error } = await supabase.from("issue_assignments").insert({
     issue_id: issueId,
-    assignee_id: assigneeId,
+    staff_id: assigneeId,
     status: "assigned",
   });
 
@@ -361,4 +362,92 @@ export async function getIssueActivity(issueId: number) {
   activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return activities;
+}
+
+/**
+ * Delete an issue with authorization checks
+ * - Admins cannot delete issues created by community users (reporterId is not null)
+ * - Community users cannot delete any submitted issues
+ */
+export async function deleteIssue(issueId: number): Promise<ActionResult> {
+  if (!issueId || Number.isNaN(issueId)) {
+    return { success: false, error: "Invalid issue ID" };
+  }
+
+  const supabase = await getSupabaseServerClient();
+  const access = await getCurrentUserAccess();
+
+  if (!access.isAuthenticated) {
+    return { success: false, error: "Authentication required" };
+  }
+
+  // Fetch the issue to check its reporterId
+  const { data: issue, error: fetchError } = await supabase
+    .from("issues")
+    .select("reporter_id")
+    .eq("id", issueId)
+    .single();
+
+  if (fetchError || !issue) {
+    return { success: false, error: "Issue not found" };
+  }
+
+  // Authorization checks
+  if (access.staffId) {
+    // User is admin/staff
+    // Admins cannot delete issues created by community users
+    if (issue.reporter_id !== null) {
+      return {
+        success: false,
+        error: "Access denied: Admins cannot delete issues created by community users",
+      };
+    }
+  } else {
+    // User is a community user
+    // Community users cannot delete submitted issues
+    return {
+      success: false,
+      error: "Access denied: Community users cannot delete submitted issues",
+    };
+  }
+
+  // Delete the issue (cascade will handle related records)
+  const { error: deleteError } = await supabase.from("issues").delete().eq("id", issueId);
+
+  if (deleteError) {
+    return { success: false, error: deleteError.message };
+  }
+
+  revalidatePath("/admin/issues");
+  revalidatePath("/[locale]/(admin)/admin/issues");
+  return { success: true };
+}
+
+/**
+ * Get all issues with coordinates for map visualization
+ */
+export async function getIssuesWithCoordinates() {
+  const supabase = await getSupabaseReadOnlyClient();
+
+  const { data, error } = await supabase
+    .from("issues")
+    .select("id, lat, lng, status, category, created_at")
+    .not("lat", "is", null)
+    .not("lng", "is", null);
+
+  if (error) {
+    console.error("Failed to fetch issues with coordinates:", error);
+    return [];
+  }
+
+  return (data || []).filter(
+    (issue) => typeof issue.lat === "number" && typeof issue.lng === "number"
+  ) as Array<{
+    id: number;
+    lat: number;
+    lng: number;
+    status: string;
+    category: string;
+    created_at: string;
+  }>;
 }

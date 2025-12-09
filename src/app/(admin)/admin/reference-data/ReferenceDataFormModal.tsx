@@ -46,6 +46,8 @@ export default function ReferenceDataFormModal({
     code: "",
     description: "",
     isActive: true,
+    lat: undefined,
+    lng: undefined,
   });
 
   // Load related data for localities, polling stations, zones, cawangan, villages, and duns
@@ -96,6 +98,8 @@ export default function ReferenceDataFormModal({
         pollingStationId: (data as any).polling_station_id || undefined,
         zoneId: (data as any).zone_id || undefined,
         cawanganId: (data as any).cawangan_id || undefined,
+        lat: (data as any).lat !== null && (data as any).lat !== undefined ? Number((data as any).lat) : undefined,
+        lng: (data as any).lng !== null && (data as any).lng !== undefined ? Number((data as any).lng) : undefined,
       });
     } else if (open) {
       setFormData({
@@ -103,6 +107,8 @@ export default function ReferenceDataFormModal({
         code: "",
         description: "",
         isActive: true,
+        lat: undefined,
+        lng: undefined,
       });
     }
   }, [data, open]);
@@ -267,6 +273,45 @@ export default function ReferenceDataFormModal({
                     }
                     placeholder="Select district..."
                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
+                      Latitude
+                    </label>
+                    <Input
+                      type="number"
+                      step="any"
+                      value={formData.lat !== undefined ? formData.lat.toString() : ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          lat: e.target.value ? parseFloat(e.target.value) : undefined,
+                        })
+                      }
+                      placeholder="e.g., 5.9804"
+                      disabled={isPending}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
+                      Longitude
+                    </label>
+                    <Input
+                      type="number"
+                      step="any"
+                      value={formData.lng !== undefined ? formData.lng.toString() : ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          lng: e.target.value ? parseFloat(e.target.value) : undefined,
+                        })
+                      }
+                      placeholder="e.g., 116.0735"
+                      disabled={isPending}
+                    />
+                  </div>
                 </div>
               </>
             )}

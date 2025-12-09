@@ -13,6 +13,7 @@ const items: NavItem[] = [
   { href: "/admin/notifications", labelKey: "notifications", icon: Bell },
   { href: "/admin/households", labelKey: "households", icon: Home },
   { href: "/admin/spr-voters", labelKey: "sprVoters", icon: Vote },
+  { href: "/admin/sprvoter-density-map", labelKey: "sprVoterDensityMap", icon: MapPin },
   { href: "/admin/reference-data", labelKey: "referenceData", icon: Database },
   { href: "/admin/aids-programs", labelKey: "aidsPrograms", icon: Package },
   { href: "/admin/staff", labelKey: "staff", icon: UserCog },

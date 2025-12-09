@@ -3,12 +3,13 @@
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { z } from "zod";
 import LocationCapture from "./LocationCapture";
 import MediaUploader from "./MediaUploader";
 import { AlertCircle } from "lucide-react";
+import { getActiveIssueTypes, type IssueType } from "@/lib/actions/issue-types";
 
 const issueSchema = z.object({
   title: z.string().min(1, "Title is required").trim(),
@@ -20,70 +21,27 @@ const issueSchema = z.object({
   mediaJson: z.string().optional(),
 });
 
-async function createIssue(formData: FormData) {
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
-  // Extract and validate form data with Zod
-  const formValues = {
-    title: String(formData.get("title") || ""),
-    category: String(formData.get("category") || ""),
-    description: String(formData.get("description") || ""),
-    address: String(formData.get("address") || ""),
-    lat: String(formData.get("lat") || ""),
-    lng: String(formData.get("lng") || ""),
-    mediaJson: String(formData.get("mediaJson") || ""),
-  };
-
-  const result = issueSchema.safeParse(formValues);
-  
-  if (!result.success) {
-    throw new Error("Invalid form data. Please check all required fields.");
-  }
-
-  const { title, description, category, address, lat, lng, mediaJson } = result.data;
-  const latNum = lat ? Number(lat) : undefined;
-  const lngNum = lng ? Number(lng) : undefined;
-
-  const { data: inserted, error: insertErr } = await supabase
-    .from("issues")
-    .insert({ title, description, category, address, lat: latNum, lng: lngNum })
-    .select("id")
-    .single();
-
-  if (insertErr) {
-    throw new Error(insertErr.message);
-  }
-
-  try {
-    const items: Array<{ url: string; type?: string; size_bytes?: number }> = mediaJson ? JSON.parse(mediaJson) : [];
-    if (inserted?.id && items.length > 0) {
-      await supabase
-        .from("issue_media")
-        .insert(
-          items.map((m) => ({
-            issue_id: inserted.id,
-            url: m.url,
-            type: (m.type ?? "image").slice(0, 16),
-            size_bytes: m.size_bytes ?? null,
-          }))
-        );
-    }
-  } catch {
-    // ignore media insert errors for now
-  }
-
-  return { success: true };
-}
-
 
 export default function CommunityReportIssuePage() {
   const router = useRouter();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [issueTypes, setIssueTypes] = useState<IssueType[]>([]);
+  const [isLoadingTypes, setIsLoadingTypes] = useState(true);
+
+  // Load issue types on mount
+  useEffect(() => {
+    const loadIssueTypes = async () => {
+      setIsLoadingTypes(true);
+      const result = await getActiveIssueTypes();
+      if (result.success && result.data) {
+        setIssueTypes(result.data);
+      }
+      setIsLoadingTypes(false);
+    };
+    loadIssueTypes();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -132,7 +90,7 @@ export default function CommunityReportIssuePage() {
 
     setIsSubmitting(true);
     try {
-      await createIssue(formData);
+      await createIssue(formData, issueTypes);
       router.push("/community/dashboard");
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Failed to submit report. Please try again.");
@@ -141,111 +99,211 @@ export default function CommunityReportIssuePage() {
     }
   };
 
+  const createIssue = async (formData: FormData, issueTypes: IssueType[]) => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    // Extract and validate form data with Zod
+    const formValues = {
+      title: String(formData.get("title") || ""),
+      category: String(formData.get("category") || ""),
+      description: String(formData.get("description") || ""),
+      address: String(formData.get("address") || ""),
+      lat: String(formData.get("lat") || ""),
+      lng: String(formData.get("lng") || ""),
+      mediaJson: String(formData.get("mediaJson") || ""),
+    };
+
+    const result = issueSchema.safeParse(formValues);
+    
+    if (!result.success) {
+      throw new Error("Invalid form data. Please check all required fields.");
+    }
+
+    const { title, description, category, address, lat, lng, mediaJson } = result.data;
+    const latNum = lat ? Number(lat) : undefined;
+    const lngNum = lng ? Number(lng) : undefined;
+
+    // Find the issue type ID from the category (which is now the issue type ID)
+    let issueTypeId: number | undefined;
+    const categoryNum = parseInt(category);
+    if (!isNaN(categoryNum)) {
+      // If category is a number, treat it as issue_type_id
+      issueTypeId = categoryNum;
+    } else {
+      // If category is a string (code), find the matching issue type
+      const issueType = issueTypes.find((it) => it.code === category || it.id.toString() === category);
+      if (issueType) {
+        issueTypeId = issueType.id;
+      }
+    }
+
+    // Get the category code for backward compatibility
+    const issueType = issueTypes.find((it) => it.id === issueTypeId);
+    const categoryCode = issueType?.code || "other";
+
+    const { data: inserted, error: insertErr } = await supabase
+      .from("issues")
+      .insert({ 
+        title, 
+        description, 
+        category: categoryCode, // Keep for backward compatibility
+        issue_type_id: issueTypeId,
+        address, 
+        lat: latNum, 
+        lng: lngNum 
+      })
+      .select("id")
+      .single();
+
+    if (insertErr) {
+      throw new Error(insertErr.message);
+    }
+
+    try {
+      const items: Array<{ url: string; type?: string; size_bytes?: number }> = mediaJson ? JSON.parse(mediaJson) : [];
+      if (inserted?.id && items.length > 0) {
+        await supabase
+          .from("issue_media")
+          .insert(
+            items.map((m) => ({
+              issue_id: inserted.id,
+              url: m.url,
+              type: (m.type ?? "image").slice(0, 16),
+              size_bytes: m.size_bytes ?? null,
+            }))
+          );
+      }
+    } catch {
+      // ignore media insert errors for now
+    }
+
+    return { success: true };
+  };
+
   return (
-    <div className="space-y-4 sm:space-y-6 lg:space-y-8 px-4 sm:px-6 lg:px-0">
+    <div className="space-y-4 sm:space-y-6 lg:space-y-8 px-4 sm:px-6 lg:px-0 max-w-7xl mx-auto">
       <div className="flex flex-wrap justify-between gap-3 pb-2">
         <div className="flex flex-col gap-2 w-full sm:min-w-72">
-          <p className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-[-0.033em] text-gray-900 dark:text-white">Report an Issue</p>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-[-0.033em] text-gray-900 dark:text-white">Report an Issue</h1>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Provide details so community moderators can act quickly.</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-        <section className="lg:col-span-1 flex flex-col gap-4">
+        <section className="lg:col-span-1 flex flex-col gap-4 order-2 lg:order-1">
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-4 sm:p-6">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">N.18 INANAM</h2>
-            <p className="text-sm text-primary font-semibold mt-1">Community Issue Reporting</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">N.18 INANAM</h2>
+            <p className="text-sm sm:text-base text-primary font-semibold mt-1">Community Issue Reporting</p>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-4 leading-relaxed">
               Facing issues like potholes, clogged drains, or faulty streetlights? Let us know.
               We are committed to monitoring every report from the residents of N.18 Inanam.
             </p>
             <div className="mt-6 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 p-4">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white">CARELINE Contact</p>
-              <div className="mt-3 space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                <div className="flex items-center gap-2"><span>📞</span><span>011-618 18718</span></div>
-                <div className="flex items-center gap-2"><span>💬</span><a className="text-primary hover:underline" href="#">WhatsApp Us</a></div>
+              <p className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">CARELINE Contact</p>
+              <div className="mt-3 space-y-2.5 text-sm sm:text-base text-gray-700 dark:text-gray-300">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-lg" aria-hidden="true">📞</span>
+                  <a href="tel:01161818718" className="hover:text-primary transition-colors">011-618 18718</a>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-lg" aria-hidden="true">💬</span>
+                  <a className="text-primary hover:underline" href="#" target="_blank" rel="noopener noreferrer">WhatsApp Us</a>
+                </div>
               </div>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">In God We Trust, Unite We Must.</p>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-4">In God We Trust, Unite We Must.</p>
           </div>
         </section>
 
-        <section className="lg:col-span-2">
+        <section className="lg:col-span-2 order-1 lg:order-2">
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-4 sm:p-6">
-            <form className="space-y-6 sm:space-y-8" onSubmit={handleSubmit}>
+            <form className="space-y-6 sm:space-y-8" onSubmit={handleSubmit} noValidate>
               {submitError && (
-                <div className="flex items-start gap-2 rounded-lg bg-red-50 dark:bg-red-900/30 p-3 text-sm text-red-700 dark:text-red-400">
-                  <AlertCircle className="size-4 shrink-0 mt-0.5" />
-                  <span className="flex-1">{submitError}</span>
+                <div className="flex items-start gap-2 rounded-lg bg-red-50 dark:bg-red-900/30 p-3 sm:p-4 text-sm text-red-700 dark:text-red-400">
+                  <AlertCircle className="size-4 sm:size-5 shrink-0 mt-0.5" aria-hidden="true" />
+                  <span className="flex-1 break-words">{submitError}</span>
                 </div>
               )}
 
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Step 1: Issue Details</h3>
-                <div className="mt-3 space-y-3 sm:space-y-4">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Step 1: Issue Details</h3>
+                <div className="mt-3 space-y-4 sm:space-y-5">
                   <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Title <span className="text-red-500">*</span>
+                    <label htmlFor="title" className="block text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      Title <span className="text-red-500" aria-label="required">*</span>
                     </label>
                     <Input 
+                      id="title"
                       name="title" 
                       placeholder="Short title, e.g., Pothole near school" 
-                      className={`mt-1 w-full ${errors.title ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}`}
+                      className={`w-full ${errors.title ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}`}
                       required
+                      aria-invalid={errors.title ? "true" : "false"}
+                      aria-describedby={errors.title ? "title-error" : undefined}
                     />
                     {errors.title && (
-                      <p className="mt-1 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
-                        <AlertCircle className="size-3" />
-                        {errors.title}
+                      <p id="title-error" className="mt-1.5 text-xs sm:text-sm text-red-600 dark:text-red-400 flex items-start gap-1.5">
+                        <AlertCircle className="size-3 sm:size-4 shrink-0 mt-0.5" aria-hidden="true" />
+                        <span>{errors.title}</span>
                       </p>
                     )}
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Type of Issue <span className="text-red-500">*</span>
+                    <label htmlFor="category" className="block text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      Type of Issue <span className="text-red-500" aria-label="required">*</span>
                     </label>
                     <select 
+                      id="category"
                       name="category" 
-                      className={`mt-1 min-h-[44px] h-10 w-full rounded-lg border bg-white dark:bg-gray-800 px-3 text-base sm:text-sm text-gray-900 dark:text-white focus:ring-1 touch-manipulation ${
+                      className={`mt-0 min-h-[44px] h-12 w-full rounded-lg border bg-white dark:bg-gray-800 px-3 sm:px-4 text-base sm:text-sm text-gray-900 dark:text-white focus:ring-2 focus:outline-none touch-manipulation appearance-none bg-[url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")] bg-[length:1.5em_1.5em] bg-[right_0.75rem_center] bg-no-repeat pr-10 ${
                         errors.category 
                           ? "border-red-500 focus:border-red-500 focus:ring-red-500" 
                           : "border-gray-200 dark:border-gray-700 focus:border-primary focus:ring-primary"
                       }`}
                       required
+                      disabled={isLoadingTypes}
+                      aria-invalid={errors.category ? "true" : "false"}
+                      aria-describedby={errors.category ? "category-error" : undefined}
                     >
-                      <option value="">Select an issue type</option>
-                      <option value="road_maintenance">Road Maintenance</option>
-                      <option value="drainage">Drainage</option>
-                      <option value="public_safety">Public Safety</option>
-                      <option value="sanitation">Sanitation</option>
-                      <option value="other">Other</option>
+                      <option value="">{isLoadingTypes ? "Loading issue types..." : "Select an issue type"}</option>
+                      {issueTypes.map((type) => (
+                        <option key={type.id} value={type.id}>
+                          {type.name}
+                        </option>
+                      ))}
                     </select>
                     {errors.category && (
-                      <p className="mt-1 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
-                        <AlertCircle className="size-3" />
-                        {errors.category}
+                      <p id="category-error" className="mt-1.5 text-xs sm:text-sm text-red-600 dark:text-red-400 flex items-start gap-1.5">
+                        <AlertCircle className="size-3 sm:size-4 shrink-0 mt-0.5" aria-hidden="true" />
+                        <span>{errors.category}</span>
                       </p>
                     )}
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Description of Issue <span className="text-red-500">*</span>
+                    <label htmlFor="description" className="block text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      Description of Issue <span className="text-red-500" aria-label="required">*</span>
                     </label>
                     <textarea 
+                      id="description"
                       name="description" 
-                      rows={5} 
+                      rows={6}
                       placeholder="Please provide as much detail as possible. What happened? When? What is the impact?" 
-                      className={`mt-1 w-full rounded-lg border bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-1 resize-y min-h-[100px] ${
+                      className={`w-full rounded-lg border bg-white dark:bg-gray-800 px-3 sm:px-4 py-3 text-base sm:text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:outline-none resize-y min-h-[120px] sm:min-h-[100px] ${
                         errors.description 
                           ? "border-red-500 focus:border-red-500 focus:ring-red-500" 
                           : "border-gray-200 dark:border-gray-700 focus:border-primary focus:ring-primary"
                       }`}
                       required
+                      aria-invalid={errors.description ? "true" : "false"}
+                      aria-describedby={errors.description ? "description-error" : undefined}
                     />
                     {errors.description && (
-                      <p className="mt-1 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
-                        <AlertCircle className="size-3" />
-                        {errors.description}
+                      <p id="description-error" className="mt-1.5 text-xs sm:text-sm text-red-600 dark:text-red-400 flex items-start gap-1.5">
+                        <AlertCircle className="size-3 sm:size-4 shrink-0 mt-0.5" aria-hidden="true" />
+                        <span>{errors.description}</span>
                       </p>
                     )}
                   </div>
@@ -253,45 +311,56 @@ export default function CommunityReportIssuePage() {
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Step 2: Location</h3>
-                <div className="mt-3 space-y-3 sm:space-y-4">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Step 2: Location</h3>
+                <div className="mt-3 space-y-4 sm:space-y-5">
                   <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Address or Landmark <span className="text-red-500">*</span>
+                    <label htmlFor="address" className="block text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      Address or Landmark <span className="text-red-500" aria-label="required">*</span>
                     </label>
                     <Input 
+                      id="address"
                       name="address" 
                       placeholder="e.g., Jalan Inanam, near the community hall" 
-                      className={`mt-1 w-full ${errors.address ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}`}
+                      className={`w-full ${errors.address ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}`}
                       required
+                      aria-invalid={errors.address ? "true" : "false"}
+                      aria-describedby={errors.address ? "address-error" : undefined}
                     />
                     {errors.address && (
-                      <p className="mt-1 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
-                        <AlertCircle className="size-3" />
-                        {errors.address}
+                      <p id="address-error" className="mt-1.5 text-xs sm:text-sm text-red-600 dark:text-red-400 flex items-start gap-1.5">
+                        <AlertCircle className="size-3 sm:size-4 shrink-0 mt-0.5" aria-hidden="true" />
+                        <span>{errors.address}</span>
                       </p>
                     )}
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Pinpoint on Map</label>
+                    <label className="block text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-1.5">Pinpoint on Map</label>
                     <LocationCapture />
-                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Drag the pin to the exact location of the issue for fastest response.</p>
+                    <p className="mt-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Drag the pin to the exact location of the issue for fastest response.</p>
                   </div>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Step 3: Attach Media</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Step 3: Attach Media</h3>
                 <MediaUploader />
               </div>
 
-              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-gray-200 dark:border-gray-700">
                 <Button 
                   type="submit" 
-                  className="w-full sm:w-auto h-12 px-6 text-base"
+                  className="w-full sm:w-auto min-h-[48px] h-12 px-6 sm:px-8 text-base sm:text-sm font-semibold"
                   disabled={isSubmitting}
+                  aria-busy={isSubmitting}
                 >
-                  {isSubmitting ? "Submitting..." : "Submit Report"}
+                  {isSubmitting ? (
+                    <>
+                      <span className="inline-block animate-spin mr-2">⏳</span>
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit Report"
+                  )}
                 </Button>
               </div>
             </form>

@@ -186,6 +186,9 @@ export default function SprVotersTable({
                 {t("pollingStation")}
               </th>
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
+                {t("location")}
+              </th>
+              <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
                 {t("matchStatus")}
               </th>
               <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
@@ -199,7 +202,7 @@ export default function SprVotersTable({
           <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
             {voters.length === 0 ? (
               <DataTableEmpty
-                colSpan={8}
+                colSpan={9}
                 message={unmatchedOnly ? t("noUnmatchedVoters") : t("noVotersFound")}
               />
             ) : (
@@ -222,6 +225,25 @@ export default function SprVotersTable({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                     {voter.nama_tm || "-"}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    {voter.lat !== null && voter.lng !== null ? (
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs">
+                          {voter.lat.toFixed(6)}, {voter.lng.toFixed(6)}
+                        </span>
+                        <a
+                          href={`https://www.openstreetmap.org/?mlat=${voter.lat}&mlon=${voter.lng}&zoom=16`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          {t("viewOnMap")}
+                        </a>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {voter.household_member_id ? (

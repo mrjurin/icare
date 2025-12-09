@@ -18,6 +18,27 @@ export const issueCategoryEnum = pgEnum("issue_category", [
   "other",
 ]);
 
+// Issue Types table - allows admins to manage issue types dynamically
+export const issueTypes = pgTable(
+  "issue_types",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    code: varchar("code", { length: 50 }).unique(), // Optional code for programmatic reference
+    description: text("description"),
+    isActive: boolean("is_active").default(true).notNull(),
+    displayOrder: integer("display_order").default(0).notNull(), // For ordering in dropdowns
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("issue_types_name_idx").on(table.name),
+    index("issue_types_code_idx").on(table.code),
+    index("issue_types_is_active_idx").on(table.isActive),
+    index("issue_types_display_order_idx").on(table.displayOrder),
+  ]
+);
+
 // Existing table from initial migration
 // Note: Forward references to villages, zones, householdMembers, and staff are resolved later
 // Using type assertion to avoid circular reference TypeScript error
@@ -99,7 +120,8 @@ export const issues = pgTable(
     reporterId: integer("reporter_id").references(() => profiles.id, { onDelete: "set null" }),
     title: text("title").notNull(),
     description: text("description").notNull(),
-    category: issueCategoryEnum("category").default("other").notNull(),
+    category: issueCategoryEnum("category").default("other").notNull(), // Keep for backward compatibility during migration
+    issueTypeId: integer("issue_type_id").references(() => issueTypes.id, { onDelete: "set null" }), // New reference to issue_types
     status: issueStatusEnum("status").default("pending").notNull(),
     address: text("address").notNull(),
     lat: doublePrecision("lat"),
@@ -112,6 +134,7 @@ export const issues = pgTable(
     index("issues_status_idx").on(table.status),
     index("issues_reporter_idx").on(table.reporterId),
     index("issues_created_idx").on(table.createdAt),
+    index("issues_issue_type_idx").on(table.issueTypeId),
   ]
 );
 
@@ -219,10 +242,18 @@ export const issueAssignments = pgTable(
 );
 
 // Relations (optional for Drizzle ORM usage later)
-export const issuesRelations = relations(issues, ({ many }) => ({
+export const issuesRelations = relations(issues, ({ one, many }) => ({
+  issueType: one(issueTypes, {
+    fields: [issues.issueTypeId],
+    references: [issueTypes.id],
+  }),
   media: many(issueMedia),
   feedback: many(issueFeedback),
   assignments: many(issueAssignments),
+}));
+
+export const issueTypesRelations = relations(issueTypes, ({ many }) => ({
+  issues: many(issues),
 }));
 
 export const profilesRelations = relations(profiles, ({ one, many }) => ({
@@ -273,6 +304,7 @@ export const memberRelationshipEnum = pgEnum("member_relationship", [
 export const memberStatusEnum = pgEnum("member_status", ["at_home", "away", "deceased"]);
 export const dependencyStatusEnum = pgEnum("dependency_status", ["dependent", "independent"]);
 export const votingSupportStatusEnum = pgEnum("voting_support_status", ["white", "black", "red"]);
+export const geocodingJobStatusEnum = pgEnum("geocoding_job_status", ["pending", "running", "paused", "completed", "failed"]);
 
 // Zones table for managing zones
 export const zones = pgTable(
@@ -857,6 +889,8 @@ export const sprVoters = pgTable(
     saluran: integer("saluran"), // Channel/stream number
     householdMemberId: integer("household_member_id").references(() => householdMembers.id, { onDelete: "set null" }), // Link to household member if matched
     votingSupportStatus: votingSupportStatusEnum("voting_support_status"), // White: full support, Black: not supporting, Red: not determined
+    lat: doublePrecision("lat"), // Latitude from geocoding
+    lng: doublePrecision("lng"), // Longitude from geocoding
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -867,6 +901,7 @@ export const sprVoters = pgTable(
     index("spr_voters_kod_lokaliti_idx").on(table.kodLokaliti),
     index("spr_voters_household_member_idx").on(table.householdMemberId),
     index("spr_voters_voting_support_status_idx").on(table.votingSupportStatus),
+    index("spr_voters_location_idx").on(table.lat, table.lng),
   ]
 );
 
@@ -888,6 +923,76 @@ export const sprVotersRelations = relations(sprVoters, ({ one }) => ({
   householdMember: one(householdMembers, {
     fields: [sprVoters.householdMemberId],
     references: [householdMembers.id],
+  }),
+}));
+
+// Geocoding Jobs table - tracks geocoding progress
+export const geocodingJobs = pgTable(
+  "geocoding_jobs",
+  {
+    id: serial("id").primaryKey(),
+    versionId: integer("version_id").references(() => sprVoterVersions.id, { onDelete: "cascade" }).notNull(),
+    status: geocodingJobStatusEnum("status").default("pending").notNull(),
+    totalVoters: integer("total_voters").default(0).notNull(),
+    processedVoters: integer("processed_voters").default(0).notNull(),
+    geocodedCount: integer("geocoded_count").default(0).notNull(),
+    failedCount: integer("failed_count").default(0).notNull(),
+    skippedCount: integer("skipped_count").default(0).notNull(),
+    errorMessage: text("error_message"),
+    startedAt: timestamp("started_at"),
+    completedAt: timestamp("completed_at"),
+    createdBy: integer("created_by").references(() => staff.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("geocoding_jobs_version_idx").on(table.versionId),
+    index("geocoding_jobs_status_idx").on(table.status),
+    index("geocoding_jobs_created_at_idx").on(table.createdAt),
+  ]
+);
+
+// Relations for geocoding jobs
+export const geocodingJobsRelations = relations(geocodingJobs, ({ one }) => ({
+  version: one(sprVoterVersions, {
+    fields: [geocodingJobs.versionId],
+    references: [sprVoterVersions.id],
+  }),
+  creator: one(staff, {
+    fields: [geocodingJobs.createdBy],
+    references: [staff.id],
+  }),
+}));
+
+// Locality Geocoding Jobs table - tracks geocoding progress for localities
+export const localityGeocodingJobs = pgTable(
+  "locality_geocoding_jobs",
+  {
+    id: serial("id").primaryKey(),
+    status: geocodingJobStatusEnum("status").default("pending").notNull(),
+    totalLocalities: integer("total_localities").default(0).notNull(),
+    processedLocalities: integer("processed_localities").default(0).notNull(),
+    geocodedCount: integer("geocoded_count").default(0).notNull(),
+    failedCount: integer("failed_count").default(0).notNull(),
+    skippedCount: integer("skipped_count").default(0).notNull(),
+    errorMessage: text("error_message"),
+    startedAt: timestamp("started_at"),
+    completedAt: timestamp("completed_at"),
+    createdBy: integer("created_by").references(() => staff.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("locality_geocoding_jobs_status_idx").on(table.status),
+    index("locality_geocoding_jobs_created_at_idx").on(table.createdAt),
+  ]
+);
+
+// Relations for locality geocoding jobs
+export const localityGeocodingJobsRelations = relations(localityGeocodingJobs, ({ one }) => ({
+  creator: one(staff, {
+    fields: [localityGeocodingJobs.createdBy],
+    references: [staff.id],
   }),
 }));
 
@@ -992,6 +1097,8 @@ export const localities = pgTable(
     dunId: integer("dun_id").references(() => duns.id, { onDelete: "set null" }),
     districtId: integer("district_id").references(() => districts.id, { onDelete: "set null" }),
     description: text("description"),
+    lat: doublePrecision("lat"), // Latitude from geocoding
+    lng: doublePrecision("lng"), // Longitude from geocoding
     isActive: boolean("is_active").default(true).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -1002,6 +1109,8 @@ export const localities = pgTable(
     index("localities_parliament_idx").on(table.parliamentId),
     index("localities_dun_idx").on(table.dunId),
     index("localities_district_idx").on(table.districtId),
+    index("localities_lat_idx").on(table.lat),
+    index("localities_lng_idx").on(table.lng),
   ]
 );
 

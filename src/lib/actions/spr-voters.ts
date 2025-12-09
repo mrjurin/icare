@@ -50,6 +50,8 @@ export type SprVoter = {
   saluran: number | null;
   household_member_id: number | null;
   voting_support_status: "white" | "black" | "red" | null;
+  lat: number | null;
+  lng: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -96,6 +98,8 @@ export type CreateVoterInput = {
   saluran?: number;
   householdMemberId?: number;
   votingSupportStatus?: "white" | "black" | "red" | null;
+  lat?: number | null;
+  lng?: number | null;
 };
 
 export type UpdateVoterInput = {
@@ -125,6 +129,8 @@ export type UpdateVoterInput = {
   saluran?: number;
   householdMemberId?: number;
   votingSupportStatus?: "white" | "black" | "red" | null;
+  lat?: number | null;
+  lng?: number | null;
 };
 
 export type PaginatedVoters = {
@@ -477,6 +483,213 @@ export async function getVoter(id: number): Promise<ActionResult<SprVoter>> {
 }
 
 /**
+ * Get voters with location data (lat/lng) for a specific version
+ * Used for density map visualization
+ */
+export async function getVotersWithLocation(
+  versionId?: number
+): Promise<ActionResult<SprVoter[]>> {
+  const supabase = await getSupabaseReadOnlyClient();
+
+  let query = supabase
+    .from("spr_voters")
+    .select("id, lat, lng, nama, nama_lokaliti, nama_dun, nama_parlimen, voting_support_status")
+    .not("lat", "is", null)
+    .not("lng", "is", null);
+
+  if (versionId) {
+    query = query.eq("version_id", versionId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, data: (data || []) as SprVoter[] };
+}
+
+/**
+ * Get localities with location data and voter counts for a specific version
+ * Used for density map visualization based on locality locations
+ */
+export async function getLocalitiesWithVoterCounts(
+  versionId?: number
+): Promise<ActionResult<Array<{
+  id: number;
+  name: string;
+  lat: number;
+  lng: number;
+  voter_count: number;
+  nama_dun: string | null;
+  nama_parlimen: string | null;
+}>>> {
+  const supabase = await getSupabaseReadOnlyClient();
+
+  // Get localities with location data (lat/lng)
+  const { data: localities, error: localitiesError } = await supabase
+    .from("localities")
+    .select("id, name, code, lat, lng")
+    .not("lat", "is", null)
+    .not("lng", "is", null)
+    .eq("is_active", true);
+
+  if (localitiesError) {
+    return { success: false, error: localitiesError.message };
+  }
+
+  if (!localities || localities.length === 0) {
+    return { success: true, data: [] };
+  }
+
+  // Get voters for the version
+  // Note: Supabase has a default limit of 1000 rows, so we need to fetch all records
+  let voterQuery = supabase
+    .from("spr_voters")
+    .select("id, nama_lokaliti, kod_lokaliti, nama_dun, nama_parlimen", { count: "exact" });
+
+  if (versionId) {
+    voterQuery = voterQuery.eq("version_id", versionId);
+  }
+
+  // Fetch all voters (Supabase default limit is 1000, so we need to handle pagination)
+  const allVoters: Array<{
+    id: number;
+    nama_lokaliti: string | null;
+    kod_lokaliti: string | null;
+    nama_dun: string | null;
+    nama_parlimen: string | null;
+  }> = [];
+  
+  let from = 0;
+  const pageSize = 1000;
+  let hasMore = true;
+
+  while (hasMore) {
+    const query = versionId
+      ? supabase
+          .from("spr_voters")
+          .select("id, nama_lokaliti, kod_lokaliti, nama_dun, nama_parlimen")
+          .eq("version_id", versionId)
+          .range(from, from + pageSize - 1)
+      : supabase
+          .from("spr_voters")
+          .select("id, nama_lokaliti, kod_lokaliti, nama_dun, nama_parlimen")
+          .range(from, from + pageSize - 1);
+
+    const { data: votersPage, error: votersError } = await query;
+
+    if (votersError) {
+      return { success: false, error: votersError.message };
+    }
+
+    if (votersPage && votersPage.length > 0) {
+      allVoters.push(...votersPage);
+      from += pageSize;
+      hasMore = votersPage.length === pageSize;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  const voters = allVoters;
+
+  // Helper function to normalize strings for comparison
+  const normalize = (str: string | null | undefined): string => {
+    if (!str) return "";
+    return String(str).trim().toUpperCase();
+  };
+
+  // Count voters per locality using direct comparison (more reliable than Map lookups)
+  const localityVoterCounts = new Map<
+    number, // locality id
+    { count: number; nama_dun: string | null; nama_parlimen: string | null }
+  >();
+
+  let matchedVoters = 0;
+  let unmatchedVoters = 0;
+
+  (voters || []).forEach((voter) => {
+    let matchedLocality: typeof localities[0] | undefined;
+
+    // Normalize voter codes/names for comparison
+    const voterCode = normalize(voter.kod_lokaliti);
+    const voterName = normalize(voter.nama_lokaliti);
+
+    // Try to find matching locality by code first (more reliable)
+    if (voterCode) {
+      matchedLocality = localities.find((loc) => {
+        const locCode = normalize(loc.code);
+        return locCode === voterCode || locCode === voter.kod_lokaliti?.trim() || loc.code === voter.kod_lokaliti;
+      });
+    }
+
+    // If no match by code, try matching by name (case-insensitive)
+    if (!matchedLocality && voterName) {
+      matchedLocality = localities.find((loc) => {
+        const locName = normalize(loc.name);
+        return locName === voterName || locName === voter.nama_lokaliti?.trim() || loc.name === voter.nama_lokaliti;
+      });
+    }
+
+    if (matchedLocality) {
+      matchedVoters++;
+      const current = localityVoterCounts.get(matchedLocality.id) || {
+        count: 0,
+        nama_dun: voter.nama_dun,
+        nama_parlimen: voter.nama_parlimen,
+      };
+      current.count++;
+      localityVoterCounts.set(matchedLocality.id, current);
+    } else {
+      unmatchedVoters++;
+    }
+  });
+
+  // Log matching statistics for debugging
+  console.log(`[getLocalitiesWithVoterCounts] Version: ${versionId || "all"}, Total voters: ${voters?.length || 0}, Matched: ${matchedVoters}, Unmatched: ${unmatchedVoters}`);
+  console.log(`[getLocalitiesWithVoterCounts] Localities with voters: ${Array.from(localityVoterCounts.values()).reduce((sum, v) => sum + v.count, 0)}`);
+  
+  // Log sample matches for debugging
+  if (process.env.NODE_ENV === "development" && localityVoterCounts.size > 0) {
+    const sampleCounts = Array.from(localityVoterCounts.entries()).slice(0, 5);
+    console.log(`[getLocalitiesWithVoterCounts] Sample locality counts:`, sampleCounts.map(([id, data]) => {
+      const loc = localities.find(l => l.id === id);
+      return `${loc?.name}: ${data.count}`;
+    }));
+  }
+
+  // Combine localities with voter counts
+  // Use the locality's lat/lng coordinates (not voter addresses)
+  const result = (localities || [])
+    .map((locality) => {
+      const voterData = localityVoterCounts.get(locality.id) || {
+        count: 0,
+        nama_dun: null,
+        nama_parlimen: null,
+      };
+
+      return {
+        id: locality.id,
+        name: locality.name,
+        lat: locality.lat!, // Use locality's lat/lng
+        lng: locality.lng!, // Use locality's lat/lng
+        voter_count: voterData.count,
+        nama_dun: voterData.nama_dun,
+        nama_parlimen: voterData.nama_parlimen,
+      };
+    })
+    .filter((loc) => loc.voter_count > 0); // Only include localities with voters
+
+  // Log final result for debugging
+  const totalVotersInResult = result.reduce((sum, loc) => sum + loc.voter_count, 0);
+  console.log(`[getLocalitiesWithVoterCounts] Final result: ${result.length} localities, ${totalVotersInResult} total voters`);
+
+  return { success: true, data: result };
+}
+
+/**
  * Create a new voter
  */
 export async function createVoter(input: CreateVoterInput): Promise<ActionResult<SprVoter>> {
@@ -532,6 +745,8 @@ export async function createVoter(input: CreateVoterInput): Promise<ActionResult
       saluran: input.saluran || null,
       household_member_id: input.householdMemberId || null,
       voting_support_status: input.votingSupportStatus || null,
+      lat: input.lat !== undefined ? input.lat : null,
+      lng: input.lng !== undefined ? input.lng : null,
     })
     .select()
     .single();
@@ -603,6 +818,8 @@ export async function updateVoter(input: UpdateVoterInput): Promise<ActionResult
     updates.household_member_id = input.householdMemberId || null;
   if (input.votingSupportStatus !== undefined)
     updates.voting_support_status = input.votingSupportStatus || null;
+  if (input.lat !== undefined) updates.lat = input.lat;
+  if (input.lng !== undefined) updates.lng = input.lng;
 
   updates.updated_at = new Date().toISOString();
 
@@ -1403,6 +1620,557 @@ export async function matchVotersWithHouseholds(
       matched,
       unmatched,
       total: voters.length,
+    },
+  };
+}
+
+/**
+ * Start geocoding voter addresses (fire and forget)
+ * Creates a job and processes asynchronously
+ */
+export async function startGeocodingJob(
+  versionId: number
+): Promise<ActionResult<{ jobId: number }>> {
+  const access = await getCurrentUserAccess();
+
+  if (!access.isAuthenticated) {
+    return { success: false, error: "Authentication required" };
+  }
+
+  if (!access.isSuperAdmin && !access.isAdun) {
+    return {
+      success: false,
+      error: "Access denied: Only super admin and ADUN can geocode addresses",
+    };
+  }
+
+  const supabase = await getSupabaseServerClient();
+
+  // Check if there's already a running or paused job for this version
+  const { data: existingJob } = await supabase
+    .from("geocoding_jobs")
+    .select("id, status")
+    .eq("version_id", versionId)
+    .in("status", ["pending", "running", "paused"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (existingJob) {
+    return {
+      success: true,
+      data: { jobId: existingJob.id },
+    };
+  }
+
+  // Count voters that need geocoding
+  const { count: totalVoters, error: countError } = await supabase
+    .from("spr_voters")
+    .select("id", { count: "exact", head: true })
+    .eq("version_id", versionId)
+    .is("lat", null)
+    .not("alamat", "is", null)
+    .neq("alamat", "");
+
+  if (countError) {
+    return { success: false, error: `Failed to count voters: ${countError.message}` };
+  }
+
+  if (!totalVoters || totalVoters === 0) {
+    return {
+      success: false,
+      error: "No voters found that need geocoding",
+    };
+  }
+
+  // Create job record
+  const { data: job, error: jobError } = await supabase
+    .from("geocoding_jobs")
+    .insert({
+      version_id: versionId,
+      status: "pending",
+      total_voters: totalVoters,
+      created_by: access.staffId || null,
+    })
+    .select()
+    .single();
+
+  if (jobError || !job) {
+    return { success: false, error: `Failed to create job: ${jobError?.message || "Unknown error"}` };
+  }
+
+  // Start geocoding process asynchronously (fire and forget)
+  processGeocodingJob(job.id, versionId).catch((error) => {
+    console.error(`Geocoding job ${job.id} failed:`, error);
+  });
+
+  revalidatePath("/admin/spr-voters");
+  revalidatePath("/[locale]/(admin)/admin/spr-voters");
+  return {
+    success: true,
+    data: { jobId: job.id },
+  };
+}
+
+/**
+ * Process geocoding job asynchronously
+ * This function runs in the background and updates job progress
+ */
+async function processGeocodingJob(jobId: number, versionId: number): Promise<void> {
+  const supabase = await getSupabaseServerClient();
+
+  try {
+    // Get current job status to check if resuming
+    const { data: currentJob } = await supabase
+      .from("geocoding_jobs")
+      .select("status, processed_voters, geocoded_count, failed_count, skipped_count")
+      .eq("id", jobId)
+      .single();
+
+    const isResuming = currentJob?.status === "paused";
+    const alreadyProcessed = currentJob?.processed_voters || 0;
+    let geocoded = currentJob?.geocoded_count || 0;
+    let failed = currentJob?.failed_count || 0;
+    let skipped = currentJob?.skipped_count || 0;
+    let processed = alreadyProcessed;
+
+    // Update job status to running (or keep running if already running)
+    await supabase
+      .from("geocoding_jobs")
+      .update({
+        status: "running",
+        started_at: isResuming ? undefined : new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", jobId);
+
+    // Get all voters for this version that don't have lat/lng yet and have an address
+    const { data: voters, error: fetchError } = await supabase
+      .from("spr_voters")
+      .select("id, alamat, poskod, daerah, nama_lokaliti")
+      .eq("version_id", versionId)
+      .is("lat", null)
+      .not("alamat", "is", null)
+      .neq("alamat", "");
+
+    if (fetchError || !voters) {
+      throw new Error(`Failed to fetch voters: ${fetchError?.message || "Unknown error"}`);
+    }
+
+    // If resuming, skip already processed voters
+    const votersToProcess = isResuming ? voters.slice(alreadyProcessed) : voters;
+
+    // Process voters one by one with rate limiting
+    for (const voter of votersToProcess) {
+      // Check if job has been paused before processing each voter
+      const { data: jobCheck } = await supabase
+        .from("geocoding_jobs")
+        .select("status")
+        .eq("id", jobId)
+        .single();
+
+      if (jobCheck?.status === "paused") {
+        // Job was paused, exit the loop
+        await supabase
+          .from("geocoding_jobs")
+          .update({
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", jobId);
+        return; // Exit function but don't mark as failed
+      }
+
+      if (jobCheck?.status !== "running") {
+        // Job status changed to something else (completed, failed, etc.), exit
+        return;
+      }
+      // Build address string from available fields
+      const addressParts: string[] = [];
+      if (voter.alamat) addressParts.push(voter.alamat);
+      if (voter.poskod) addressParts.push(voter.poskod);
+      if (voter.daerah) addressParts.push(voter.daerah);
+      if (voter.nama_lokaliti) addressParts.push(voter.nama_lokaliti);
+
+      const address = addressParts.join(", ").trim();
+
+      if (!address) {
+        skipped++;
+        processed++;
+        // Update progress
+        await supabase
+          .from("geocoding_jobs")
+          .update({
+            processed_voters: processed,
+            skipped_count: skipped,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", jobId);
+        continue;
+      }
+
+      try {
+        // Geocode using Nominatim API
+        // Rate limit: 1 request per second (Nominatim usage policy)
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`,
+          {
+            headers: {
+              "User-Agent": "iCare-Voter-Management/1.0", // Required by Nominatim usage policy
+            },
+          }
+        );
+
+        if (!response.ok) {
+          failed++;
+          processed++;
+          // Update progress
+          await supabase
+            .from("geocoding_jobs")
+            .update({
+              processed_voters: processed,
+              failed_count: failed,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", jobId);
+          // Wait before next request
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          continue;
+        }
+
+        const results: Array<{ lat: string; lon: string }> = await response.json();
+
+        if (results.length > 0) {
+          const lat = parseFloat(results[0].lat);
+          const lon = parseFloat(results[0].lon);
+
+          if (!isNaN(lat) && !isNaN(lon)) {
+            // Update voter with lat/lng
+            const { error: updateError } = await supabase
+              .from("spr_voters")
+              .update({
+                lat,
+                lng: lon,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", voter.id);
+
+            if (updateError) {
+              failed++;
+            } else {
+              geocoded++;
+            }
+          } else {
+            failed++;
+          }
+        } else {
+          failed++;
+        }
+
+        processed++;
+
+        // Update progress every 10 voters or at the end
+        if (processed % 10 === 0 || processed === voters.length) {
+          await supabase
+            .from("geocoding_jobs")
+            .update({
+              processed_voters: processed,
+              geocoded_count: geocoded,
+              failed_count: failed,
+              skipped_count: skipped,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", jobId);
+        }
+
+        // Rate limiting: wait 1 second between requests (Nominatim requirement)
+        if (processed < voters.length) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      } catch (error) {
+        failed++;
+        processed++;
+        // Update progress even on error
+        await supabase
+          .from("geocoding_jobs")
+          .update({
+            processed_voters: processed,
+            failed_count: failed,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", jobId);
+        // Wait before next request
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
+
+    // Mark job as completed
+    await supabase
+      .from("geocoding_jobs")
+      .update({
+        status: "completed",
+        completed_at: new Date().toISOString(),
+        processed_voters: processed,
+        geocoded_count: geocoded,
+        failed_count: failed,
+        skipped_count: skipped,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", jobId);
+
+    // Note: Don't call revalidatePath here as this is a background process
+    // The UI polls for updates, so revalidation happens via the polling mechanism
+  } catch (error) {
+    // Mark job as failed
+    await supabase
+      .from("geocoding_jobs")
+      .update({
+        status: "failed",
+        error_message: error instanceof Error ? error.message : "Unknown error",
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", jobId);
+  }
+}
+
+/**
+ * Get geocoding job status
+ */
+/**
+ * Pause a running geocoding job
+ */
+export async function pauseGeocodingJob(
+  jobId: number
+): Promise<ActionResult<{ jobId: number }>> {
+  const access = await getCurrentUserAccess();
+
+  if (!access.isAuthenticated) {
+    return { success: false, error: "Authentication required" };
+  }
+
+  if (!access.isSuperAdmin && !access.isAdun) {
+    return {
+      success: false,
+      error: "Access denied: Only super admin and ADUN can pause geocoding jobs",
+    };
+  }
+
+  const supabase = await getSupabaseServerClient();
+
+  // Check if job exists and is running
+  const { data: job, error: fetchError } = await supabase
+    .from("geocoding_jobs")
+    .select("id, status")
+    .eq("id", jobId)
+    .single();
+
+  if (fetchError || !job) {
+    return { success: false, error: `Failed to find job: ${fetchError?.message || "Unknown error"}` };
+  }
+
+  if (job.status !== "running") {
+    return {
+      success: false,
+      error: `Cannot pause job: Job is not running (current status: ${job.status})`,
+    };
+  }
+
+  // Update job status to paused
+  const { error: updateError } = await supabase
+    .from("geocoding_jobs")
+    .update({
+      status: "paused",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", jobId);
+
+  if (updateError) {
+    return { success: false, error: `Failed to pause job: ${updateError.message}` };
+  }
+
+  revalidatePath("/admin/spr-voters");
+  revalidatePath("/[locale]/(admin)/admin/spr-voters");
+  return {
+    success: true,
+    data: { jobId },
+  };
+}
+
+/**
+ * Resume a paused geocoding job
+ */
+export async function resumeGeocodingJob(
+  jobId: number
+): Promise<ActionResult<{ jobId: number }>> {
+  const access = await getCurrentUserAccess();
+
+  if (!access.isAuthenticated) {
+    return { success: false, error: "Authentication required" };
+  }
+
+  if (!access.isSuperAdmin && !access.isAdun) {
+    return {
+      success: false,
+      error: "Access denied: Only super admin and ADUN can resume geocoding jobs",
+    };
+  }
+
+  const supabase = await getSupabaseServerClient();
+
+  // Check if job exists and is paused
+  const { data: job, error: fetchError } = await supabase
+    .from("geocoding_jobs")
+    .select("id, status, version_id")
+    .eq("id", jobId)
+    .single();
+
+  if (fetchError || !job) {
+    return { success: false, error: `Failed to find job: ${fetchError?.message || "Unknown error"}` };
+  }
+
+  if (job.status !== "paused") {
+    return {
+      success: false,
+      error: `Cannot resume job: Job is not paused (current status: ${job.status})`,
+    };
+  }
+
+  // Update job status to running
+  const { error: updateError } = await supabase
+    .from("geocoding_jobs")
+    .update({
+      status: "running",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", jobId);
+
+  if (updateError) {
+    return { success: false, error: `Failed to resume job: ${updateError.message}` };
+  }
+
+  // Restart the geocoding process (it will skip already processed voters)
+  processGeocodingJob(jobId, job.version_id).catch((error) => {
+    console.error(`Geocoding job ${jobId} failed after resume:`, error);
+  });
+
+  revalidatePath("/admin/spr-voters");
+  revalidatePath("/[locale]/(admin)/admin/spr-voters");
+  return {
+    success: true,
+    data: { jobId },
+  };
+}
+
+/**
+ * Get geocoding job status
+ */
+export async function getGeocodingJobStatus(
+  jobId: number
+): Promise<ActionResult<{
+  id: number;
+  status: "pending" | "running" | "paused" | "completed" | "failed";
+  totalVoters: number;
+  processedVoters: number;
+  geocodedCount: number;
+  failedCount: number;
+  skippedCount: number;
+  errorMessage: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+}>> {
+  const access = await getCurrentUserAccess();
+
+  if (!access.isAuthenticated) {
+    return { success: false, error: "Authentication required" };
+  }
+
+  const supabase = await getSupabaseReadOnlyClient();
+
+  const { data: job, error } = await supabase
+    .from("geocoding_jobs")
+    .select("*")
+    .eq("id", jobId)
+    .single();
+
+  if (error || !job) {
+    return { success: false, error: `Failed to fetch job: ${error?.message || "Unknown error"}` };
+  }
+
+  return {
+    success: true,
+    data: {
+      id: job.id,
+      status: job.status as "pending" | "running" | "paused" | "completed" | "failed",
+      totalVoters: job.total_voters,
+      processedVoters: job.processed_voters,
+      geocodedCount: job.geocoded_count,
+      failedCount: job.failed_count,
+      skippedCount: job.skipped_count,
+      errorMessage: job.error_message,
+      startedAt: job.started_at,
+      completedAt: job.completed_at,
+    },
+  };
+}
+
+/**
+ * Get the latest geocoding job for a version
+ */
+export async function getLatestGeocodingJob(
+  versionId: number
+): Promise<ActionResult<{
+  id: number;
+  status: "pending" | "running" | "paused" | "completed" | "failed";
+  totalVoters: number;
+  processedVoters: number;
+  geocodedCount: number;
+  failedCount: number;
+  skippedCount: number;
+  errorMessage: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+} | null>> {
+  const access = await getCurrentUserAccess();
+
+  if (!access.isAuthenticated) {
+    return { success: false, error: "Authentication required" };
+  }
+
+  const supabase = await getSupabaseReadOnlyClient();
+
+  const { data: job, error } = await supabase
+    .from("geocoding_jobs")
+    .select("*")
+    .eq("version_id", versionId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error) {
+    // No job found is not an error
+    if (error.code === "PGRST116") {
+      return { success: true, data: null };
+    }
+    return { success: false, error: `Failed to fetch job: ${error.message}` };
+  }
+
+  if (!job) {
+    return { success: true, data: null };
+  }
+
+  return {
+    success: true,
+    data: {
+      id: job.id,
+      status: job.status as "pending" | "running" | "paused" | "completed" | "failed",
+      totalVoters: job.total_voters,
+      processedVoters: job.processed_voters,
+      geocodedCount: job.geocoded_count,
+      failedCount: job.failed_count,
+      skippedCount: job.skipped_count,
+      errorMessage: job.error_message,
+      startedAt: job.started_at,
+      completedAt: job.completed_at,
     },
   };
 }

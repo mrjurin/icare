@@ -264,19 +264,19 @@ export default function IssueActions({
             <Popover.Trigger asChild disabled={isAssignPending}>
               <button
                 type="button"
-                className={`flex-1 inline-flex items-center justify-between h-9 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-background-dark px-3 text-sm text-left ${
+                className={`flex-1 inline-flex items-center justify-between h-9 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-background-dark px-3 text-sm text-left min-w-0 ${
                   isAssignPending ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50 dark:hover:bg-gray-800"
                 }`}
               >
-                <span className={selectedAssigneeDisplay ? "text-gray-900 dark:text-white" : "text-gray-500"}>
+                <span className={`truncate flex-1 min-w-0 ${selectedAssigneeDisplay ? "text-gray-900 dark:text-white" : "text-gray-500"}`}>
                   {selectedAssigneeDisplay || "Search assignee..."}
                 </span>
-                <ChevronsUpDown className="ml-2 size-4 text-gray-500 shrink-0" />
+                <ChevronsUpDown className="ml-2 size-4 text-gray-500 shrink-0 flex-shrink-0" />
               </button>
             </Popover.Trigger>
             <Popover.Portal>
               <Popover.Content
-                className="z-50 w-[var(--radix-popover-trigger-width)] rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark shadow-lg"
+                className="z-50 min-w-[320px] max-w-[400px] rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark shadow-lg"
                 sideOffset={4}
                 align="start"
               >
@@ -291,7 +291,7 @@ export default function IssueActions({
                     onChange={(e) => setAssigneeSearch(e.target.value)}
                   />
                 </div>
-                <div className="max-h-60 overflow-y-auto p-1">
+                <div className="max-h-[320px] overflow-y-auto p-1">
                   {filteredAssignees.length === 0 ? (
                     <div className="px-3 py-6 text-center text-sm text-gray-500">
                       No assignees found

@@ -10,6 +10,7 @@ import { deleteReferenceData, type ReferenceData, type ReferenceTable } from "@/
 import { getTableDisplayName } from "@/lib/utils/reference-data";
 import ReferenceDataFormModal from "./ReferenceDataFormModal";
 import ImportExportSection from "./ImportExportSection";
+import LocalityGeocodingSection from "@/app/[locale]/(admin)/admin/reference-data/LocalityGeocodingSection";
 
 type ReferenceDataTableProps = {
   table: ReferenceTable;
@@ -39,6 +40,8 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
   return (
     <>
       <ImportExportSection table={table} />
+      
+      {table === "localities" && <LocalityGeocodingSection />}
 
       <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -89,6 +92,16 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
                   Address
                 </th>
               )}
+              {table === "localities" && (
+                <>
+                  <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
+                    Latitude
+                  </th>
+                  <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
+                    Longitude
+                  </th>
+                </>
+              )}
               {/* Hide status column for tables that don't have is_active (duns, zones, villages) */}
               {table !== "duns" && table !== "zones" && table !== "villages" && (
                 <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
@@ -107,7 +120,7 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
                   table === "polling_stations" 
                     ? 6 
                     : table === "localities" 
-                    ? 5 
+                    ? 7 
                     : table === "zones" || table === "villages"
                     ? 3
                     : table === "duns" || table === "cawangan"
@@ -150,6 +163,20 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate">
                       {(item as any).address || "-"}
                     </td>
+                  )}
+                  {table === "localities" && (
+                    <>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                        {(item as any).lat !== null && (item as any).lat !== undefined
+                          ? Number((item as any).lat).toFixed(6)
+                          : "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                        {(item as any).lng !== null && (item as any).lng !== undefined
+                          ? Number((item as any).lng).toFixed(6)
+                          : "-"}
+                      </td>
+                    </>
                   )}
                   {/* Hide status column for tables that don't have is_active (duns, zones, villages) */}
                   {table !== "duns" && table !== "zones" && table !== "villages" && (

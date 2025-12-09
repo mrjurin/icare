@@ -66,6 +66,8 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
       masaUndi: v.masa_undi || "",
       saluran: v.saluran || undefined,
       votingSupportStatus: v.voting_support_status || undefined,
+      lat: v.lat || undefined,
+      lng: v.lng || undefined,
     };
   };
 
@@ -116,6 +118,8 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
           masaUndi: formData.masaUndi,
           saluran: formData.saluran,
           votingSupportStatus: formData.votingSupportStatus,
+          lat: formData.lat,
+          lng: formData.lng,
         };
         result = await createVoter(createInput);
       }
@@ -373,6 +377,44 @@ export default function VoterFormModal({ versionId, voter, trigger }: VoterFormM
                     })
                   }
                   disabled={isPending}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
+                  {t("latitude")}
+                </label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={formData.lat !== undefined && formData.lat !== null ? formData.lat : ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      lat: e.target.value ? parseFloat(e.target.value) : null,
+                    })
+                  }
+                  disabled={isPending}
+                  placeholder="e.g., 5.9804"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
+                  {t("longitude")}
+                </label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={formData.lng !== undefined && formData.lng !== null ? formData.lng : ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      lng: e.target.value ? parseFloat(e.target.value) : null,
+                    })
+                  }
+                  disabled={isPending}
+                  placeholder="e.g., 116.0735"
                 />
               </div>
 

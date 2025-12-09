@@ -1,3 +1,26 @@
+/**
+ * Database Seeder
+ * 
+ * Usage:
+ *   - Seed all tables: npm run db:seed (or npm run db:seed)
+ *   - Seed individual table: npm run db:seed -- --table=issue_types
+ *   - Seed with clearing existing data: npm run db:seed -- --table=issue_types --clear
+ * 
+ * Available tables:
+ *   - issue_types (or issue-types)
+ *   - profiles
+ *   - issues (depends on profiles and issue_types - will auto-seed dependencies if missing)
+ * 
+ * Examples:
+ *   npm run db:seed
+ *   npm run db:seed -- --table=issue_types
+ *   npm run db:seed -- --table=profiles
+ *   npm run db:seed -- --table=issues
+ *   npm run db:seed -- --table=issue_types --clear
+ *   npm run db:seed -- -t issues -c
+ *   tsx src/db/seed.ts --table=issues
+ */
+
 // Load environment variables FIRST before any other imports
 import { config } from "dotenv";
 import { resolve } from "path";
@@ -41,10 +64,445 @@ const pool = new Pool({
 
 const db = drizzle(pool);
 
-import { profiles, staff, issues, issueMedia, issueFeedback, announcements, notifications, issueAssignments, supportRequests, duns, zones, cawangan, villages, households, householdMembers, householdIncome, aidDistributions, roles, roleAssignments, permissions, staffPermissions, appSettings, aidsPrograms, aidsProgramZones, aidsProgramAssignments, aidsDistributionRecords } from "./schema";
+import { profiles, staff, issues, issueMedia, issueFeedback, announcements, notifications, issueAssignments, supportRequests, duns, zones, cawangan, villages, households, householdMembers, householdIncome, aidDistributions, roles, roleAssignments, permissions, staffPermissions, appSettings, aidsPrograms, aidsProgramZones, aidsProgramAssignments, aidsDistributionRecords, issueTypes } from "./schema";
 import { sql } from "drizzle-orm";
 
+// Type for seed function results
+type SeedResult = {
+  [key: string]: any;
+};
+
+// Registry of seed functions
+const seedFunctions: Record<string, (existingData?: SeedResult) => Promise<SeedResult>> = {};
+
+// Helper to get command line arguments
+function getTableToSeed(): string | null {
+  const args = process.argv.slice(2);
+  const tableArg = args.find(arg => arg.startsWith('--table=') || arg.startsWith('-t='));
+  if (tableArg) {
+    return tableArg.split('=')[1];
+  }
+  // Also support --table <name> format
+  const tableIndex = args.findIndex(arg => arg === '--table' || arg === '-t');
+  if (tableIndex !== -1 && args[tableIndex + 1]) {
+    return args[tableIndex + 1];
+  }
+  return null;
+}
+
+// Helper to check if we should clear data
+function shouldClearData(): boolean {
+  const args = process.argv.slice(2);
+  return args.includes('--clear') || args.includes('-c');
+}
+
+async function seedIssueTypes(existingData?: SeedResult): Promise<SeedResult> {
+  console.log("📋 Seeding issue types...");
+  
+  // Check if we should clear existing data
+  if (shouldClearData()) {
+    await db.execute(sql`DELETE FROM issue_types`);
+  }
+  
+  const insertedIssueTypes = await db.insert(issueTypes).values([
+    {
+      name: "Road Maintenance",
+      code: "road_maintenance",
+      description: "Issues related to road maintenance, potholes, and road conditions",
+      isActive: true,
+      displayOrder: 1,
+    },
+    {
+      name: "Drainage",
+      code: "drainage",
+      description: "Issues related to drainage systems, clogged drains, and flooding",
+      isActive: true,
+      displayOrder: 2,
+    },
+    {
+      name: "Public Safety",
+      code: "public_safety",
+      description: "Issues related to public safety, security, and emergency situations",
+      isActive: true,
+      displayOrder: 3,
+    },
+    {
+      name: "Sanitation",
+      code: "sanitation",
+      description: "Issues related to waste management, cleanliness, and sanitation",
+      isActive: true,
+      displayOrder: 4,
+    },
+    {
+      name: "Other",
+      code: "other",
+      description: "Other types of issues not covered by the above categories",
+      isActive: true,
+      displayOrder: 5,
+    },
+  ]).returning();
+
+  console.log(`✅ Seeded ${insertedIssueTypes.length} issue types`);
+  return { issueTypes: insertedIssueTypes };
+}
+
+// Register seed function
+seedFunctions['issue_types'] = seedIssueTypes;
+seedFunctions['issue-types'] = seedIssueTypes; // Also support kebab-case
+
+async function seedProfiles(existingData?: SeedResult): Promise<SeedResult> {
+  console.log("👥 Seeding profiles...");
+  
+  // Check if we should clear existing data
+  if (shouldClearData()) {
+    await db.execute(sql`DELETE FROM issue_assignments`);
+    await db.execute(sql`DELETE FROM issue_feedback`);
+    await db.execute(sql`DELETE FROM issue_media`);
+    await db.execute(sql`DELETE FROM notifications`);
+    await db.execute(sql`DELETE FROM issues`);
+    await db.execute(sql`DELETE FROM households`);
+    await db.execute(sql`DELETE FROM profiles`);
+  }
+  
+  // Get existing profiles
+  const existingProfiles = await db.select().from(profiles);
+  console.log(`   Found ${existingProfiles.length} existing profile(s)`);
+  
+  // Create seed profiles if we don't have enough
+  let insertedProfiles: Array<{ id: number; [key: string]: any }> = [];
+  if (existingProfiles.length < 5) {
+    const seedProfiles = [
+      {
+        fullName: "Amelia Tan",
+        email: "amelia.tan@example.com",
+        phone: "+60 12-345 6789",
+        address: "123 Jalan Inanam, N.18 Inanam",
+        avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuBDYWyAzvZ-wTVEUM6E8b3eO9urEFiuvN8jNkmtLy4BCt1aVv064lWeDffuDjvZriNWbJgmBAVaMvIPesuvcprXjtHUf0XTzK8ZxPixPDfOBPKS1gQxQb_DMs8n4NzpqzfOz6aMCIQ50cTfH6L64TGMQUs4lx7Rr9QrBpOmvxMGbsD6a4sTXZqpbKQIUeTI925ONU23HJwzMKgbvzcIB6cy17WCTx5lZWHmrJnTlpLXK76uvydgLITrwBy5fkyfn5001FRSmdYLs5M",
+      },
+      {
+        fullName: "Jane Doe",
+        email: "jane.doe@example.com",
+        phone: "+60 12-345 6789",
+        address: "456 Jalan Inanam, N.18 Inanam",
+        avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuAb-eIawPtC5Og3JJtMbEPozMMIsQbzzTkpZPcTAURowGnT1ihVAtAPL_lXehKSq4WyL1KC1F9KhA_nXirCUXXqJUZjO0tXCuk1tXnRK8S2hKaDPTuqZQSbXl81XWEnz-O1zhB2gz4GQiMtqkkDul_7qJJnla5fPvQNtFRnHh0DHB2mQw8gHIpke51RfMwfLVZb6uhlCXczgR6MDmf7bereyrXm4pD56hRvslv8HmoXEixJd9EhePN1clVLqUD_TX6y9CaeZl3Zetg",
+      },
+      {
+        fullName: "Ahmad bin Abdullah",
+        email: "ahmad.abdullah@example.com",
+        phone: "+60 13-456 7890",
+        address: "789 Jalan Inanam, N.18 Inanam",
+      },
+      {
+        fullName: "Sarah Lim",
+        email: "sarah.lim@example.com",
+        phone: "+60 14-567 8901",
+        address: "321 Jalan Inanam, N.18 Inanam",
+      },
+      {
+        fullName: "Raj Kumar",
+        email: "raj.kumar@example.com",
+        phone: "+60 15-678 9012",
+        address: "654 Jalan Inanam, N.18 Inanam",
+      },
+    ];
+    
+    // Only create profiles that don't already exist (check by email)
+    const existingEmails = new Set(existingProfiles.map(p => p.email?.toLowerCase()).filter(Boolean));
+    const profilesToCreate = seedProfiles.filter(p => !existingEmails.has(p.email.toLowerCase()));
+    
+    if (profilesToCreate.length > 0) {
+      insertedProfiles = (await db.insert(profiles).values(profilesToCreate).returning()) as Array<{ id: number; [key: string]: any }>;
+      console.log(`✅ Created ${insertedProfiles.length} profile(s)`);
+    }
+  }
+  
+  const allProfiles = [...existingProfiles, ...insertedProfiles];
+  console.log(`✅ Total profiles: ${allProfiles.length}`);
+  return { profiles: allProfiles };
+}
+
+seedFunctions['profiles'] = seedProfiles;
+
+async function seedIssues(existingData?: SeedResult): Promise<SeedResult> {
+  console.log("📋 Seeding issues...");
+  
+  // Check if we should clear existing data
+  if (shouldClearData()) {
+    await db.execute(sql`DELETE FROM issue_assignments`);
+    await db.execute(sql`DELETE FROM issue_feedback`);
+    await db.execute(sql`DELETE FROM issue_media`);
+    await db.execute(sql`DELETE FROM notifications`);
+    await db.execute(sql`DELETE FROM issues`);
+  }
+  
+  // Ensure dependencies exist
+  const existingIssueTypes = await db.select().from(issueTypes);
+  if (existingIssueTypes.length === 0) {
+    console.log("   ⚠️  No issue types found. Seeding issue types first...");
+    await seedIssueTypes();
+    const refreshedIssueTypes = await db.select().from(issueTypes);
+    existingIssueTypes.push(...refreshedIssueTypes);
+  }
+  
+  const existingProfiles = await db.select().from(profiles);
+  if (existingProfiles.length === 0) {
+    console.log("   ⚠️  No profiles found. Seeding profiles first...");
+    await seedProfiles();
+    const refreshedProfiles = await db.select().from(profiles);
+    existingProfiles.push(...refreshedProfiles);
+  }
+  
+  // Helper function to find issue type by code
+  const getIssueTypeId = (code: string) => {
+    return existingIssueTypes.find((it: { code: string | null; id: number }) => it.code === code)?.id || null;
+  };
+  
+  // Generate issues with locations around Inanam and Manggatal, Sabah
+  const generateIssues = () => {
+    const issueTemplates = [
+      // Road Maintenance
+      { category: "road_maintenance", code: "road_maintenance", titles: [
+        "Pothole on {location}",
+        "Cracked road surface at {location}",
+        "Damaged road markings on {location}",
+        "Uneven road surface near {location}",
+        "Road erosion at {location}",
+        "Missing road sign at {location}",
+        "Damaged speed bump on {location}",
+        "Road shoulder collapse at {location}",
+      ], descriptions: [
+        "There is a significant pothole that needs immediate attention. Vehicles are being damaged.",
+        "The road surface has developed cracks and is deteriorating rapidly.",
+        "Road markings have faded and need repainting for safety.",
+        "The road surface is uneven, causing discomfort to drivers and potential vehicle damage.",
+        "Road erosion has occurred due to heavy rain, creating a hazard.",
+        "A road sign is missing, causing confusion for drivers.",
+        "The speed bump is damaged and needs repair.",
+        "The road shoulder has collapsed, narrowing the road.",
+      ]},
+      // Drainage
+      { category: "drainage", code: "drainage", titles: [
+        "Blocked drain at {location}",
+        "Flooding issue at {location}",
+        "Damaged drainage cover at {location}",
+        "Overflowing drain near {location}",
+        "Clogged drainage system at {location}",
+        "Broken drain pipe at {location}",
+        "Water accumulation at {location}",
+        "Drainage system overflow at {location}",
+      ], descriptions: [
+        "The drainage system is blocked and water is accumulating on the road.",
+        "Heavy rain causes flooding in this area due to poor drainage.",
+        "A drainage cover is broken, creating a safety hazard.",
+        "The drain is overflowing and water is spilling onto the road.",
+        "The drainage system is completely clogged and needs cleaning.",
+        "A drain pipe has broken and needs replacement.",
+        "Water is accumulating due to poor drainage design.",
+        "The drainage system cannot handle the water volume during rain.",
+      ]},
+      // Public Safety
+      { category: "public_safety", code: "public_safety", titles: [
+        "Broken street light at {location}",
+        "Missing guardrail at {location}",
+        "Unsafe pedestrian crossing at {location}",
+        "Damaged safety barrier at {location}",
+        "Dark area at {location} - needs lighting",
+        "Hazardous tree branch at {location}",
+        "Unsafe playground equipment at {location}",
+        "Missing safety signage at {location}",
+      ], descriptions: [
+        "A street light is broken, making the area dark and unsafe at night.",
+        "A guardrail is missing, creating a safety hazard for vehicles.",
+        "The pedestrian crossing lacks proper safety measures.",
+        "A safety barrier is damaged and needs immediate repair.",
+        "This area is too dark at night and needs additional lighting.",
+        "A large tree branch is hanging dangerously and may fall.",
+        "Playground equipment is damaged and poses a safety risk.",
+        "Safety signage is missing, creating confusion and potential hazards.",
+      ]},
+      // Sanitation
+      { category: "sanitation", code: "sanitation", titles: [
+        "Overflowing garbage bin at {location}",
+        "Illegal dumping at {location}",
+        "Uncollected garbage at {location}",
+        "Damaged garbage collection point at {location}",
+        "Foul smell from waste at {location}",
+        "Garbage scattered at {location}",
+        "Full garbage container at {location}",
+        "Waste management issue at {location}",
+      ], descriptions: [
+        "The garbage bin is overflowing and garbage is spilling out.",
+        "Someone has illegally dumped waste in this area.",
+        "Garbage has not been collected for several days.",
+        "The garbage collection point is damaged and needs repair.",
+        "There is a strong foul smell coming from accumulated waste.",
+        "Garbage has been scattered around, creating an eyesore.",
+        "The garbage container is full and needs immediate collection.",
+        "There is a waste management issue that needs attention.",
+      ]},
+      // Other
+      { category: "other", code: "other", titles: [
+        "Damaged public facility at {location}",
+        "Vandalism at {location}",
+        "Noise complaint at {location}",
+        "Public amenity issue at {location}",
+        "Community facility problem at {location}",
+        "Infrastructure damage at {location}",
+        "Public space issue at {location}",
+        "General concern at {location}",
+      ], descriptions: [
+        "A public facility has been damaged and needs repair.",
+        "Vandalism has occurred and needs to be addressed.",
+        "There is excessive noise disturbing residents.",
+        "A public amenity is not functioning properly.",
+        "There is an issue with a community facility.",
+        "Infrastructure has been damaged and requires attention.",
+        "There is a problem with a public space.",
+        "A general concern has been raised by residents.",
+      ]},
+    ];
+    
+    const locations = [
+      // Inanam area locations
+      { name: "Jalan Inanam", lat: 6.0333, lng: 116.1167 },
+      { name: "Jalan Inanam 2", lat: 6.0340, lng: 116.1170 },
+      { name: "Taman Inanam", lat: 6.0350, lng: 116.1180 },
+      { name: "Kampung Inanam", lat: 6.0320, lng: 116.1150 },
+      { name: "Taman Inanam Baru", lat: 6.0360, lng: 116.1190 },
+      { name: "Jalan Inanam Lama", lat: 6.0310, lng: 116.1140 },
+      { name: "Lorong Inanam 1", lat: 6.0335, lng: 116.1165 },
+      { name: "Lorong Inanam 2", lat: 6.0338, lng: 116.1172 },
+      { name: "Taman Inanam Indah", lat: 6.0370, lng: 116.1200 },
+      { name: "Jalan Inanam Utara", lat: 6.0380, lng: 116.1210 },
+      { name: "Jalan Inanam Selatan", lat: 6.0300, lng: 116.1130 },
+      { name: "Taman Inanam Permai", lat: 6.0345, lng: 116.1175 },
+      { name: "Kampung Inanam Baru", lat: 6.0325, lng: 116.1155 },
+      { name: "Jalan Inanam Tengah", lat: 6.0330, lng: 116.1160 },
+      { name: "Lorong Inanam 3", lat: 6.0342, lng: 116.1168 },
+      // Manggatal area locations
+      { name: "Jalan Manggatal", lat: 6.0500, lng: 116.1500 },
+      { name: "Taman Manggatal", lat: 6.0510, lng: 116.1510 },
+      { name: "Kampung Manggatal", lat: 6.0490, lng: 116.1490 },
+      { name: "Jalan Manggatal Baru", lat: 6.0520, lng: 116.1520 },
+      { name: "Lorong Manggatal 1", lat: 6.0505, lng: 116.1505 },
+      { name: "Lorong Manggatal 2", lat: 6.0508, lng: 116.1512 },
+      { name: "Taman Manggatal Indah", lat: 6.0530, lng: 116.1530 },
+      { name: "Jalan Manggatal Utara", lat: 6.0540, lng: 116.1540 },
+      { name: "Jalan Manggatal Selatan", lat: 6.0480, lng: 116.1480 },
+      { name: "Taman Manggatal Permai", lat: 6.0515, lng: 116.1515 },
+      { name: "Kampung Manggatal Baru", lat: 6.0495, lng: 116.1495 },
+      { name: "Jalan Manggatal Tengah", lat: 6.0502, lng: 116.1502 },
+      { name: "Lorong Manggatal 3", lat: 6.0512, lng: 116.1508 },
+      { name: "Taman Manggatal Jaya", lat: 6.0525, lng: 116.1525 },
+      { name: "Jalan Manggatal Lama", lat: 6.0485, lng: 116.1485 },
+      // Areas between Inanam and Manggatal
+      { name: "Jalan Inanam-Manggatal", lat: 6.0415, lng: 116.1335 },
+      { name: "Taman Inanam-Manggatal", lat: 6.0420, lng: 116.1340 },
+      { name: "Kampung Telipok", lat: 6.0400, lng: 116.1300 },
+      { name: "Jalan Telipok", lat: 6.0405, lng: 116.1305 },
+      { name: "Taman Telipok", lat: 6.0410, lng: 116.1310 },
+    ];
+    
+    const statuses: Array<"pending" | "in_progress" | "resolved" | "closed"> = ["pending", "in_progress", "resolved", "closed"];
+    const issues: Array<{
+      reporterId: number;
+      title: string;
+      description: string;
+      category: "road_maintenance" | "drainage" | "public_safety" | "sanitation" | "other";
+      issueTypeId: number | null;
+      status: "pending" | "in_progress" | "resolved" | "closed";
+      address: string;
+      lat: number;
+      lng: number;
+      createdAt?: Date;
+      resolvedAt?: Date;
+    }> = [];
+    
+    // Ensure we have at least one profile
+    if (existingProfiles.length === 0) {
+      throw new Error("No profiles available. Cannot generate issues without reporters.");
+    }
+    
+    // Generate 100+ issues
+    for (let i = 0; i < 100; i++) {
+      const template = issueTemplates[i % issueTemplates.length];
+      const location = locations[i % locations.length];
+      const reporter = existingProfiles[i % existingProfiles.length];
+      const status = statuses[i % statuses.length];
+      const titleIndex = Math.floor(i / issueTemplates.length) % template.titles.length;
+      const descIndex = Math.floor(i / issueTemplates.length) % template.descriptions.length;
+      
+      // Add small random variation to coordinates (±0.01 degrees ≈ ±1km)
+      const latVariation = (Math.random() - 0.5) * 0.02;
+      const lngVariation = (Math.random() - 0.5) * 0.02;
+      
+      const lat = location.lat + latVariation;
+      const lng = location.lng + lngVariation;
+      
+      // Generate dates - spread over the last 90 days
+      const daysAgo = Math.floor(Math.random() * 90);
+      const createdAt = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+      
+      let resolvedAt: Date | undefined;
+      if (status === "resolved" || status === "closed") {
+        const daysToResolve = Math.floor(Math.random() * daysAgo);
+        resolvedAt = new Date(Date.now() - daysToResolve * 24 * 60 * 60 * 1000);
+      }
+      
+      issues.push({
+        reporterId: reporter.id,
+        title: template.titles[titleIndex].replace("{location}", location.name),
+        description: template.descriptions[descIndex],
+        category: template.category as "road_maintenance" | "drainage" | "public_safety" | "sanitation" | "other",
+        issueTypeId: getIssueTypeId(template.code),
+        status: status,
+        address: `${location.name}, N.18 Inanam`,
+        lat: parseFloat(lat.toFixed(6)),
+        lng: parseFloat(lng.toFixed(6)),
+        createdAt: createdAt,
+        resolvedAt: resolvedAt,
+      });
+    }
+    
+    return issues;
+  };
+  
+  const issuesToInsert = generateIssues();
+  const insertedIssues = await db.insert(issues).values(issuesToInsert).returning();
+  
+  console.log(`✅ Seeded ${insertedIssues.length} issues`);
+  return { issues: insertedIssues };
+}
+
+seedFunctions['issues'] = seedIssues;
+
 async function seed() {
+  const tableToSeed = getTableToSeed();
+  
+  // If a specific table is requested, seed only that table
+  if (tableToSeed) {
+    const seedFunction = seedFunctions[tableToSeed.toLowerCase()];
+    if (!seedFunction) {
+      console.error(`❌ Error: Unknown table "${tableToSeed}"`);
+      console.error(`\nAvailable tables:`);
+      Object.keys(seedFunctions).forEach(key => {
+        console.error(`   - ${key}`);
+      });
+      process.exit(1);
+    }
+    
+    console.log(`🌱 Seeding table: ${tableToSeed}`);
+    try {
+      await seedFunction();
+      console.log(`\n✅ Successfully seeded ${tableToSeed}`);
+      return;
+    } catch (error) {
+      console.error(`❌ Error seeding ${tableToSeed}:`, error);
+      throw error;
+    }
+  }
+
+  // Full seed (original behavior)
   console.log("🌱 Starting database seed...");
 
   try {
@@ -84,50 +542,81 @@ async function seed() {
     await db.execute(sql`DELETE FROM issue_media`);
     await db.execute(sql`DELETE FROM notifications`);
     await db.execute(sql`DELETE FROM issues`);
+    await db.execute(sql`DELETE FROM issue_types`);
     await db.execute(sql`DELETE FROM support_requests`);
     await db.execute(sql`DELETE FROM announcements`);
     await db.execute(sql`DELETE FROM profiles`);
     await db.execute(sql`DELETE FROM staff`);
     // Note: roles and permissions are not deleted as they are seeded by migration
 
-    // 1. Insert Profiles
-    console.log("👥 Inserting profiles...");
-    const insertedProfiles = (await db.insert(profiles).values([
-      {
-        fullName: "Amelia Tan",
-        email: "amelia.tan@example.com",
-        phone: "+60 12-345 6789",
-        address: "123 Jalan Inanam, N.18 Inanam",
-        avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuBDYWyAzvZ-wTVEUM6E8b3eO9urEFiuvN8jNkmtLy4BCt1aVv064lWeDffuDjvZriNWbJgmBAVaMvIPesuvcprXjtHUf0XTzK8ZxPixPDfOBPKS1gQxQb_DMs8n4NzpqzfOz6aMCIQ50cTfH6L64TGMQUs4lx7Rr9QrBpOmvxMGbsD6a4sTXZqpbKQIUeTI925ONU23HJwzMKgbvzcIB6cy17WCTx5lZWHmrJnTlpLXK76uvydgLITrwBy5fkyfn5001FRSmdYLs5M",
-      },
-      {
-        fullName: "Jane Doe",
-        email: "jane.doe@example.com",
-        phone: "+60 12-345 6789",
-        address: "456 Jalan Inanam, N.18 Inanam",
-        avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuAb-eIawPtC5Og3JJtMbEPozMMIsQbzzTkpZPcTAURowGnT1ihVAtAPL_lXehKSq4WyL1KC1F9KhA_nXirCUXXqJUZjO0tXCuk1tXnRK8S2hKaDPTuqZQSbXl81XWEnz-O1zhB2gz4GQiMtqkkDul_7qJJnla5fPvQNtFRnHh0DHB2mQw8gHIpke51RfMwfLVZb6uhlCXczgR6MDmf7bereyrXm4pD56hRvslv8HmoXEixJd9EhePN1clVLqUD_TX6y9CaeZl3Zetg",
-      },
-      {
-        fullName: "Ahmad bin Abdullah",
-        email: "ahmad.abdullah@example.com",
-        phone: "+60 13-456 7890",
-        address: "789 Jalan Inanam, N.18 Inanam",
-      },
-      {
-        fullName: "Sarah Lim",
-        email: "sarah.lim@example.com",
-        phone: "+60 14-567 8901",
-        address: "321 Jalan Inanam, N.18 Inanam",
-      },
-      {
-        fullName: "Raj Kumar",
-        email: "raj.kumar@example.com",
-        phone: "+60 15-678 9012",
-        address: "654 Jalan Inanam, N.18 Inanam",
-      },
-    ]).returning()) as Array<{ id: number; [key: string]: any }>;
+    // Seed data
+    const seedResults: SeedResult = {};
+    
+    // 4.6. Insert Issue Types (must be before issues)
+    const issueTypesResult = await seedIssueTypes();
+    Object.assign(seedResults, issueTypesResult);
+    const insertedIssueTypes = issueTypesResult.issueTypes;
 
-    console.log(`✅ Inserted ${insertedProfiles.length} profiles`);
+    // 1. Get existing profiles from database (community users)
+    console.log("👥 Fetching existing profiles from database...");
+    const existingProfiles = await db.select().from(profiles);
+    console.log(`   Found ${existingProfiles.length} existing profile(s)`);
+    
+    // Create additional seed profiles if we don't have enough (need at least 5 for variety)
+    let insertedProfiles: Array<{ id: number; [key: string]: any }> = [];
+    if (existingProfiles.length < 5) {
+      console.log("👥 Creating additional seed profiles...");
+      const seedProfiles = [
+        {
+          fullName: "Amelia Tan",
+          email: "amelia.tan@example.com",
+          phone: "+60 12-345 6789",
+          address: "123 Jalan Inanam, N.18 Inanam",
+          avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuBDYWyAzvZ-wTVEUM6E8b3eO9urEFiuvN8jNkmtLy4BCt1aVv064lWeDffuDjvZriNWbJgmBAVaMvIPesuvcprXjtHUf0XTzK8ZxPixPDfOBPKS1gQxQb_DMs8n4NzpqzfOz6aMCIQ50cTfH6L64TGMQUs4lx7Rr9QrBpOmvxMGbsD6a4sTXZqpbKQIUeTI925ONU23HJwzMKgbvzcIB6cy17WCTx5lZWHmrJnTlpLXK76uvydgLITrwBy5fkyfn5001FRSmdYLs5M",
+        },
+        {
+          fullName: "Jane Doe",
+          email: "jane.doe@example.com",
+          phone: "+60 12-345 6789",
+          address: "456 Jalan Inanam, N.18 Inanam",
+          avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuAb-eIawPtC5Og3JJtMbEPozMMIsQbzzTkpZPcTAURowGnT1ihVAtAPL_lXehKSq4WyL1KC1F9KhA_nXirCUXXqJUZjO0tXCuk1tXnRK8S2hKaDPTuqZQSbXl81XWEnz-O1zhB2gz4GQiMtqkkDul_7qJJnla5fPvQNtFRnHh0DHB2mQw8gHIpke51RfMwfLVZb6uhlCXczgR6MDmf7bereyrXm4pD56hRvslv8HmoXEixJd9EhePN1clVLqUD_TX6y9CaeZl3Zetg",
+        },
+        {
+          fullName: "Ahmad bin Abdullah",
+          email: "ahmad.abdullah@example.com",
+          phone: "+60 13-456 7890",
+          address: "789 Jalan Inanam, N.18 Inanam",
+        },
+        {
+          fullName: "Sarah Lim",
+          email: "sarah.lim@example.com",
+          phone: "+60 14-567 8901",
+          address: "321 Jalan Inanam, N.18 Inanam",
+        },
+        {
+          fullName: "Raj Kumar",
+          email: "raj.kumar@example.com",
+          phone: "+60 15-678 9012",
+          address: "654 Jalan Inanam, N.18 Inanam",
+        },
+      ];
+      
+      // Only create profiles that don't already exist (check by email)
+      const existingEmails = new Set(existingProfiles.map(p => p.email?.toLowerCase()).filter(Boolean));
+      const profilesToCreate = seedProfiles.filter(p => !existingEmails.has(p.email.toLowerCase()));
+      
+      if (profilesToCreate.length > 0) {
+        insertedProfiles = (await db.insert(profiles).values(profilesToCreate).returning()) as Array<{ id: number; [key: string]: any }>;
+        console.log(`✅ Created ${insertedProfiles.length} additional seed profile(s)`);
+      }
+    }
+    
+    // Combine existing and newly created profiles
+    const allProfiles = [...existingProfiles, ...insertedProfiles];
+    console.log(`✅ Total profiles available: ${allProfiles.length}`);
+    
+    // Use allProfiles for the rest of the seeding
+    const insertedProfilesForUse = allProfiles as Array<{ id: number; [key: string]: any }>;
 
     // 2. Insert DUNs (must be before zones)
     console.log("🏛️  Inserting DUNs...");
@@ -321,70 +810,226 @@ async function seed() {
 
     // 5. Insert Issues
     console.log("📋 Inserting issues...");
-    const insertedIssues = await db.insert(issues).values([
-      {
-        reporterId: insertedProfiles[0].id,
-        title: "Pothole on Jalan Inanam near Community Hall",
-        description: "There is a large pothole on Jalan Inanam, approximately 50 meters from the community hall. It's causing damage to vehicles and is a safety hazard, especially during rainy weather.",
-        category: "road_maintenance",
-        status: "pending",
-        address: "Jalan Inanam, near Community Hall, N.18 Inanam",
-        lat: 6.0333,
-        lng: 116.1167,
-      },
-      {
-        reporterId: insertedProfiles[1].id,
-        title: "Blocked Drainage System on Jalan Inanam 2",
-        description: "The drainage system on Jalan Inanam 2 has been blocked for the past week. Water is accumulating during rain and causing flooding on the road.",
-        category: "drainage",
-        status: "in_progress",
-        address: "Jalan Inanam 2, N.18 Inanam",
-        lat: 6.0340,
-        lng: 116.1170,
-      },
-      {
-        reporterId: insertedProfiles[2].id,
-        title: "Broken Street Light at Taman Inanam",
-        description: "Street light number 15 at Taman Inanam has been broken for 2 weeks. The area is very dark at night, posing a safety risk for residents.",
-        category: "public_safety",
-        status: "resolved",
-        address: "Taman Inanam, N.18 Inanam",
-        lat: 6.0350,
-        lng: 116.1180,
-        resolvedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-      },
-      {
-        reporterId: insertedProfiles[0].id,
-        title: "Garbage Collection Point Overflowing",
-        description: "The garbage collection point at Block A is overflowing. Garbage bags are piling up and creating an unpleasant smell. This has been ongoing for 3 days.",
-        category: "sanitation",
-        status: "pending",
-        address: "Block A, Jalan Inanam, N.18 Inanam",
-        lat: 6.0320,
-        lng: 116.1150,
-      },
-      {
-        reporterId: insertedProfiles[3].id,
-        title: "Damaged Playground Equipment",
-        description: "The swing set at the community playground has a broken chain. One of the swings is hanging dangerously and needs immediate repair to prevent accidents.",
-        category: "other",
-        status: "in_progress",
-        address: "Community Playground, N.18 Inanam",
-        lat: 6.0360,
-        lng: 116.1190,
-      },
-      {
-        reporterId: insertedProfiles[4].id,
-        title: "Cracked Sidewalk on Main Road",
-        description: "There is a large crack in the sidewalk along the main road. It's becoming a tripping hazard, especially for elderly residents.",
-        category: "road_maintenance",
-        status: "closed",
-        address: "Main Road, N.18 Inanam",
-        lat: 6.0370,
-        lng: 116.1200,
-        resolvedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-      },
-    ]).returning();
+    
+    // Helper function to find issue type by code
+    const getIssueTypeId = (code: string) => {
+      return insertedIssueTypes.find((it: { code: string | null; id: number }) => it.code === code)?.id || null;
+    };
+    
+    // Generate issues with locations around Inanam and Manggatal, Sabah
+    // Inanam center: ~6.0333°N, 116.1167°E
+    // Manggatal center: ~6.0500°N, 116.1500°E
+    const generateIssues = () => {
+      const issueTemplates = [
+        // Road Maintenance
+        { category: "road_maintenance", code: "road_maintenance", titles: [
+          "Pothole on {location}",
+          "Cracked road surface at {location}",
+          "Damaged road markings on {location}",
+          "Uneven road surface near {location}",
+          "Road erosion at {location}",
+          "Missing road sign at {location}",
+          "Damaged speed bump on {location}",
+          "Road shoulder collapse at {location}",
+        ], descriptions: [
+          "There is a significant pothole that needs immediate attention. Vehicles are being damaged.",
+          "The road surface has developed cracks and is deteriorating rapidly.",
+          "Road markings have faded and need repainting for safety.",
+          "The road surface is uneven, causing discomfort to drivers and potential vehicle damage.",
+          "Road erosion has occurred due to heavy rain, creating a hazard.",
+          "A road sign is missing, causing confusion for drivers.",
+          "The speed bump is damaged and needs repair.",
+          "The road shoulder has collapsed, narrowing the road.",
+        ]},
+        // Drainage
+        { category: "drainage", code: "drainage", titles: [
+          "Blocked drain at {location}",
+          "Flooding issue at {location}",
+          "Damaged drainage cover at {location}",
+          "Overflowing drain near {location}",
+          "Clogged drainage system at {location}",
+          "Broken drain pipe at {location}",
+          "Water accumulation at {location}",
+          "Drainage system overflow at {location}",
+        ], descriptions: [
+          "The drainage system is blocked and water is accumulating on the road.",
+          "Heavy rain causes flooding in this area due to poor drainage.",
+          "A drainage cover is broken, creating a safety hazard.",
+          "The drain is overflowing and water is spilling onto the road.",
+          "The drainage system is completely clogged and needs cleaning.",
+          "A drain pipe has broken and needs replacement.",
+          "Water is accumulating due to poor drainage design.",
+          "The drainage system cannot handle the water volume during rain.",
+        ]},
+        // Public Safety
+        { category: "public_safety", code: "public_safety", titles: [
+          "Broken street light at {location}",
+          "Missing guardrail at {location}",
+          "Unsafe pedestrian crossing at {location}",
+          "Damaged safety barrier at {location}",
+          "Dark area at {location} - needs lighting",
+          "Hazardous tree branch at {location}",
+          "Unsafe playground equipment at {location}",
+          "Missing safety signage at {location}",
+        ], descriptions: [
+          "A street light is broken, making the area dark and unsafe at night.",
+          "A guardrail is missing, creating a safety hazard for vehicles.",
+          "The pedestrian crossing lacks proper safety measures.",
+          "A safety barrier is damaged and needs immediate repair.",
+          "This area is too dark at night and needs additional lighting.",
+          "A large tree branch is hanging dangerously and may fall.",
+          "Playground equipment is damaged and poses a safety risk.",
+          "Safety signage is missing, creating confusion and potential hazards.",
+        ]},
+        // Sanitation
+        { category: "sanitation", code: "sanitation", titles: [
+          "Overflowing garbage bin at {location}",
+          "Illegal dumping at {location}",
+          "Uncollected garbage at {location}",
+          "Damaged garbage collection point at {location}",
+          "Foul smell from waste at {location}",
+          "Garbage scattered at {location}",
+          "Full garbage container at {location}",
+          "Waste management issue at {location}",
+        ], descriptions: [
+          "The garbage bin is overflowing and garbage is spilling out.",
+          "Someone has illegally dumped waste in this area.",
+          "Garbage has not been collected for several days.",
+          "The garbage collection point is damaged and needs repair.",
+          "There is a strong foul smell coming from accumulated waste.",
+          "Garbage has been scattered around, creating an eyesore.",
+          "The garbage container is full and needs immediate collection.",
+          "There is a waste management issue that needs attention.",
+        ]},
+        // Other
+        { category: "other", code: "other", titles: [
+          "Damaged public facility at {location}",
+          "Vandalism at {location}",
+          "Noise complaint at {location}",
+          "Public amenity issue at {location}",
+          "Community facility problem at {location}",
+          "Infrastructure damage at {location}",
+          "Public space issue at {location}",
+          "General concern at {location}",
+        ], descriptions: [
+          "A public facility has been damaged and needs repair.",
+          "Vandalism has occurred and needs to be addressed.",
+          "There is excessive noise disturbing residents.",
+          "A public amenity is not functioning properly.",
+          "There is an issue with a community facility.",
+          "Infrastructure has been damaged and requires attention.",
+          "There is a problem with a public space.",
+          "A general concern has been raised by residents.",
+        ]},
+      ];
+      
+      const locations = [
+        // Inanam area locations
+        { name: "Jalan Inanam", lat: 6.0333, lng: 116.1167 },
+        { name: "Jalan Inanam 2", lat: 6.0340, lng: 116.1170 },
+        { name: "Taman Inanam", lat: 6.0350, lng: 116.1180 },
+        { name: "Kampung Inanam", lat: 6.0320, lng: 116.1150 },
+        { name: "Taman Inanam Baru", lat: 6.0360, lng: 116.1190 },
+        { name: "Jalan Inanam Lama", lat: 6.0310, lng: 116.1140 },
+        { name: "Lorong Inanam 1", lat: 6.0335, lng: 116.1165 },
+        { name: "Lorong Inanam 2", lat: 6.0338, lng: 116.1172 },
+        { name: "Taman Inanam Indah", lat: 6.0370, lng: 116.1200 },
+        { name: "Jalan Inanam Utara", lat: 6.0380, lng: 116.1210 },
+        { name: "Jalan Inanam Selatan", lat: 6.0300, lng: 116.1130 },
+        { name: "Taman Inanam Permai", lat: 6.0345, lng: 116.1175 },
+        { name: "Kampung Inanam Baru", lat: 6.0325, lng: 116.1155 },
+        { name: "Jalan Inanam Tengah", lat: 6.0330, lng: 116.1160 },
+        { name: "Lorong Inanam 3", lat: 6.0342, lng: 116.1168 },
+        // Manggatal area locations
+        { name: "Jalan Manggatal", lat: 6.0500, lng: 116.1500 },
+        { name: "Taman Manggatal", lat: 6.0510, lng: 116.1510 },
+        { name: "Kampung Manggatal", lat: 6.0490, lng: 116.1490 },
+        { name: "Jalan Manggatal Baru", lat: 6.0520, lng: 116.1520 },
+        { name: "Lorong Manggatal 1", lat: 6.0505, lng: 116.1505 },
+        { name: "Lorong Manggatal 2", lat: 6.0508, lng: 116.1512 },
+        { name: "Taman Manggatal Indah", lat: 6.0530, lng: 116.1530 },
+        { name: "Jalan Manggatal Utara", lat: 6.0540, lng: 116.1540 },
+        { name: "Jalan Manggatal Selatan", lat: 6.0480, lng: 116.1480 },
+        { name: "Taman Manggatal Permai", lat: 6.0515, lng: 116.1515 },
+        { name: "Kampung Manggatal Baru", lat: 6.0495, lng: 116.1495 },
+        { name: "Jalan Manggatal Tengah", lat: 6.0502, lng: 116.1502 },
+        { name: "Lorong Manggatal 3", lat: 6.0512, lng: 116.1508 },
+        { name: "Taman Manggatal Jaya", lat: 6.0525, lng: 116.1525 },
+        { name: "Jalan Manggatal Lama", lat: 6.0485, lng: 116.1485 },
+        // Areas between Inanam and Manggatal
+        { name: "Jalan Inanam-Manggatal", lat: 6.0415, lng: 116.1335 },
+        { name: "Taman Inanam-Manggatal", lat: 6.0420, lng: 116.1340 },
+        { name: "Kampung Telipok", lat: 6.0400, lng: 116.1300 },
+        { name: "Jalan Telipok", lat: 6.0405, lng: 116.1305 },
+        { name: "Taman Telipok", lat: 6.0410, lng: 116.1310 },
+      ];
+      
+      const statuses: Array<"pending" | "in_progress" | "resolved" | "closed"> = ["pending", "in_progress", "resolved", "closed"];
+      const issues: Array<{
+        reporterId: number;
+        title: string;
+        description: string;
+        category: "road_maintenance" | "drainage" | "public_safety" | "sanitation" | "other";
+        issueTypeId: number | null;
+        status: "pending" | "in_progress" | "resolved" | "closed";
+        address: string;
+        lat: number;
+        lng: number;
+        createdAt?: Date;
+        resolvedAt?: Date;
+      }> = [];
+      
+      // Ensure we have at least one profile
+      if (insertedProfilesForUse.length === 0) {
+        throw new Error("No profiles available. Cannot generate issues without reporters.");
+      }
+      
+      // Generate 100+ issues
+      for (let i = 0; i < 100; i++) {
+        const template = issueTemplates[i % issueTemplates.length];
+        const location = locations[i % locations.length];
+        const reporter = insertedProfilesForUse[i % insertedProfilesForUse.length];
+        const status = statuses[i % statuses.length];
+        const titleIndex = Math.floor(i / issueTemplates.length) % template.titles.length;
+        const descIndex = Math.floor(i / issueTemplates.length) % template.descriptions.length;
+        
+        // Add small random variation to coordinates (±0.01 degrees ≈ ±1km)
+        const latVariation = (Math.random() - 0.5) * 0.02;
+        const lngVariation = (Math.random() - 0.5) * 0.02;
+        
+        const lat = location.lat + latVariation;
+        const lng = location.lng + lngVariation;
+        
+        // Generate dates - spread over the last 90 days
+        const daysAgo = Math.floor(Math.random() * 90);
+        const createdAt = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+        
+        let resolvedAt: Date | undefined;
+        if (status === "resolved" || status === "closed") {
+          const daysToResolve = Math.floor(Math.random() * daysAgo);
+          resolvedAt = new Date(Date.now() - daysToResolve * 24 * 60 * 60 * 1000);
+        }
+        
+        issues.push({
+          reporterId: reporter.id,
+          title: template.titles[titleIndex].replace("{location}", location.name),
+          description: template.descriptions[descIndex],
+          category: template.category as "road_maintenance" | "drainage" | "public_safety" | "sanitation" | "other",
+          issueTypeId: getIssueTypeId(template.code),
+          status: status,
+          address: `${location.name}, N.18 Inanam`,
+          lat: parseFloat(lat.toFixed(6)),
+          lng: parseFloat(lng.toFixed(6)),
+          createdAt: createdAt,
+          resolvedAt: resolvedAt,
+        });
+      }
+      
+      return issues;
+    };
+    
+    const issuesToInsert = generateIssues();
+    const insertedIssues = await db.insert(issues).values(issuesToInsert).returning();
 
     console.log(`✅ Inserted ${insertedIssues.length} issues`);
 
@@ -430,25 +1075,25 @@ async function seed() {
     await db.insert(issueFeedback).values([
       {
         issueId: insertedIssues[1].id,
-        profileId: insertedProfiles[0].id,
+        profileId: insertedProfilesForUse[0]?.id,
         rating: 0,
         comments: "Thank you for reporting this. We are aware of the issue and working on it.",
       },
       {
         issueId: insertedIssues[2].id,
-        profileId: insertedProfiles[2].id,
+        profileId: insertedProfilesForUse[2]?.id,
         rating: 5,
         comments: "The street light has been fixed. Thank you for the quick response!",
       },
       {
         issueId: insertedIssues[0].id,
-        profileId: insertedProfiles[1].id,
+        profileId: insertedProfilesForUse[1]?.id,
         rating: 0,
         comments: "I've also noticed this pothole. It's getting worse with each rain.",
       },
       {
         issueId: insertedIssues[4].id,
-        profileId: insertedProfiles[3].id,
+        profileId: insertedProfilesForUse[3]?.id,
         rating: 0,
         comments: "[ACTIVITY:status_change] Status changed from Pending to In Progress",
       },
@@ -519,35 +1164,35 @@ async function seed() {
     console.log("🔔 Inserting notifications...");
     await db.insert(notifications).values([
       {
-        profileId: insertedProfiles[0].id,
+        profileId: insertedProfilesForUse[0]?.id,
         title: "Your issue has been received",
         body: "We have received your report about 'Pothole on Jalan Inanam near Community Hall'. Our team will review it shortly.",
         category: "system",
         read: false,
       },
       {
-        profileId: insertedProfiles[1].id,
+        profileId: insertedProfilesForUse[1]?.id,
         title: "Issue status updated",
         body: "Your issue 'Blocked Drainage System on Jalan Inanam 2' is now in progress.",
         category: "system",
         read: true,
       },
       {
-        profileId: insertedProfiles[2].id,
+        profileId: insertedProfilesForUse[2]?.id,
         title: "Issue resolved",
         body: "Your issue 'Broken Street Light at Taman Inanam' has been resolved. Thank you for reporting!",
         category: "system",
         read: false,
       },
       {
-        profileId: insertedProfiles[0].id,
+        profileId: insertedProfilesForUse[0]?.id,
         title: "New announcement",
         body: "Community Hall Maintenance - The community hall will be closed for maintenance from August 1st to August 5th.",
         category: "announcement",
         read: false,
       },
       {
-        profileId: insertedProfiles[3].id,
+        profileId: insertedProfilesForUse[3]?.id,
         title: "Your issue has been received",
         body: "We have received your report about 'Damaged Playground Equipment'. Our team will review it shortly.",
         category: "system",
@@ -867,7 +1512,7 @@ async function seed() {
     console.log("🏠 Inserting households...");
     const insertedHouseholds = await db.insert(households).values([
       {
-        headOfHouseholdId: insertedProfiles[0].id,
+        headOfHouseholdId: insertedProfilesForUse[0]?.id,
         headName: "Amelia Tan",
         headIcNumber: "850101-10-1234",
         headPhone: "+60 12-345 6789",
@@ -877,7 +1522,7 @@ async function seed() {
         notes: "Elderly household, requires regular assistance",
       },
       {
-        headOfHouseholdId: insertedProfiles[1].id,
+        headOfHouseholdId: insertedProfilesForUse[1]?.id,
         headName: "Jane Doe",
         headIcNumber: "870305-08-5678",
         headPhone: "+60 12-345 6789",
@@ -887,7 +1532,7 @@ async function seed() {
         notes: "Single parent household",
       },
       {
-        headOfHouseholdId: insertedProfiles[2].id,
+        headOfHouseholdId: insertedProfilesForUse[2]?.id,
         headName: "Ahmad bin Abdullah",
         headIcNumber: "820715-12-9012",
         headPhone: "+60 13-456 7890",
@@ -896,7 +1541,7 @@ async function seed() {
         area: "Zone A",
       },
       {
-        headOfHouseholdId: insertedProfiles[3].id,
+        headOfHouseholdId: insertedProfilesForUse[3]?.id,
         headName: "Sarah Lim",
         headIcNumber: "880920-14-3456",
         headPhone: "+60 14-567 8901",
@@ -1659,9 +2304,10 @@ async function seed() {
 
     console.log("\n✨ Database seed completed successfully!");
     console.log("\n📊 Summary:");
-    console.log(`   - ${insertedProfiles.length} profiles`);
+    console.log(`   - ${allProfiles.length} profiles (${existingProfiles.length} existing + ${insertedProfiles.length} created)`);
     console.log(`   - ${insertedDuns.length} DUN(s)`);
     console.log(`   - ${insertedStaff.length + zoneLeaders.length} staff members (${insertedStaff.length} regular + ${zoneLeaders.length} zone leaders)`);
+    console.log(`   - ${insertedIssueTypes.length} issue types`);
     console.log(`   - ${insertedIssues.length} issues`);
     console.log("   - 5 issue media items");
     console.log("   - 4 issue feedback entries");
@@ -1699,14 +2345,17 @@ async function seed() {
 }
 
 // Run seed if this file is executed directly
-seed()
-  .then(() => {
-    console.log("\n✅ Seed script completed");
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error("\n❌ Seed script failed:", error);
-    process.exit(1);
-  });
+if (require.main === module) {
+  seed()
+    .then(() => {
+      console.log("\n✅ Seed script completed");
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error("\n❌ Seed script failed:", error);
+      process.exit(1);
+    });
+}
 
 export default seed;
+export { seedFunctions, getTableToSeed, shouldClearData };

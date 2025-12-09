@@ -3,12 +3,13 @@
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { z } from "zod";
 import LocationCapture from "./LocationCapture";
 import MediaUploader from "./MediaUploader";
 import { AlertCircle } from "lucide-react";
+import { getActiveIssueTypes, type IssueType } from "@/lib/actions/issue-types";
 
 const issueSchema = z.object({
   title: z.string().min(1, "Title is required").trim(),
@@ -20,70 +21,110 @@ const issueSchema = z.object({
   mediaJson: z.string().optional(),
 });
 
-async function createIssue(formData: FormData) {
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
-  // Extract and validate form data with Zod
-  const formValues = {
-    title: String(formData.get("title") || ""),
-    category: String(formData.get("category") || ""),
-    description: String(formData.get("description") || ""),
-    address: String(formData.get("address") || ""),
-    lat: String(formData.get("lat") || ""),
-    lng: String(formData.get("lng") || ""),
-    mediaJson: String(formData.get("mediaJson") || ""),
-  };
-
-  const result = issueSchema.safeParse(formValues);
-  
-  if (!result.success) {
-    throw new Error("Invalid form data. Please check all required fields.");
-  }
-
-  const { title, description, category, address, lat, lng, mediaJson } = result.data;
-  const latNum = lat ? Number(lat) : undefined;
-  const lngNum = lng ? Number(lng) : undefined;
-
-  const { data: inserted, error: insertErr } = await supabase
-    .from("issues")
-    .insert({ title, description, category, address, lat: latNum, lng: lngNum })
-    .select("id")
-    .single();
-
-  if (insertErr) {
-    throw new Error(insertErr.message);
-  }
-
-  try {
-    const items: Array<{ url: string; type?: string; size_bytes?: number }> = mediaJson ? JSON.parse(mediaJson) : [];
-    if (inserted?.id && items.length > 0) {
-      await supabase
-        .from("issue_media")
-        .insert(
-          items.map((m) => ({
-            issue_id: inserted.id,
-            url: m.url,
-            type: (m.type ?? "image").slice(0, 16),
-            size_bytes: m.size_bytes ?? null,
-          }))
-        );
-    }
-  } catch {
-    // ignore media insert errors for now
-  }
-
-  return { success: true };
-}
-
-
 export default function CommunityReportIssuePage() {
   const router = useRouter();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [issueTypes, setIssueTypes] = useState<IssueType[]>([]);
+  const [isLoadingTypes, setIsLoadingTypes] = useState(true);
+
+  // Load issue types on mount
+  useEffect(() => {
+    const loadIssueTypes = async () => {
+      setIsLoadingTypes(true);
+      const result = await getActiveIssueTypes();
+      if (result.success && result.data) {
+        setIssueTypes(result.data);
+      }
+      setIsLoadingTypes(false);
+    };
+    loadIssueTypes();
+  }, []);
+
+  const createIssue = async (formData: FormData, issueTypes: IssueType[]) => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    // Extract and validate form data with Zod
+    const formValues = {
+      title: String(formData.get("title") || ""),
+      category: String(formData.get("category") || ""),
+      description: String(formData.get("description") || ""),
+      address: String(formData.get("address") || ""),
+      lat: String(formData.get("lat") || ""),
+      lng: String(formData.get("lng") || ""),
+      mediaJson: String(formData.get("mediaJson") || ""),
+    };
+
+    const result = issueSchema.safeParse(formValues);
+    
+    if (!result.success) {
+      throw new Error("Invalid form data. Please check all required fields.");
+    }
+
+    const { title, description, category, address, lat, lng, mediaJson } = result.data;
+    const latNum = lat ? Number(lat) : undefined;
+    const lngNum = lng ? Number(lng) : undefined;
+
+    // Find the issue type ID from the category (which is now the issue type ID)
+    let issueTypeId: number | undefined;
+    const categoryNum = parseInt(category);
+    if (!isNaN(categoryNum)) {
+      // If category is a number, treat it as issue_type_id
+      issueTypeId = categoryNum;
+    } else {
+      // If category is a string (code), find the matching issue type
+      const issueType = issueTypes.find((it) => it.code === category || it.id.toString() === category);
+      if (issueType) {
+        issueTypeId = issueType.id;
+      }
+    }
+
+    // Get the category code for backward compatibility
+    const issueType = issueTypes.find((it) => it.id === issueTypeId);
+    const categoryCode = issueType?.code || "other";
+
+    const { data: inserted, error: insertErr } = await supabase
+      .from("issues")
+      .insert({ 
+        title, 
+        description, 
+        category: categoryCode, // Keep for backward compatibility
+        issue_type_id: issueTypeId,
+        address, 
+        lat: latNum, 
+        lng: lngNum 
+      })
+      .select("id")
+      .single();
+
+    if (insertErr) {
+      throw new Error(insertErr.message);
+    }
+
+    try {
+      const items: Array<{ url: string; type?: string; size_bytes?: number }> = mediaJson ? JSON.parse(mediaJson) : [];
+      if (inserted?.id && items.length > 0) {
+        await supabase
+          .from("issue_media")
+          .insert(
+            items.map((m) => ({
+              issue_id: inserted.id,
+              url: m.url,
+              type: (m.type ?? "image").slice(0, 16),
+              size_bytes: m.size_bytes ?? null,
+            }))
+          );
+      }
+    } catch {
+      // ignore media insert errors for now
+    }
+
+    return { success: true };
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -132,7 +173,7 @@ export default function CommunityReportIssuePage() {
 
     setIsSubmitting(true);
     try {
-      await createIssue(formData);
+      await createIssue(formData, issueTypes);
       router.push("/community/dashboard");
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Failed to submit report. Please try again.");
@@ -212,13 +253,14 @@ export default function CommunityReportIssuePage() {
                           : "border-gray-200 dark:border-gray-700 focus:border-primary focus:ring-primary"
                       }`}
                       required
+                      disabled={isLoadingTypes}
                     >
-                      <option value="">Select an issue type</option>
-                      <option value="road_maintenance">Road Maintenance</option>
-                      <option value="drainage">Drainage</option>
-                      <option value="public_safety">Public Safety</option>
-                      <option value="sanitation">Sanitation</option>
-                      <option value="other">Other</option>
+                      <option value="">{isLoadingTypes ? "Loading issue types..." : "Select an issue type"}</option>
+                      {issueTypes.map((type) => (
+                        <option key={type.id} value={type.id}>
+                          {type.name}
+                        </option>
+                      ))}
                     </select>
                     {errors.category && (
                       <p className="mt-1 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">

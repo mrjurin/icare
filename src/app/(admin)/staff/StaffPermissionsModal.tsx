@@ -252,3 +252,4 @@ export default function StaffPermissionsModal({ trigger, staff }: Props) {
     </Dialog.Root>
   );
 }
+
