@@ -7,7 +7,11 @@ import { getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import DashboardTabs from "./DashboardTabs";
 import AdunDashboardContent from "./AdunDashboardContent";
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const t = await getTranslations("dashboard");
   const access = await getCurrentUserAccessReadOnly();
   const isAdun = access.isAdun;
@@ -30,65 +34,110 @@ export default async function AdminDashboardPage() {
     }
   }
 
+  const params = await searchParams;
+  const page = typeof params.page === "string" ? parseInt(params.page, 10) : 1;
+  const limit = typeof params.limit === "string" ? parseInt(params.limit, 10) : 10;
+
   return (
     <div className="space-y-8">
+      {/* Header Section */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{showAdunDashboard ? t("adunDashboard") : t("adminDashboard")}</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            {showAdunDashboard ? t("adunDashboard") : t("adminDashboard")}
+          </h1>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
             {showAdunDashboard ? t("adunDescription") : t("adminDescription")}
           </p>
         </div>
         <div className="flex gap-2">
-          <button className="rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold">{t("export")}</button>
+          <button className="rounded-lg h-10 px-4 bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors">
+            {t("export")}
+          </button>
         </div>
       </div>
 
-      {showAdunDashboard && (adunStats || sprStats) ? (
-        <DashboardTabs
-          householdContent={<AdunDashboardContent stats={adunStats} />}
-          sprContent={<AdunDashboardContent stats={sprStats} />}
-        />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[
-            {labelKey:"pending",value:"128"},
-            {labelKey:"inReview",value:"42"},
-            {labelKey:"resolved",value:"950"},
-            {labelKey:"overdue",value:"17"},
-          ].map((k, i) => (
-            <div key={i} className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">{t(k.labelKey)}</p>
-              <p className="text-3xl font-bold text-primary">{k.value}</p>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Statistics Section */}
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          {t("statistics")}
+        </h2>
+        {showAdunDashboard && (adunStats || sprStats) ? (
+          <DashboardTabs
+            householdContent={<AdunDashboardContent stats={adunStats} />}
+            sprContent={<AdunDashboardContent stats={sprStats} />}
+          />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              {labelKey:"pending",value:"128"},
+              {labelKey:"inReview",value:"42"},
+              {labelKey:"resolved",value:"950"},
+              {labelKey:"overdue",value:"17"},
+            ].map((k, i) => (
+              <div key={i} className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6 shadow-sm hover:shadow-md transition-shadow">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t(k.labelKey)}</p>
+                <p className="text-3xl font-bold text-primary">{k.value}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
-      <Suspense fallback={
-        <div className="flex items-center justify-center py-12">
-          <div className="text-gray-500">{t("loadingReports")}</div>
+      {/* Issues Table Section */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            {t("recentIssues")}
+          </h2>
         </div>
-      }>
-        <ReportsTableWrapper />
-      </Suspense>
+        <Suspense fallback={
+          <div className="flex items-center justify-center py-12 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark">
+            <div className="text-gray-500 dark:text-gray-400">{t("loadingReports")}</div>
+          </div>
+        }>
+          <ReportsTableWrapper page={page} limit={limit} />
+        </Suspense>
+      </section>
     </div>
   );
 }
 
-async function ReportsTableWrapper() {
+async function ReportsTableWrapper({ page, limit }: { page: number; limit: number }) {
   const supabase = await getSupabaseReadOnlyClient();
   
-  // Fetch all issues for admin - no filtering by reporter_id
+  // Validate pagination parameters
+  const currentPage = isNaN(page) || page < 1 ? 1 : page;
+  const itemsPerPage = isNaN(limit) || limit < 1 ? 10 : Math.min(limit, 100); // Max 100 items per page
+  const from = (currentPage - 1) * itemsPerPage;
+  const to = from + itemsPerPage - 1;
+
+  // Fetch total count
+  const { count: totalCount } = await supabase
+    .from("issues")
+    .select("*", { count: "exact", head: true });
+
+  // Fetch paginated issues for admin - no filtering by reporter_id
   // Admin users should see all issues regardless of who reported them
   const { data: issues } = await supabase
     .from("issues")
     .select("id, title, category, status, created_at")
     .order("created_at", { ascending: false })
-    .limit(50);
+    .range(from, to);
 
   if (!issues || issues.length === 0) {
-    return <ReportsTable initialReports={[]} />;
+    const totalPages = totalCount ? Math.ceil(totalCount / itemsPerPage) : 0;
+    return (
+      <ReportsTable
+        initialReports={[]}
+        pagination={{
+          currentPage: currentPage,
+          totalPages: totalPages,
+          totalItems: totalCount || 0,
+          itemsPerPage: itemsPerPage,
+        }}
+      />
+    );
   }
 
   // Fetch issue assignments
@@ -167,5 +216,17 @@ async function ReportsTableWrapper() {
     };
   });
 
-  return <ReportsTable initialReports={reports} />;
+  const totalPages = totalCount ? Math.ceil(totalCount / itemsPerPage) : 0;
+
+  return (
+    <ReportsTable
+      initialReports={reports}
+      pagination={{
+        currentPage: currentPage,
+        totalPages: totalPages,
+        totalItems: totalCount || 0,
+        itemsPerPage: itemsPerPage,
+      }}
+    />
+  );
 }

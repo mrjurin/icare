@@ -135,3 +135,29 @@ export async function deleteNotification(id: number): Promise<ActionResult> {
   revalidatePath("/admin/notifications");
   return { success: true };
 }
+
+/**
+ * Get count of unread notifications
+ */
+export async function getUnreadNotificationCount(): Promise<ActionResult<number>> {
+  const access = await getCurrentUserAccessReadOnly();
+  
+  if (!access.isAuthenticated || !access.staffId) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const supabase = await getSupabaseReadOnlyClient();
+  const { count, error } = await supabase
+    .from("notifications")
+    .select("*", { count: "exact", head: true })
+    .eq("read", false);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return {
+    success: true,
+    data: count || 0,
+  };
+}

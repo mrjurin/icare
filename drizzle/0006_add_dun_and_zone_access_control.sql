@@ -67,3 +67,5 @@ END $$;
 -- Make dun_id NOT NULL after setting defaults
 ALTER TABLE "zones" ALTER COLUMN "dun_id" SET NOT NULL;
 
+
+

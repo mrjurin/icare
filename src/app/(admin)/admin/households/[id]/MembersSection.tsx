@@ -61,6 +61,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
   const [formData, setFormData] = useState({
     name: "",
     icNumber: "",
+    phone: "",
     relationship: "child" as MemberRelationship,
     dateOfBirth: "",
     locality: "",
@@ -76,6 +77,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
       setFormData({
         name: member.name,
         icNumber: member.ic_number || "",
+        phone: (member as any).phone || "",
         relationship: member.relationship,
         dateOfBirth: member.date_of_birth ? member.date_of_birth.split("T")[0] : "",
         locality: (member as any).locality || "",
@@ -89,6 +91,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
       setFormData({
         name: "",
         icNumber: "",
+        phone: "",
         relationship: "child",
         dateOfBirth: "",
         locality: "",
@@ -136,6 +139,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
         result = await updateMember({
           id: editingMember.id,
           ...formData,
+          phone: formData.phone || undefined,
           dateOfBirth: formData.dateOfBirth || undefined,
           locality: formData.locality || undefined,
           votingSupportStatus: formData.votingSupportStatus || null,
@@ -414,6 +418,19 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     Date of birth will be automatically extracted from IC number
                   </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Phone Number
+                  </label>
+                  <Input
+                    type="tel"
+                    placeholder="e.g., 012-345-6789"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full"
+                  />
                 </div>
 
                 <div>

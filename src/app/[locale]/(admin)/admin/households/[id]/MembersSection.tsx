@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Users, Trash2, Edit2, Home, UserX, Baby } from "lucide-react";
+import { Plus, Users, Trash2, Edit2, Home, UserX, Baby, FileText, UserPlus, Search } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -19,6 +19,9 @@ import {
   type VotingSupportStatus,
 } from "@/lib/actions/households";
 import { extractDateOfBirthFromIC, isEligibleToVote } from "@/lib/utils/ic-number";
+import { getVotersList, getVoterVersions, type SprVoter, type SprVoterVersion } from "@/lib/actions/spr-voters";
+
+type TabType = "new" | "spr";
 
 type Props = {
   householdId: number;
@@ -59,10 +62,20 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
   const [editingMember, setEditingMember] = useState<HouseholdMember | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>("new");
+  const [selectedSprVoterId, setSelectedSprVoterId] = useState<number | undefined>(undefined);
+
+  // SPR voters
+  const [sprVoters, setSprVoters] = useState<SprVoter[]>([]);
+  const [loadingSpr, setLoadingSpr] = useState(false);
+  const [sprSearchQuery, setSprSearchQuery] = useState("");
+  const [sprVersions, setSprVersions] = useState<SprVoterVersion[]>([]);
+  const [selectedVersionId, setSelectedVersionId] = useState<number | undefined>(undefined);
 
   const [formData, setFormData] = useState({
     name: "",
     icNumber: "",
+    phone: "",
     relationship: "child" as MemberRelationship,
     dateOfBirth: "",
     locality: "",
@@ -72,12 +85,80 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
     notes: "",
   });
 
+  // Load SPR versions when modal opens
+  useEffect(() => {
+    if (isModalOpen && !editingMember) {
+      getVoterVersions().then((result) => {
+        if (result.success && result.data) {
+          setSprVersions(result.data);
+          const activeVersion = result.data.find((v) => v.is_active);
+          if (activeVersion) {
+            setSelectedVersionId(activeVersion.id);
+          }
+        }
+      });
+    }
+  }, [isModalOpen, editingMember]);
+
+  // Load SPR voters when tab changes or version changes
+  useEffect(() => {
+    if (isModalOpen && activeTab === "spr" && !editingMember) {
+      loadSprVoters();
+    }
+  }, [isModalOpen, activeTab, selectedVersionId, editingMember]);
+
+  const loadSprVoters = async () => {
+    setLoadingSpr(true);
+    setError(null);
+    const result = await getVotersList({ 
+      limit: 100,
+      versionId: selectedVersionId,
+      search: sprSearchQuery || undefined,
+    });
+    if (result.success && result.data) {
+      setSprVoters(result.data.data || []);
+    } else {
+      setError(result.error || "Failed to load SPR voters");
+      setSprVoters([]);
+    }
+    setLoadingSpr(false);
+  };
+
+  const handleSearchSpr = () => {
+    loadSprVoters();
+  };
+
+  const filteredSprVoters = sprVoters.filter((voter) =>
+    voter.nama.toLowerCase().includes(sprSearchQuery.toLowerCase()) ||
+    voter.no_kp?.toLowerCase().includes(sprSearchQuery.toLowerCase()) ||
+    voter.alamat?.toLowerCase().includes(sprSearchQuery.toLowerCase())
+  );
+
+  const handleSelectSprVoter = (voter: SprVoter) => {
+    setSelectedSprVoterId(voter.id);
+    const dob = voter.tarikh_lahir ? new Date(voter.tarikh_lahir).toISOString().split("T")[0] : "";
+    setFormData({
+      name: voter.nama || "",
+      icNumber: voter.no_kp || "",
+      phone: "",
+      relationship: "child" as MemberRelationship,
+      dateOfBirth: dob,
+      locality: voter.nama_lokaliti || voter.nama_tm || "",
+      status: "at_home" as MemberStatus,
+      dependencyStatus: "dependent" as DependencyStatus,
+      votingSupportStatus: voter.voting_support_status || undefined,
+      notes: "",
+    });
+    setActiveTab("new");
+  };
+
   const handleOpenModal = (member?: HouseholdMember) => {
     if (member) {
       setEditingMember(member);
       setFormData({
         name: member.name,
         icNumber: member.ic_number || "",
+        phone: (member as any).phone || "",
         relationship: member.relationship,
         dateOfBirth: member.date_of_birth ? member.date_of_birth.split("T")[0] : "",
         locality: (member as any).locality || "",
@@ -86,11 +167,14 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
         votingSupportStatus: member.voting_support_status || undefined,
         notes: member.notes || "",
       });
+      setActiveTab("new");
+      setSelectedSprVoterId(undefined);
     } else {
       setEditingMember(null);
       setFormData({
         name: "",
         icNumber: "",
+        phone: "",
         relationship: "child",
         dateOfBirth: "",
         locality: "",
@@ -99,9 +183,12 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
         votingSupportStatus: undefined,
         notes: "",
       });
+      setActiveTab("new");
+      setSelectedSprVoterId(undefined);
     }
     setIsModalOpen(true);
     setError(null);
+    setSprSearchQuery("");
   };
 
   // Auto-extract date of birth from IC number
@@ -126,6 +213,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
     setIsModalOpen(false);
     setEditingMember(null);
     setError(null);
+    setSelectedSprVoterId(undefined);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -138,6 +226,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
         result = await updateMember({
           id: editingMember.id,
           ...formData,
+          phone: formData.phone || undefined,
           dateOfBirth: formData.dateOfBirth || undefined,
           locality: formData.locality || undefined,
           votingSupportStatus: formData.votingSupportStatus || null,
@@ -149,6 +238,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
           dateOfBirth: formData.dateOfBirth || undefined,
           locality: formData.locality || undefined,
           votingSupportStatus: formData.votingSupportStatus,
+          sprVoterId: selectedSprVoterId,
         });
       }
 
@@ -381,7 +471,139 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
               </Dialog.Close>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            {!editingMember && (
+              <div className="flex border-b border-gray-200 dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("new")}
+                  className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
+                    activeTab === "new"
+                      ? "text-primary border-b-2 border-primary"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <UserPlus className="size-4" />
+                    Create New
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("spr")}
+                  className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
+                    activeTab === "spr"
+                      ? "text-primary border-b-2 border-primary"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <FileText className="size-4" />
+                    Get from SPR Data
+                  </div>
+                </button>
+              </div>
+            )}
+
+            {activeTab === "spr" && !editingMember ? (
+              <div className="p-6 space-y-4">
+                {error && (
+                  <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+                      <Input
+                        type="text"
+                        placeholder="Search by name, IC number, or address..."
+                        value={sprSearchQuery}
+                        onChange={(e) => setSprSearchQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleSearchSpr();
+                          }
+                        }}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <select
+                      value={selectedVersionId || ""}
+                      onChange={(e) => setSelectedVersionId(e.target.value ? Number(e.target.value) : undefined)}
+                      className="w-full h-10 px-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark text-gray-900 dark:text-white"
+                    >
+                      <option value="">All Versions</option>
+                      {sprVersions.map((version) => (
+                        <option key={version.id} value={version.id}>
+                          {version.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <Button onClick={handleSearchSpr} disabled={loadingSpr || !sprSearchQuery.trim()} className="w-full">
+                  {loadingSpr ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Searching...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="size-4" />
+                      Search SPR Voters
+                    </>
+                  )}
+                </Button>
+
+                {loadingSpr ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="size-6 animate-spin text-gray-400" />
+                  </div>
+                ) : filteredSprVoters.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                    <FileText className="size-12 mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">
+                      {sprSearchQuery ? "No SPR voters found matching your search" : "Search for SPR voters to select"}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg max-h-96 overflow-y-auto">
+                    {filteredSprVoters.map((voter) => (
+                      <button
+                        key={voter.id}
+                        type="button"
+                        onClick={() => handleSelectSprVoter(voter)}
+                        className="w-full flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-700 last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 text-left"
+                      >
+                        <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                          {voter.nama.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {voter.nama}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {voter.no_kp || voter.alamat || "No identifier"}
+                          </div>
+                          {voter.alamat && (
+                            <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                              {voter.alamat}
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="p-6 space-y-5">
               {error && (
                 <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-sm">
                   {error}
@@ -416,6 +638,19 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     Date of birth will be automatically extracted from IC number
                   </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t("modal.phone")}
+                  </label>
+                  <Input
+                    type="tel"
+                    placeholder="e.g., 012-345-6789"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full"
+                  />
                 </div>
 
                 <div>
@@ -591,6 +826,7 @@ export default function MembersSection({ householdId, members, isAdmin }: Props)
                 </Button>
               </div>
             </form>
+            )}
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>

@@ -90,6 +90,104 @@ export async function getAnnouncementsList(options?: {
 }
 
 /**
+ * Get active announcements (published and not expired) for public display
+ */
+export async function getActiveAnnouncements(limit?: number): Promise<ActionResult<Announcement[]>> {
+  const supabase = await getSupabaseReadOnlyClient();
+  const now = new Date().toISOString();
+
+  // Fetch all published announcements, then filter for expiration in memory
+  // This is more reliable than complex OR queries
+  let query = supabase
+    .from("announcements")
+    .select("*")
+    .lte("published_at", now) // Published before or at now
+    .order("published_at", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  // Fetch more than needed to account for expired ones
+  const fetchLimit = limit ? limit * 2 : undefined;
+  if (fetchLimit) {
+    query = query.limit(fetchLimit);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  // Filter out expired announcements
+  const activeAnnouncements = (data || []).filter((announcement) => {
+    if (!announcement.expires_at) return true; // No expiry date means it's always active
+    return new Date(announcement.expires_at) > new Date(now);
+  });
+
+  // Apply final limit
+  const result = limit ? activeAnnouncements.slice(0, limit) : activeAnnouncements;
+
+  return { success: true, data: result as Announcement[] };
+}
+
+/**
+ * Get active announcements with pagination for public display
+ * Note: This fetches all published announcements and filters expired ones in memory
+ * For better performance with large datasets, consider using a database view or function
+ */
+export async function getActiveAnnouncementsPaginated(options?: {
+  page?: number;
+  limit?: number;
+  category?: string;
+}): Promise<ActionResult<PaginatedAnnouncements>> {
+  const supabase = await getSupabaseReadOnlyClient();
+  const now = new Date().toISOString();
+  const page = options?.page || 1;
+  const limit = options?.limit || 10;
+  
+  // Fetch all published announcements (we need all to filter expired ones)
+  // In production, consider caching this or using a database view
+  let query = supabase
+    .from("announcements")
+    .select("*")
+    .lte("published_at", now)
+    .order("published_at", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (options?.category) {
+    query = query.eq("category", options.category);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  // Filter out expired announcements
+  const activeAnnouncements = (data || []).filter((announcement) => {
+    if (!announcement.expires_at) return true;
+    return new Date(announcement.expires_at) > new Date(now);
+  });
+
+  // Calculate pagination
+  const total = activeAnnouncements.length;
+  const offset = (page - 1) * limit;
+  const paginatedData = activeAnnouncements.slice(offset, offset + limit);
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    success: true,
+    data: {
+      data: paginatedData as Announcement[],
+      page,
+      limit,
+      total,
+      totalPages,
+    },
+  };
+}
+
+/**
  * Get a single announcement by ID
  */
 export async function getAnnouncement(id: number): Promise<ActionResult<Announcement>> {

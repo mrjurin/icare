@@ -17,12 +17,16 @@ import {
   BarChart3
 } from "lucide-react";
 import PublicHeaderClient from "@/components/PublicHeaderClient";
+import AnnouncementsSection from "@/components/AnnouncementsSection";
+import { Announcement } from "@/lib/actions/announcements";
 
 interface HomeClientProps {
   appName: string;
+  announcements: Announcement[];
+  totalAnnouncements?: number;
 }
 
-export default function HomeClient({ appName }: HomeClientProps) {
+export default function HomeClient({ appName, announcements, totalAnnouncements }: HomeClientProps) {
   const t = useTranslations('home');
   
   return (
@@ -34,23 +38,27 @@ export default function HomeClient({ appName }: HomeClientProps) {
         <main className="flex flex-col items-center">
           <div className="w-full max-w-6xl px-4 md:px-6 lg:px-0">
             {/* Hero Section */}
-            <section className="py-12 md:py-20 lg:py-28">
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 p-8 md:p-12 lg:p-16">
+            <section className="py-12 md:py-20 lg:py-28 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 p-8 md:p-12 lg:p-16 border border-primary/20 dark:border-primary/30 shadow-xl">
+                {/* Decorative background elements */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+                
                 <div className="relative z-10 flex flex-col items-center text-center max-w-3xl mx-auto gap-6">
                   <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-tight tracking-[-0.033em] text-gray-900 dark:text-white">
-                    {t('hero.title').replace(t('hero.titleHighlight'), '')} <span className="text-primary">{t('hero.titleHighlight')}</span>
+                    {t('hero.title').replace(t('hero.titleHighlight'), '')} <span className="text-primary bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">{t('hero.titleHighlight')}</span>
                   </h1>
                   <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl leading-relaxed">
                     {t('hero.description')}
                   </p>
-                  <div className="flex flex-wrap gap-4 justify-center mt-4">
-                    <Button asChild className="rounded-lg h-12 md:h-14 px-6 md:px-8 bg-primary text-white text-base md:text-lg font-bold hover:bg-primary/90 transition-all hover:scale-105 shadow-lg">
+                  <div className="flex flex-wrap gap-4 justify-center mt-6">
+                    <Button asChild className="rounded-xl h-12 md:h-14 px-6 md:px-8 bg-primary text-white text-base md:text-lg font-bold hover:bg-primary/90 transition-all hover:scale-105 shadow-lg hover:shadow-xl">
                       <Link href="/report-issue" className="flex items-center gap-2">
                         {t('hero.reportIssue')}
                         <ArrowRight className="size-5" />
                       </Link>
                     </Button>
-                    <Button asChild variant="outline" className="rounded-lg h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-bold border-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
+                    <Button asChild variant="outline" className="rounded-xl h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-bold border-2 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all hover:scale-105 hover:border-primary/50 dark:hover:border-primary/50">
                       <Link href="/view-reports" className="flex items-center gap-2">
                         {t('hero.viewReports')}
                         <Eye className="size-5" />
@@ -61,8 +69,13 @@ export default function HomeClient({ appName }: HomeClientProps) {
               </div>
             </section>
 
+            {/* Announcements Section */}
+            {announcements.length > 0 && (
+              <AnnouncementsSection announcements={announcements} totalCount={totalAnnouncements} />
+            )}
+
             {/* How It Works Section */}
-            <section className="py-12 md:py-16">
+            <section className="py-12 md:py-16 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
               <div className="text-center mb-12">
                 <h2 className="text-3xl md:text-4xl font-black tracking-[-0.015em] text-gray-900 dark:text-white mb-4">
                   {t('howItWorks.title')}
@@ -79,38 +92,41 @@ export default function HomeClient({ appName }: HomeClientProps) {
                     icon: FileText,
                     title: t('howItWorks.step1.title'),
                     description: t('howItWorks.step1.description'),
-                    color: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                    color: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400",
+                    borderColor: "border-blue-200 dark:border-blue-800"
                   },
                   {
                     step: "2",
                     icon: Users,
                     title: t('howItWorks.step2.title'),
                     description: t('howItWorks.step2.description'),
-                    color: "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                    color: "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400",
+                    borderColor: "border-green-200 dark:border-green-800"
                   },
                   {
                     step: "3",
                     icon: CheckCircle2,
                     title: t('howItWorks.step3.title'),
                     description: t('howItWorks.step3.description'),
-                    color: "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+                    color: "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400",
+                    borderColor: "border-purple-200 dark:border-purple-800"
                   }
                 ].map((item, i) => {
                   const Icon = item.icon;
                   return (
                     <div 
                       key={i} 
-                      className="group relative flex flex-col gap-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6 lg:p-8 hover:shadow-lg transition-all hover:-translate-y-1"
+                      className="group relative flex flex-col gap-4 rounded-2xl border-2 border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6 lg:p-8 hover:shadow-xl transition-all hover:-translate-y-2 hover:border-primary/30 dark:hover:border-primary/30"
                     >
                       <div className="flex items-start gap-4">
-                        <div className={`flex items-center justify-center size-12 rounded-xl ${item.color} flex-shrink-0`}>
-                          <Icon className="size-6" />
+                        <div className={`flex items-center justify-center size-14 rounded-xl ${item.color} flex-shrink-0 group-hover:scale-110 transition-transform shadow-md`}>
+                          <Icon className="size-7" />
                         </div>
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-sm font-bold text-gray-400 dark:text-gray-500">STEP {item.step}</span>
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">STEP {item.step}</span>
                           </div>
-                          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-primary dark:group-hover:text-primary transition-colors">
                             {item.title}
                           </h3>
                           <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
@@ -125,7 +141,7 @@ export default function HomeClient({ appName }: HomeClientProps) {
             </section>
 
             {/* Statistics Section */}
-            <section className="py-12 md:py-20 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/30 rounded-2xl">
+            <section className="py-12 md:py-20 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/30 rounded-2xl animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
               <div className="px-6 md:px-12">
                 <div className="text-center mb-12">
                   <h2 className="text-3xl md:text-4xl font-black tracking-[-0.015em] text-gray-900 dark:text-white mb-4">
@@ -137,20 +153,20 @@ export default function HomeClient({ appName }: HomeClientProps) {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
                   {[
-                    { value: "1,200+", label: t('statistics.issuesReported'), icon: FileText, color: "text-blue-600 dark:text-blue-400" },
-                    { value: "950+", label: t('statistics.issuesResolved'), icon: CheckCircle2, color: "text-green-600 dark:text-green-400" },
-                    { value: "3,500+", label: t('statistics.activeMembers'), icon: Users, color: "text-purple-600 dark:text-purple-400" }
+                    { value: "1,200+", label: t('statistics.issuesReported'), icon: FileText, color: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-100 dark:bg-blue-900/30" },
+                    { value: "950+", label: t('statistics.issuesResolved'), icon: CheckCircle2, color: "text-green-600 dark:text-green-400", bgColor: "bg-green-100 dark:bg-green-900/30" },
+                    { value: "3,500+", label: t('statistics.activeMembers'), icon: Users, color: "text-purple-600 dark:text-purple-400", bgColor: "bg-purple-100 dark:bg-purple-900/30" }
                   ].map((stat, idx) => {
                     const Icon = stat.icon;
                     return (
                       <div key={idx} className="flex flex-col items-center text-center group">
-                        <div className={`mb-4 p-4 rounded-full bg-white dark:bg-gray-800 shadow-md group-hover:scale-110 transition-transform ${stat.color}`}>
-                          <Icon className="size-8" />
+                        <div className={`mb-6 p-5 rounded-2xl ${stat.bgColor} shadow-lg group-hover:scale-110 transition-transform ${stat.color}`}>
+                          <Icon className="size-10" />
                         </div>
-                        <p className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-2">
+                        <p className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-3 bg-gradient-to-br from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
                           {stat.value}
                         </p>
-                        <p className="text-lg font-medium text-gray-600 dark:text-gray-400">
+                        <p className="text-lg font-semibold text-gray-600 dark:text-gray-400">
                           {stat.label}
                         </p>
                       </div>
@@ -161,7 +177,7 @@ export default function HomeClient({ appName }: HomeClientProps) {
             </section>
 
             {/* Features Section */}
-            <section className="py-12 md:py-20">
+            <section className="py-12 md:py-20 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
               <div className="text-center mb-12">
                 <h2 className="text-3xl md:text-4xl font-black tracking-[-0.015em] text-gray-900 dark:text-white mb-4">
                   {t('features.title')}
@@ -177,31 +193,34 @@ export default function HomeClient({ appName }: HomeClientProps) {
                     icon: Eye,
                     title: t('features.transparentTracking.title'),
                     description: t('features.transparentTracking.description'),
-                    color: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                    color: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400",
+                    borderColor: "border-blue-200 dark:border-blue-800"
                   },
                   {
                     icon: MessageSquare,
                     title: t('features.directCommunication.title'),
                     description: t('features.directCommunication.description'),
-                    color: "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                    color: "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400",
+                    borderColor: "border-green-200 dark:border-green-800"
                   },
                   {
                     icon: TrendingUp,
                     title: t('features.collectiveProblemSolving.title'),
                     description: t('features.collectiveProblemSolving.description'),
-                    color: "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+                    color: "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400",
+                    borderColor: "border-purple-200 dark:border-purple-800"
                   }
                 ].map((feature, idx) => {
                   const Icon = feature.icon;
                   return (
                     <div 
                       key={idx} 
-                      className="flex flex-col items-center text-center p-6 lg:p-8 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark hover:shadow-lg transition-all hover:-translate-y-1"
+                      className="flex flex-col items-center text-center p-6 lg:p-8 rounded-2xl border-2 border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark hover:shadow-xl transition-all hover:-translate-y-2 hover:border-primary/30 dark:hover:border-primary/30"
                     >
-                      <div className={`p-4 rounded-full mb-6 ${feature.color}`}>
-                        <Icon className="size-8" />
+                      <div className={`p-5 rounded-2xl mb-6 shadow-lg group-hover:scale-110 transition-transform ${feature.color}`}>
+                        <Icon className="size-9" />
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 group-hover:text-primary dark:group-hover:text-primary transition-colors">
                         {feature.title}
                       </h3>
                       <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
@@ -214,8 +233,8 @@ export default function HomeClient({ appName }: HomeClientProps) {
             </section>
 
             {/* CTA Section */}
-            <section className="py-12 md:py-20">
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/80 dark:from-primary dark:to-primary/90 p-8 md:p-12 lg:p-16 text-center">
+            <section className="py-12 md:py-20 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-400">
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/80 dark:from-primary dark:to-primary/90 p-8 md:p-12 lg:p-16 text-center shadow-2xl">
                 <div className="relative z-10 flex flex-col items-center gap-6 max-w-2xl mx-auto">
                   <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-[-0.033em] text-white">
                     {t('cta.title')}
@@ -223,14 +242,14 @@ export default function HomeClient({ appName }: HomeClientProps) {
                   <p className="text-lg md:text-xl text-white/90 leading-relaxed">
                     {t('cta.description')}
                   </p>
-                  <div className="flex flex-wrap gap-4 justify-center mt-4">
-                    <Button asChild variant="outline" className="!bg-white !text-primary !border-0 h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-bold hover:!bg-gray-100 transition-all hover:scale-105 shadow-lg">
+                  <div className="flex flex-wrap gap-4 justify-center mt-6">
+                    <Button asChild variant="outline" className="!bg-white !text-primary !border-0 h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-bold hover:!bg-gray-100 transition-all hover:scale-105 shadow-xl hover:shadow-2xl">
                       <Link href="/report-issue" className="flex items-center gap-2">
                         {t('cta.reportIssue')}
                         <ArrowRight className="size-5" />
                       </Link>
                     </Button>
-                    <Button asChild variant="outline" className="rounded-lg h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-bold border-2 border-white text-white hover:bg-white/10 transition-all">
+                    <Button asChild variant="outline" className="rounded-xl h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-bold border-2 border-white/30 text-white hover:bg-white/10 hover:border-white/50 transition-all hover:scale-105">
                       <Link href="/community/register" className="flex items-center gap-2">
                         {t('cta.createAccount')}
                         <Users className="size-5" />

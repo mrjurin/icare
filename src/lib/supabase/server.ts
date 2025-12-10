@@ -16,8 +16,10 @@ export async function getSupabaseReadOnlyClient() {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll() {
+        setAll(cookiesToSet) {
           // No-op: cookies cannot be modified in Server Components
+          // Silently ignore cookie modification attempts to prevent errors
+          // This happens when Supabase tries to refresh the session
         },
       },
     }
@@ -27,6 +29,9 @@ export async function getSupabaseReadOnlyClient() {
 /**
  * Get a full Supabase client for Server Actions and Route Handlers
  * This client can modify cookies and should only be used in Server Actions or Route Handlers
+ * 
+ * Note: If called from a Server Component, this will throw an error.
+ * Use getSupabaseReadOnlyClient() instead for Server Components.
  */
 export async function getSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -39,9 +44,16 @@ export async function getSupabaseServerClient() {
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set({ name, value, ...options });
-          });
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set({ name, value, ...options });
+            });
+          } catch (error) {
+            // If cookie modification fails (e.g., in Server Component), 
+            // it means we're in the wrong context - this is expected
+            // The error will be caught by the caller
+            throw error;
+          }
         },
       },
     }

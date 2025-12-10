@@ -6,6 +6,7 @@ import Input from "@/components/ui/Input";
 import styles from "./layout.module.css";
 import StaffNav from "./nav";
 import LogoutButton from "./LogoutButton";
+import NotificationIcon from "@/components/NotificationIcon";
 
 interface StaffLayoutWrapperProps {
   children: ReactNode;
@@ -74,7 +75,8 @@ export default function StaffLayoutWrapper({
             <div className={styles.brandRow}>
               <span style={{ fontWeight: 600 }}>N.18 Inanam Community Watch</span>
             </div>
-            <div>
+            <div className="flex items-center gap-3">
+              <NotificationIcon href="/staff/notifications" />
               {/* Radix Input wrapper preserves exact design */}
               <Input className="h-9 w-72 rounded-lg border border-gray-200 bg-white px-3 text-sm" placeholder="Search issues, households..." />
             </div>

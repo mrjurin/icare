@@ -11,6 +11,7 @@ import { getTableDisplayName } from "@/lib/utils/reference-data";
 import ReferenceDataFormModal from "./ReferenceDataFormModal";
 import ImportExportSection from "./ImportExportSection";
 import LocalityGeocodingSection from "@/app/[locale]/(admin)/admin/reference-data/LocalityGeocodingSection";
+import ParliamentGeocodingSection from "@/app/[locale]/(admin)/admin/reference-data/ParliamentGeocodingSection";
 
 type ReferenceDataTableProps = {
   table: ReferenceTable;
@@ -42,6 +43,7 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
       <ImportExportSection table={table} />
       
       {table === "localities" && <LocalityGeocodingSection />}
+      {table === "parliaments" && <ParliamentGeocodingSection />}
 
       <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -92,7 +94,7 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
                   Address
                 </th>
               )}
-              {table === "localities" && (
+              {(table === "localities" || table === "parliaments") && (
                 <>
                   <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
                     Latitude
@@ -119,7 +121,7 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
                 colSpan={
                   table === "polling_stations" 
                     ? 6 
-                    : table === "localities" 
+                    : table === "localities" || table === "parliaments"
                     ? 7 
                     : table === "zones" || table === "villages"
                     ? 3
@@ -164,7 +166,7 @@ export default function ReferenceDataTable({ table, data }: ReferenceDataTablePr
                       {(item as any).address || "-"}
                     </td>
                   )}
-                  {table === "localities" && (
+                  {(table === "localities" || table === "parliaments") && (
                     <>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                         {(item as any).lat !== null && (item as any).lat !== undefined

@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Eye, Edit, Split } from "lucide-react";
 import Button from "@/components/ui/Button";
 import RichTextEditor from "@/components/ui/RichTextEditor";
+import MarkdownContent from "@/components/MarkdownContent";
 import { getSetting, updateSetting } from "@/lib/actions/settings";
 import { useRouter } from "next/navigation";
 
 type PageKey = "how_it_works" | "view_reports" | "about_us" | "contact";
+type ViewMode = "edit" | "preview" | "split";
 
 const pageConfig: Record<PageKey, { title: string; key: string; description: string }> = {
   how_it_works: {
@@ -58,6 +60,12 @@ export default function AdminPagesPage() {
     view_reports: false,
     about_us: false,
     contact: false,
+  });
+  const [viewModes, setViewModes] = useState<Record<PageKey, ViewMode>>({
+    how_it_works: "split",
+    view_reports: "split",
+    about_us: "split",
+    contact: "split",
   });
 
   useEffect(() => {
@@ -184,16 +192,84 @@ export default function AdminPagesPage() {
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{config.description}</p>
             </div>
             <div className="p-6 space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Page Content
                 </label>
-                <RichTextEditor
-                  value={contents[key]}
-                  onChange={(value) => handleContentChange(key, value)}
-                  placeholder={`Enter content for ${config.title} page...`}
-                  namespace={`page-${key}`}
-                />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setViewModes((prev) => ({ ...prev, [key]: "edit" }))}
+                    className={`p-2 rounded-md border transition-colors ${
+                      viewModes[key] === "edit"
+                        ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                        : "bg-white dark:bg-background-dark border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    }`}
+                    aria-label="Edit mode"
+                  >
+                    <Edit className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewModes((prev) => ({ ...prev, [key]: "split" }))}
+                    className={`p-2 rounded-md border transition-colors ${
+                      viewModes[key] === "split"
+                        ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                        : "bg-white dark:bg-background-dark border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    }`}
+                    aria-label="Split view"
+                  >
+                    <Split className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewModes((prev) => ({ ...prev, [key]: "preview" }))}
+                    className={`p-2 rounded-md border transition-colors ${
+                      viewModes[key] === "preview"
+                        ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                        : "bg-white dark:bg-background-dark border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    }`}
+                    aria-label="Preview mode"
+                  >
+                    <Eye className="size-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div
+                className={`grid gap-4 ${
+                  viewModes[key] === "split" ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"
+                }`}
+              >
+                {(viewModes[key] === "edit" || viewModes[key] === "split") && (
+                  <div>
+                    <RichTextEditor
+                      value={contents[key]}
+                      onChange={(value) => handleContentChange(key, value)}
+                      placeholder={`Enter content for ${config.title} page...`}
+                      namespace={`page-${key}`}
+                    />
+                  </div>
+                )}
+                {(viewModes[key] === "preview" || viewModes[key] === "split") && (
+                  <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6 min-h-[150px]">
+                    <div className="mb-2 pb-2 border-b border-gray-200 dark:border-gray-800">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                        <Eye className="size-4" />
+                        Preview
+                      </h4>
+                    </div>
+                    <div className="prose prose-sm max-w-none">
+                      {contents[key] ? (
+                        <MarkdownContent content={contents[key]} />
+                      ) : (
+                        <p className="text-gray-400 dark:text-gray-500 italic">
+                          Start typing to see the preview...
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {errors[key] && (

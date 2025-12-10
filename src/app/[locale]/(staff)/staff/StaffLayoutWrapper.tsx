@@ -2,10 +2,12 @@
 
 import { ReactNode, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import Input from "@/components/ui/Input";
 import styles from "./layout.module.css";
 import StaffNav from "./nav";
 import LogoutButton from "./LogoutButton";
+import NotificationIcon from "@/components/NotificationIcon";
 
 interface StaffLayoutWrapperProps {
   children: ReactNode;
@@ -20,7 +22,8 @@ export default function StaffLayoutWrapper({
 }: StaffLayoutWrapperProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const isLoginPage = pathname === "/staff/login";
+  const locale = useLocale();
+  const isLoginPage = pathname === "/staff/login" || pathname.includes("/staff/login");
   const isAuthenticated = staffName !== "";
 
   // Redirect to login if not authenticated and not already on login page
@@ -74,7 +77,8 @@ export default function StaffLayoutWrapper({
             <div className={styles.brandRow}>
               <span style={{ fontWeight: 600 }}>N.18 Inanam Community Watch</span>
             </div>
-            <div>
+            <div className="flex items-center gap-3">
+              <NotificationIcon href={`/${locale}/staff/notifications`} />
               {/* Radix Input wrapper preserves exact design */}
               <Input className="h-9 w-72 rounded-lg border border-gray-200 bg-white px-3 text-sm" placeholder="Search issues, households..." />
             </div>

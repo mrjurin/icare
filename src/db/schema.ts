@@ -440,6 +440,7 @@ export const householdMembers = pgTable(
     householdId: integer("household_id").references(() => households.id, { onDelete: "cascade" }).notNull(),
     name: text("name").notNull(),
     icNumber: varchar("ic_number", { length: 20 }),
+    phone: varchar("phone", { length: 20 }), // Phone number for household member
     relationship: memberRelationshipEnum("relationship").notNull(),
     dateOfBirth: timestamp("date_of_birth"),
     locality: text("locality"), // Voting place/locality for eligible voters
@@ -996,6 +997,38 @@ export const localityGeocodingJobsRelations = relations(localityGeocodingJobs, (
   }),
 }));
 
+// Parliament geocoding jobs table
+export const parliamentGeocodingJobs = pgTable(
+  "parliament_geocoding_jobs",
+  {
+    id: serial("id").primaryKey(),
+    status: geocodingJobStatusEnum("status").default("pending").notNull(),
+    totalParliaments: integer("total_parliaments").default(0).notNull(),
+    processedParliaments: integer("processed_parliaments").default(0).notNull(),
+    geocodedCount: integer("geocoded_count").default(0).notNull(),
+    failedCount: integer("failed_count").default(0).notNull(),
+    skippedCount: integer("skipped_count").default(0).notNull(),
+    errorMessage: text("error_message"),
+    startedAt: timestamp("started_at"),
+    completedAt: timestamp("completed_at"),
+    createdBy: integer("created_by").references(() => staff.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("parliament_geocoding_jobs_status_idx").on(table.status),
+    index("parliament_geocoding_jobs_created_at_idx").on(table.createdAt),
+  ]
+);
+
+// Relations for parliament geocoding jobs
+export const parliamentGeocodingJobsRelations = relations(parliamentGeocodingJobs, ({ one }) => ({
+  creator: one(staff, {
+    fields: [parliamentGeocodingJobs.createdBy],
+    references: [staff.id],
+  }),
+}));
+
 // Gender table
 export const genders = pgTable(
   "genders",
@@ -1076,6 +1109,8 @@ export const parliaments = pgTable(
     name: text("name").notNull().unique(),
     code: varchar("code", { length: 20 }),
     description: text("description"),
+    lat: doublePrecision("lat"), // Latitude from geocoding
+    lng: doublePrecision("lng"), // Longitude from geocoding
     isActive: boolean("is_active").default(true).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -1083,6 +1118,8 @@ export const parliaments = pgTable(
   (table) => [
     index("parliaments_name_idx").on(table.name),
     index("parliaments_code_idx").on(table.code),
+    index("parliaments_lat_idx").on(table.lat),
+    index("parliaments_lng_idx").on(table.lng),
   ]
 );
 

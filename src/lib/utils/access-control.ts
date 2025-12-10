@@ -218,6 +218,21 @@ export async function getAccessibleZoneIds(): Promise<number[] | null> {
 }
 
 /**
+ * Check if user can access a specific zone (read-only version for Server Components)
+ */
+export async function canAccessZoneReadOnly(zoneId: number): Promise<boolean> {
+  const accessibleZones = await getAccessibleZoneIdsReadOnly();
+  
+  // null means all zones accessible
+  if (accessibleZones === null) {
+    return true;
+  }
+
+  // Check if zoneId is in accessible zones
+  return accessibleZones.includes(zoneId);
+}
+
+/**
  * Check if user can access a specific zone
  */
 export async function canAccessZone(zoneId: number): Promise<boolean> {
@@ -230,6 +245,19 @@ export async function canAccessZone(zoneId: number): Promise<boolean> {
 
   // Check if zoneId is in accessible zones
   return accessibleZones.includes(zoneId);
+}
+
+/**
+ * Check if user can access a specific household (read-only version for Server Components)
+ */
+export async function canAccessHouseholdReadOnly(householdZoneId: number | null): Promise<boolean> {
+  if (!householdZoneId) {
+    // Households without zones might be accessible to all
+    const access = await getCurrentUserAccessReadOnly();
+    return access.isSuperAdmin || access.isAdun;
+  }
+
+  return canAccessZoneReadOnly(householdZoneId);
 }
 
 /**

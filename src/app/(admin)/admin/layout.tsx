@@ -6,6 +6,7 @@ import styles from "./layout.module.css";
 import AdminNav from "./nav";
 import LogoutButton from "./LogoutButton";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import NotificationIcon from "@/components/NotificationIcon";
 import { getCurrentUserAccessReadOnly, getWorkspaceAccess } from "@/lib/utils/access-control";
 import { getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import { getSetting } from "@/lib/actions/settings";
@@ -96,7 +97,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             <div className={styles.brandRow}>
               <span style={{ fontWeight: 600 }}>{adminHeaderTitle}</span>
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center gap-3">
+              <NotificationIcon href="/admin/notifications" />
               <LanguageSwitcher />
             </div>
           </header>

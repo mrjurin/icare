@@ -42,7 +42,7 @@ export default async function AdminIssueDetailPage({ params }: { params: Promise
   const supabase = await getSupabaseReadOnlyClient();
   const { data: issue, error } = await supabase
     .from("issues")
-    .select("id,title,description,status,address,category,created_at,lat,lng")
+    .select("id,title,description,status,address,category,created_at,lat,lng,reporter_id")
     .eq("id", idNum)
     .single();
   
@@ -67,6 +67,33 @@ export default async function AdminIssueDetailPage({ params }: { params: Promise
     .select("url,type,size_bytes")
     .eq("issue_id", idNum);
   const media: Media[] = Array.isArray(mediaRows) ? mediaRows : [];
+
+  // Fetch issuer/reporter information
+  let issuer: {
+    fullName: string | null;
+    email: string | null;
+    phone: string | null;
+    address: string | null;
+    icNumber: string | null;
+  } | null = null;
+  
+  if (issue.reporter_id) {
+    const { data: reporterData } = await supabase
+      .from("profiles")
+      .select("full_name,email,phone,address,ic_number")
+      .eq("id", issue.reporter_id)
+      .single();
+    
+    if (reporterData) {
+      issuer = {
+        fullName: reporterData.full_name ?? null,
+        email: reporterData.email ?? null,
+        phone: reporterData.phone ?? null,
+        address: reporterData.address ?? null,
+        icNumber: reporterData.ic_number ?? null,
+      };
+    }
+  }
 
   const { data: assigneesData } = await supabase
     .from("staff")
@@ -172,6 +199,57 @@ export default async function AdminIssueDetailPage({ params }: { params: Promise
         </div>
 
         <div className="flex flex-col gap-6">
+          <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">
+            <h2 className="text-xl font-bold tracking-[-0.015em] text-gray-900 dark:text-white pb-4">{t("issuerInformation")}</h2>
+            {issuer ? (
+              <div className="space-y-3">
+                {issuer.fullName && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t("name")}</p>
+                    <p className="text-base text-gray-900 dark:text-white">{issuer.fullName}</p>
+                  </div>
+                )}
+                {issuer.email && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t("email")}</p>
+                    <p className="text-base text-gray-900 dark:text-white">
+                      <a href={`mailto:${issuer.email}`} className="text-primary hover:underline">
+                        {issuer.email}
+                      </a>
+                    </p>
+                  </div>
+                )}
+                {issuer.phone && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t("phone")}</p>
+                    <p className="text-base text-gray-900 dark:text-white">
+                      <a href={`tel:${issuer.phone}`} className="text-primary hover:underline">
+                        {issuer.phone}
+                      </a>
+                    </p>
+                  </div>
+                )}
+                {issuer.icNumber && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t("icNumber")}</p>
+                    <p className="text-base text-gray-900 dark:text-white">{issuer.icNumber}</p>
+                  </div>
+                )}
+                {issuer.address && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t("address")}</p>
+                    <p className="text-base text-gray-900 dark:text-white">{issuer.address}</p>
+                  </div>
+                )}
+                {!issuer.fullName && !issuer.email && !issuer.phone && !issuer.icNumber && !issuer.address && (
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{t("noIssuerInformation")}</p>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-600 dark:text-gray-300">{t("noIssuerInformation")}</p>
+            )}
+          </div>
+
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">
             <h2 className="text-xl font-bold tracking-[-0.015em] text-gray-900 dark:text-white pb-4">{t("actions")}</h2>
             <IssueActions

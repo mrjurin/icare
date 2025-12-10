@@ -6,9 +6,11 @@ import styles from "./layout.module.css";
 import AdminNav from "./nav";
 import LogoutButton from "./LogoutButton";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import NotificationIcon from "@/components/NotificationIcon";
 import { getCurrentUserAccessReadOnly, getWorkspaceAccess } from "@/lib/utils/access-control";
 import { getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import { getSetting } from "@/lib/actions/settings";
+import { getLocale } from "next-intl/server";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   // Check workspace access
@@ -60,6 +62,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   // Get messages for intl provider
   const messages = await getMessages();
+  const locale = await getLocale();
 
   return (
     <NextIntlClientProvider messages={messages}>
@@ -96,7 +99,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             <div className={styles.brandRow}>
               <span style={{ fontWeight: 600 }}>{adminHeaderTitle}</span>
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center gap-3">
+              <NotificationIcon href={`/${locale}/admin/notifications`} />
               <LanguageSwitcher />
             </div>
           </header>

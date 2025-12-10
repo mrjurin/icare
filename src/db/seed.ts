@@ -476,6 +476,215 @@ async function seedIssues(existingData?: SeedResult): Promise<SeedResult> {
 
 seedFunctions['issues'] = seedIssues;
 
+async function seedAppSettings(existingData?: SeedResult): Promise<SeedResult> {
+  console.log("⚙️  Seeding app settings...");
+  
+  // Check if we should clear existing data
+  if (shouldClearData()) {
+    await db.execute(sql`DELETE FROM app_settings`);
+  }
+  
+  // Get staff for updatedBy field
+  const existingStaff = await db.select().from(staff);
+  const settingsUpdatedBy = existingStaff.length > 0 ? existingStaff[0].id : null;
+  
+  if (!settingsUpdatedBy) {
+    console.log("   ⚠️  No staff found. App settings will be created without updated_by field.");
+  }
+  
+  const defaultLoginImageUrl = "https://lh3.googleusercontent.com/aida-public/AB6AXuDmv2CVtuNASMwZdMSvemNUs8M8rpPOUmfvweQGpyAeoi8ItTn569RZolM1Y1n9js1J7O4y7UbaCdnWdtS8rJyU_7SVoXf6f3yNc8Eg88c10upP-BjUC0TthPe2m3a-7wXiV_uUg5V7pUxTVdwYe_wnXOsdB15QYP6J-SMJLVepYX-j2kYCLoc-ilIv6uTqKe47siL52mxK_jOr1qnfC7Jd2fAsGRpWw0tqo1Uu4VlM4LygeNDgS0gKAyfJHsoFwiyMaH2Aj48qBc0";
+  
+  // Default page content (in Markdown format for MarkdownContent component)
+  const defaultHowItWorksContent = `## How It Works
+
+Welcome to the Community Watch platform! This platform connects community members with local representatives to address issues and concerns in your area.
+
+### Getting Started
+
+1. **Register an Account:** Create your account by providing your basic information and verification details.
+2. **Report Issues:** Submit issues or concerns you encounter in your community, such as infrastructure problems, safety concerns, or service requests.
+3. **Track Progress:** Monitor the status of your submitted issues and receive updates on their resolution.
+4. **View Reports:** Access community reports and statistics to stay informed about local developments.
+
+### Features
+
+- Submit and track community issues
+- View community reports and statistics
+- Receive notifications about issue updates
+- Access aid programs and support services
+- Connect with community leaders and staff
+
+### Support
+
+If you need assistance or have questions, please don't hesitate to contact us through the Contact page or reach out to your local community representatives.`;
+
+  const defaultViewReportsContent = `## View Reports
+
+Stay informed about community activities, statistics, and developments through our comprehensive reporting system.
+
+### Available Reports
+
+- **Issue Reports:** Track all reported issues in your community, including their status, priority, and resolution progress.
+- **Community Statistics:** View demographic data, household information, and community metrics.
+- **Aid Program Reports:** Access information about aid distributions and program participation.
+- **Activity Reports:** Monitor community activities, announcements, and engagement metrics.
+
+### How to Access Reports
+
+1. Log in to your account
+2. Navigate to the Reports section
+3. Select the type of report you wish to view
+4. Filter and customize the report based on your needs
+5. Export or share reports as needed
+
+### Report Features
+
+- Real-time data updates
+- Customizable filters and date ranges
+- Export capabilities (PDF, Excel)
+- Visual charts and graphs
+- Detailed breakdowns by zone, village, or category
+
+For more information or assistance with reports, please contact your community administrator.`;
+
+  const defaultAboutUsContent = `## About Us
+
+Welcome to the N.18 Inanam Community Watch platform, a comprehensive community engagement and issue management system designed to strengthen the connection between community members and their local representatives.
+
+### Our Mission
+
+Our mission is to create a transparent, efficient, and responsive platform that empowers community members to report issues, access information, and engage with local governance. We strive to improve the quality of life in our community by facilitating better communication and faster problem resolution.
+
+### What We Do
+
+- **Issue Management:** We provide a streamlined system for reporting and tracking community issues, ensuring they are addressed promptly and efficiently.
+- **Community Engagement:** We facilitate communication between community members, staff, and representatives to foster a collaborative environment.
+- **Information Access:** We provide easy access to community reports, statistics, and important announcements.
+- **Support Services:** We connect community members with aid programs, support services, and resources available in the area.
+
+### Our Values
+
+- **Transparency:** We believe in open communication and accountability.
+- **Responsiveness:** We are committed to addressing community needs quickly and effectively.
+- **Inclusivity:** We ensure all community members have equal access to services and information.
+- **Integrity:** We maintain the highest standards of service and ethical conduct.
+
+### Contact Information
+
+For more information about our services or to get involved, please visit our Contact page or reach out to your local community representatives.`;
+
+  const defaultContactContent = `## Contact Us
+
+We're here to help! Get in touch with us through any of the following methods:
+
+### Office Information
+
+**N.18 Inanam Community Watch**  
+Address: [Your Office Address]  
+Phone: [Your Phone Number]  
+Email: [Your Email Address]
+
+### Office Hours
+
+Monday - Friday: 9:00 AM - 5:00 PM  
+Saturday: 9:00 AM - 1:00 PM  
+Sunday: Closed
+
+### Contact Methods
+
+- **In-Person:** Visit our office during business hours
+- **Phone:** Call us during office hours for immediate assistance
+- **Email:** Send us an email and we'll respond within 24-48 hours
+- **Online:** Submit issues or inquiries through this platform
+
+### Emergency Contacts
+
+For emergencies, please contact:
+
+- Police: 999
+- Fire Department: 994
+- Ambulance: 999
+
+### Staff Directory
+
+You can also reach out to specific staff members or departments through the platform. Log in to access the staff directory and contact information.
+
+### Feedback
+
+We value your feedback! If you have suggestions, comments, or concerns about our services, please don't hesitate to reach out. Your input helps us improve and serve the community better.`;
+  
+  // Delete existing settings for these keys (in case they were created by migrations)
+  await db.execute(sql`
+    DELETE FROM app_settings 
+    WHERE key IN ('admin_header_title', 'app_name', 'staff_login_image_url', 'admin_login_image_url', 'community_login_image_url', 'page_how_it_works_content', 'page_view_reports_content', 'page_about_us_content', 'page_contact_content')
+  `);
+  
+  const settingsToInsert = [
+    {
+      key: "admin_header_title",
+      value: "N.18 Inanam Community Watch",
+      description: "The title displayed in the admin header",
+      updatedBy: settingsUpdatedBy,
+    },
+    {
+      key: "app_name",
+      value: "Community Watch",
+      description: "The application name displayed in the sidebar",
+      updatedBy: settingsUpdatedBy,
+    },
+    {
+      key: "staff_login_image_url",
+      value: defaultLoginImageUrl,
+      description: "The image URL displayed on the staff login page",
+      updatedBy: settingsUpdatedBy,
+    },
+    {
+      key: "admin_login_image_url",
+      value: defaultLoginImageUrl,
+      description: "The image URL displayed on the admin login page",
+      updatedBy: settingsUpdatedBy,
+    },
+    {
+      key: "community_login_image_url",
+      value: defaultLoginImageUrl,
+      description: "The image URL displayed on the community login page",
+      updatedBy: settingsUpdatedBy,
+    },
+    {
+      key: "page_how_it_works_content",
+      value: defaultHowItWorksContent,
+      description: "Content displayed on the 'How It Works' page. This page explains how the platform works to users.",
+      updatedBy: settingsUpdatedBy,
+    },
+    {
+      key: "page_view_reports_content",
+      value: defaultViewReportsContent,
+      description: "Content displayed on the 'View Reports' page. This page provides information about viewing community reports.",
+      updatedBy: settingsUpdatedBy,
+    },
+    {
+      key: "page_about_us_content",
+      value: defaultAboutUsContent,
+      description: "Content displayed on the 'About Us' page. This page provides information about the platform and organization.",
+      updatedBy: settingsUpdatedBy,
+    },
+    {
+      key: "page_contact_content",
+      value: defaultContactContent,
+      description: "Content displayed on the 'Contact' page. This page provides contact information and ways to reach out.",
+      updatedBy: settingsUpdatedBy,
+    },
+  ];
+  
+  const insertedSettings = await db.insert(appSettings).values(settingsToInsert).returning();
+  
+  console.log(`✅ Seeded ${insertedSettings.length} app settings`);
+  return { appSettings: insertedSettings };
+}
+
+seedFunctions['app_settings'] = seedAppSettings;
+seedFunctions['app-settings'] = seedAppSettings; // Also support kebab-case
+
 async function seed() {
   const tableToSeed = getTableToSeed();
   
@@ -760,53 +969,8 @@ async function seed() {
 
     console.log(`✅ Inserted ${insertedStaff.length} staff members`);
 
-    // 4.5. Insert App Settings (including login page images)
-    console.log("⚙️  Inserting app settings...");
-    const defaultLoginImageUrl = "https://lh3.googleusercontent.com/aida-public/AB6AXuDmv2CVtuNASMwZdMSvemNUs8M8rpPOUmfvweQGpyAeoi8ItTn569RZolM1Y1n9js1J7O4y7UbaCdnWdtS8rJyU_7SVoXf6f3yNc8Eg88c10upP-BjUC0TthPe2m3a-7wXiV_uUg5V7pUxTVdwYe_wnXOsdB15QYP6J-SMJLVepYX-j2kYCLoc-ilIv6uTqKe47siL52mxK_jOr1qnfC7Jd2fAsGRpWw0tqo1Uu4VlM4LygeNDgS0gKAyfJHsoFwiyMaH2Aj48qBc0";
-    
-    // Use ADUN (first staff member) as the updater, or first available staff if ADUN doesn't exist
-    const settingsUpdatedBy = insertedStaff.length > 0 ? insertedStaff[0].id : null;
-    
-    // Delete existing settings for these keys (in case they were created by migrations)
-    await db.execute(sql`
-      DELETE FROM app_settings 
-      WHERE key IN ('admin_header_title', 'app_name', 'staff_login_image_url', 'admin_login_image_url', 'community_login_image_url')
-    `);
-    
-    await db.insert(appSettings).values([
-      {
-        key: "admin_header_title",
-        value: "N.18 Inanam Community Watch",
-        description: "The title displayed in the admin header",
-        updatedBy: settingsUpdatedBy,
-      },
-      {
-        key: "app_name",
-        value: "Community Watch",
-        description: "The application name displayed in the sidebar",
-        updatedBy: settingsUpdatedBy,
-      },
-      {
-        key: "staff_login_image_url",
-        value: defaultLoginImageUrl,
-        description: "The image URL displayed on the staff login page",
-        updatedBy: settingsUpdatedBy,
-      },
-      {
-        key: "admin_login_image_url",
-        value: defaultLoginImageUrl,
-        description: "The image URL displayed on the admin login page",
-        updatedBy: settingsUpdatedBy,
-      },
-      {
-        key: "community_login_image_url",
-        value: defaultLoginImageUrl,
-        description: "The image URL displayed on the community login page",
-        updatedBy: settingsUpdatedBy,
-      },
-    ]);
-    
-    console.log("✅ Inserted app settings (including login page images)");
+    // 4.5. Insert App Settings (including login page images and page content)
+    await seedAppSettings({ staff: insertedStaff });
 
     // 5. Insert Issues
     console.log("📋 Inserting issues...");

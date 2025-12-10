@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { useLocale } from "next-intl";
+import { useRouter, usePathname } from "next/navigation";
 
 type IssuePoint = {
   id: number;
@@ -33,7 +35,7 @@ const HeatmapLayerInner = dynamic(
     import("react-leaflet").then((mod) => {
       const { useMap } = mod;
       
-      return function HeatmapLayerInner({ points }: { points: IssuePoint[] }) {
+      return function HeatmapLayerInner({ points, locale, router, pathname }: { points: IssuePoint[]; locale: string; router: any; pathname: string }) {
         const map = useMap();
         const [leaflet, setLeaflet] = useState<typeof import("leaflet") | null>(null);
         const layerRef = useRef<any>(null);
@@ -121,11 +123,34 @@ const HeatmapLayerInner = dynamic(
               statusCounts[p.status] = (statusCounts[p.status] || 0) + 1;
             });
 
-            const statusText = Object.entries(statusCounts)
-              .map(([status, count]) => `${status.replace(/_/g, " ")}: ${count}`)
+            // Create clickable links for each status
+            const statusLinks = Object.entries(statusCounts)
+              .map(([status, count], index) => {
+                const statusDisplay = status.replace(/_/g, " ");
+                const linkId = `status-link-${density}-${index}`;
+                return `<a id="${linkId}" data-status="${status}" style="color: #3b82f6; text-decoration: underline; cursor: pointer; margin-right: 4px;">${statusDisplay}: ${count}</a>`;
+              })
               .join(", ");
 
-            circle.bindPopup(`<div class="p-2"><strong>${density} issue${density > 1 ? "s" : ""}</strong><br/>${statusText}</div>`);
+            const popupContent = `<div class="p-2"><strong>${density} issue${density > 1 ? "s" : ""}</strong><br/>${statusLinks}</div>`;
+            circle.bindPopup(popupContent);
+            
+            // Add click handlers after popup is opened
+            circle.on("popupopen", () => {
+              Object.entries(statusCounts).forEach(([status], index) => {
+                const linkId = `status-link-${density}-${index}`;
+                const linkElement = document.getElementById(linkId);
+                if (linkElement) {
+                  linkElement.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    const params = new URLSearchParams(window.location.search);
+                    params.set("status", status);
+                    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+                  });
+                }
+              });
+            });
+            
             layerGroup.addLayer(circle);
           });
 
@@ -204,6 +229,9 @@ type IssueDensityMapProps = {
  */
 export default function IssueDensityMap({ issues, className = "" }: IssueDensityMapProps) {
   const [isClient, setIsClient] = useState(false);
+  const locale = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     setIsClient(true);
@@ -253,7 +281,7 @@ export default function IssueDensityMap({ issues, className = "" }: IssueDensity
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <HeatmapLayerInner points={issues} />
+        <HeatmapLayerInner points={issues} locale={locale} router={router} pathname={pathname} />
       </MapContainer>
     </div>
   );

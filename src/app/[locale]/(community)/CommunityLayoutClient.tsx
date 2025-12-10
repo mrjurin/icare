@@ -4,14 +4,17 @@ import Image from "next/image";
 import { ReactNode, useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { createBrowserClient } from "@supabase/ssr";
 import styles from "./layout.module.css";
 import Button from "@/components/ui/Button";
+import NotificationIcon from "@/components/NotificationIcon";
 
 export default function CommunityLayoutClient({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const locale = useLocale();
 
   // Close sidebar when route changes on mobile
   useEffect(() => {
@@ -73,6 +76,7 @@ export default function CommunityLayoutClient({ children }: { children: ReactNod
           <span style={{ fontWeight: 700 }}>N.18 Inanam Community Hub</span>
         </div>
         <div className={styles.topbarActions}>
+          <NotificationIcon href={`/${locale}/community/notifications`} />
           <Button asChild className={styles.reportBtn}>
             <Link href="/community/report">Report a New Issue</Link>
           </Button>

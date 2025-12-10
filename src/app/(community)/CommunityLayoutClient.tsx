@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import styles from "./layout.module.css";
 import Button from "@/components/ui/Button";
+import NotificationIcon from "@/components/NotificationIcon";
 
 export default function CommunityLayoutClient({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -73,6 +74,7 @@ export default function CommunityLayoutClient({ children }: { children: ReactNod
           <span style={{ fontWeight: 700 }}>N.18 Inanam Community Hub</span>
         </div>
         <div className={styles.topbarActions}>
+          <NotificationIcon href="/community/notifications" />
           <Button asChild className={styles.reportBtn}>
             <Link href="/community/report">Report a New Issue</Link>
           </Button>

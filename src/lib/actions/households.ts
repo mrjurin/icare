@@ -1,8 +1,8 @@
 "use server";
 
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseServerClient, getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { getAccessibleZoneIds } from "@/lib/utils/access-control";
+import { getAccessibleZoneIds, getAccessibleZoneIdsReadOnly } from "@/lib/utils/access-control";
 
 export type MemberRelationship = "head" | "spouse" | "child" | "parent" | "sibling" | "other";
 export type MemberStatus = "at_home" | "away" | "deceased";
@@ -32,6 +32,7 @@ export type HouseholdMember = {
   household_id: number;
   name: string;
   ic_number: string | null;
+  phone: string | null;
   relationship: MemberRelationship;
   date_of_birth: string | null;
   locality: string | null;
@@ -81,6 +82,7 @@ export type CreateHouseholdInput = {
   zoneId?: number;
   notes?: string;
   headOfHouseholdId?: number;
+  sprVoterId?: number; // Link to SPR voter if created from SPR data
 };
 
 export type UpdateHouseholdInput = {
@@ -99,6 +101,7 @@ export type CreateMemberInput = {
   householdId: number;
   name: string;
   icNumber?: string;
+  phone?: string;
   relationship: MemberRelationship;
   dateOfBirth?: string;
   locality?: string;
@@ -106,12 +109,14 @@ export type CreateMemberInput = {
   dependencyStatus?: DependencyStatus;
   votingSupportStatus?: VotingSupportStatus;
   notes?: string;
+  sprVoterId?: number; // Link to SPR voter if created from SPR data
 };
 
 export type UpdateMemberInput = {
   id: number;
   name?: string;
   icNumber?: string;
+  phone?: string;
   relationship?: MemberRelationship;
   dateOfBirth?: string;
   locality?: string;
@@ -146,7 +151,13 @@ export async function getHouseholdList(options?: {
   search?: string;
   area?: string;
 }): Promise<ActionResult<Household[]>> {
-  const supabase = await getSupabaseServerClient();
+  // Use read-only client for Server Components
+  let supabase;
+  try {
+    supabase = await getSupabaseReadOnlyClient();
+  } catch (error) {
+    return { success: false, error: "Session expired. Please log in again." };
+  }
 
   // Get accessible zone IDs based on user role
   const accessibleZoneIds = await getAccessibleZoneIds();
@@ -200,7 +211,8 @@ async function calculateHouseholdStats(householdId: number): Promise<{
   members_at_home: number;
   total_dependents: number;
 }> {
-  const supabase = await getSupabaseServerClient();
+  // Use read-only client for Server Components
+  const supabase = await getSupabaseReadOnlyClient();
 
   const { data: members } = await supabase
     .from("household_members")
@@ -231,8 +243,16 @@ export async function getHouseholdById(id: number): Promise<ActionResult<Househo
     return { success: false, error: "Invalid household ID" };
   }
 
-  const supabase = await getSupabaseServerClient();
-  const { canAccessHousehold } = await import("@/lib/utils/access-control");
+  // Use read-only client for Server Components to avoid cookie modification errors
+  let supabase;
+  try {
+    supabase = await getSupabaseReadOnlyClient();
+  } catch (error) {
+    // If cookie error occurs, it means session is invalid - return error
+    return { success: false, error: "Session expired. Please log in again." };
+  }
+
+  const { canAccessHouseholdReadOnly } = await import("@/lib/utils/access-control");
 
   // Get household
   const { data: household, error: householdError } = await supabase
@@ -245,8 +265,8 @@ export async function getHouseholdById(id: number): Promise<ActionResult<Househo
     return { success: false, error: "Household not found" };
   }
 
-  // Check if user can access this household's zone
-  const canAccess = await canAccessHousehold(household.zone_id);
+  // Check if user can access this household's zone (using read-only version)
+  const canAccess = await canAccessHouseholdReadOnly(household.zone_id);
   if (!canAccess) {
     return { success: false, error: "Access denied: You do not have permission to view this household" };
   }
@@ -291,10 +311,134 @@ export async function getHouseholdById(id: number): Promise<ActionResult<Househo
   };
 }
 
+type ExistingMember = {
+  id: number;
+  household_id: number;
+  name: string;
+  relationship: string;
+  status: string;
+  dependency_status: string;
+};
+
+type ExistingHeadHousehold = {
+  id: number;
+  head_name: string;
+};
+
+/**
+ * Helper function to find or validate a profile for the household head
+ * Returns the profile ID if found, null otherwise
+ */
+async function findOrValidateProfile(
+  supabase: any,
+  icNumber: string | undefined,
+  providedProfileId: number | undefined
+): Promise<number | null> {
+  // First, try to find profile by IC number if provided
+  if (icNumber?.trim()) {
+    const { data: profileByIc } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("ic_number", icNumber.trim())
+      .maybeSingle();
+
+    if (profileByIc?.id) {
+      return profileByIc.id;
+    }
+  }
+
+  // If no profile found by IC, validate the provided profile ID if given
+  if (providedProfileId) {
+    const { data: profileById } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", providedProfileId)
+      .maybeSingle();
+
+    if (profileById?.id) {
+      return profileById.id;
+    }
+    // If provided profile ID doesn't exist, log a warning
+    console.warn(`Warning: Provided profile ID ${providedProfileId} does not exist`);
+  }
+
+  // No profile found
+  return null;
+}
+
+/**
+ * Helper function to handle existing memberships when someone becomes head of household
+ * Marks existing active memberships as "away" to maintain data integrity
+ */
+async function handleExistingMembership(
+  supabase: any,
+  icNumber: string,
+  headName: string
+): Promise<{ hasExistingMembership: boolean; hasExistingHeadHousehold: boolean }> {
+  let hasExistingMembership = false;
+  let hasExistingHeadHousehold = false;
+
+  if (!icNumber?.trim()) {
+    return { hasExistingMembership: false, hasExistingHeadHousehold: false };
+  }
+
+  // Check if the person is already a member of another household
+  const { data: existingMembers } = await supabase
+    .from("household_members")
+    .select("id, household_id, name, relationship, status, dependency_status")
+    .eq("ic_number", icNumber.trim())
+    .in("status", ["at_home", "away"]); // Check both active and away members
+
+  // If person is already a member (and not away), mark them as away in old household
+  if (existingMembers && existingMembers.length > 0) {
+    const activeMembers = (existingMembers as ExistingMember[]).filter((m) => m.status === "at_home");
+    
+    if (activeMembers.length > 0) {
+      hasExistingMembership = true;
+      // Update all active memberships to "away" status
+      // Also update dependency_status to "independent" since they're now head of their own household
+      // This handles the case where someone moves out and becomes head of their own household
+      for (const member of activeMembers) {
+        await supabase
+          .from("household_members")
+          .update({
+            status: "away",
+            dependency_status: "independent", // They're now independent as head of their own household
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", member.id);
+      }
+    }
+  }
+
+  // Also check if they're already head of another household
+  const { data: existingHeadHouseholds } = await supabase
+    .from("households")
+    .select("id, head_name")
+    .eq("head_ic_number", icNumber.trim());
+
+  if (existingHeadHouseholds && existingHeadHouseholds.length > 0) {
+    hasExistingHeadHousehold = true;
+    // This person is already head of another household
+    // We'll still allow creating a new household, but log a warning
+    // In practice, you might want to prevent this or require explicit confirmation
+    const householdIds = (existingHeadHouseholds as ExistingHeadHousehold[]).map((h) => h.id).join(", ");
+    console.warn(
+      `Warning: ${headName} (IC: ${icNumber}) is already head of household(s):`,
+      householdIds
+    );
+  }
+
+  return { hasExistingMembership, hasExistingHeadHousehold };
+}
+
 /**
  * Create a new household
  * Requires register_household permission or zone_leader role
  * Zone leaders can only create households in their assigned zone
+ * 
+ * IMPORTANT: The head of household is automatically added as a member with relationship "head"
+ * If the person was previously a member of another household, they are marked as "away" in the old household
  */
 export async function createHousehold(input: CreateHouseholdInput): Promise<ActionResult<Household>> {
   if (!input.headName?.trim()) {
@@ -335,6 +479,19 @@ export async function createHousehold(input: CreateHouseholdInput): Promise<Acti
     }
   }
 
+  // Handle existing memberships: if person was a member elsewhere, mark them as "away"
+  if (input.headIcNumber?.trim()) {
+    await handleExistingMembership(supabase, input.headIcNumber.trim(), input.headName.trim());
+  }
+
+  // Find or validate the profile for the head of household
+  // This prevents foreign key constraint violations when the person was previously a member
+  const headProfileId = await findOrValidateProfile(
+    supabase,
+    input.headIcNumber,
+    input.headOfHouseholdId
+  );
+
   const { data, error } = await supabase
     .from("households")
     .insert({
@@ -345,7 +502,7 @@ export async function createHousehold(input: CreateHouseholdInput): Promise<Acti
       area: input.area?.trim() || null,
       zone_id: input.zoneId || null,
       notes: input.notes?.trim() || null,
-      head_of_household_id: input.headOfHouseholdId || null,
+      head_of_household_id: headProfileId, // Use found/validated profile ID or null
     })
     .select()
     .single();
@@ -354,8 +511,85 @@ export async function createHousehold(input: CreateHouseholdInput): Promise<Acti
     return { success: false, error: error.message };
   }
 
+  const household = data as Household;
+
+  // ALWAYS create a household member record for the head
+  // This ensures the head is always recorded as a member of their household
+  if (household.id) {
+    const { data: headMember, error: memberError } = await supabase
+      .from("household_members")
+      .insert({
+        household_id: household.id,
+        name: input.headName.trim(),
+        ic_number: input.headIcNumber?.trim() || null,
+        relationship: "head",
+        date_of_birth: null, // Can be extracted from IC if needed
+        status: "at_home",
+        dependency_status: "independent",
+      })
+      .select()
+      .single();
+
+    if (memberError) {
+      // If member creation fails, we should rollback the household creation
+      // But since Supabase doesn't support transactions in this context easily,
+      // we'll log the error and return a warning
+      console.error("Failed to create head member:", memberError);
+      // Note: The household was created but without a member record
+      // This is a data integrity issue that should be addressed
+      return {
+        success: false,
+        error: `Household created but failed to add head as member: ${memberError.message}`,
+      };
+    }
+
+    // If the person has a profile (e.g., they were previously a household member),
+    // update their profile to link to the new head member record
+    // This handles the transition from member to head of their own household
+    if (headProfileId && headMember) {
+      const { error: profileUpdateError } = await supabase
+        .from("profiles")
+        .update({
+          household_member_id: headMember.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", headProfileId);
+
+      if (profileUpdateError) {
+        // Log but don't fail - this is a data consistency improvement, not critical
+        console.warn("Failed to update profile household_member_id:", profileUpdateError);
+      }
+    }
+
+    // If created from SPR data, link SPR voter to the head member
+    if (input.sprVoterId && headMember) {
+      // Check if SPR voter is already linked to a member
+      const { data: sprVoter } = await supabase
+        .from("spr_voters")
+        .select("household_member_id")
+        .eq("id", input.sprVoterId)
+        .single();
+
+      // Only link if not already linked
+      if (sprVoter && !sprVoter.household_member_id) {
+        const { error: sprLinkError } = await supabase
+          .from("spr_voters")
+          .update({
+            household_member_id: headMember.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", input.sprVoterId);
+
+        if (sprLinkError) {
+          console.error("Failed to link SPR voter to household member:", sprLinkError);
+          // Don't fail the whole operation, just log the error
+        }
+      }
+    }
+  }
+
   revalidatePath("/admin/households");
-  return { success: true, data: data as Household };
+  return { success: true, data: household };
 }
 
 /**
@@ -529,6 +763,7 @@ export async function createMember(input: CreateMemberInput): Promise<ActionResu
       household_id: input.householdId,
       name: input.name.trim(),
       ic_number: input.icNumber?.trim() || null,
+      phone: input.phone?.trim() || null,
       relationship: input.relationship,
       date_of_birth: input.dateOfBirth || null,
       locality: input.locality?.trim() || null,
@@ -544,8 +779,36 @@ export async function createMember(input: CreateMemberInput): Promise<ActionResu
     return { success: false, error: error.message };
   }
 
+  const member = data as HouseholdMember;
+
+  // If created from SPR data, link SPR voter to this member
+  if (input.sprVoterId && member.id) {
+    // Check if SPR voter is already linked to a member
+    const { data: sprVoter } = await supabase
+      .from("spr_voters")
+      .select("household_member_id")
+      .eq("id", input.sprVoterId)
+      .single();
+
+    // Only link if not already linked
+    if (sprVoter && !sprVoter.household_member_id) {
+      const { error: sprLinkError } = await supabase
+        .from("spr_voters")
+        .update({
+          household_member_id: member.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", input.sprVoterId);
+
+      if (sprLinkError) {
+        console.error("Failed to link SPR voter to household member:", sprLinkError);
+        // Don't fail the whole operation, just log the error
+      }
+    }
+  }
+
   revalidatePath(`/households/${input.householdId}`);
-  return { success: true, data: data as HouseholdMember };
+  return { success: true, data: member };
 }
 
 /**
@@ -571,6 +834,10 @@ export async function updateMember(input: UpdateMemberInput): Promise<ActionResu
 
   if (input.icNumber !== undefined) {
     updates.ic_number = input.icNumber?.trim() || null;
+  }
+
+  if (input.phone !== undefined) {
+    updates.phone = input.phone?.trim() || null;
   }
 
   if (input.relationship !== undefined) {
@@ -828,4 +1095,181 @@ export async function getHouseholdsWithoutRecentAid(
   );
 
   return { success: true, data: householdsWithStats };
+}
+
+/**
+ * Find related household members across households by tracing relationships
+ * Uses IC number matching to find parents, children, and siblings in other households
+ */
+export async function findRelatedMembers(
+  householdId: number,
+  memberId?: number
+): Promise<ActionResult<{
+  members: HouseholdMember[];
+  households: Household[];
+}>> {
+  // Use read-only client for Server Components
+  let supabase;
+  try {
+    supabase = await getSupabaseReadOnlyClient();
+  } catch (error) {
+    return { success: false, error: "Session expired. Please log in again." };
+  }
+  
+  const { canAccessHouseholdReadOnly } = await import("@/lib/utils/access-control");
+
+  // Get the starting household
+  const { data: household, error: householdError } = await supabase
+    .from("households")
+    .select("*")
+    .eq("id", householdId)
+    .single();
+
+  if (householdError || !household) {
+    return { success: false, error: "Household not found" };
+  }
+
+  // Check access (using read-only version)
+  const canAccess = await canAccessHouseholdReadOnly(household.zone_id);
+  if (!canAccess) {
+    return { success: false, error: "Access denied" };
+  }
+
+  // Get all members from the starting household
+  const { data: startingMembers } = await supabase
+    .from("household_members")
+    .select("*")
+    .eq("household_id", householdId);
+
+  if (!startingMembers || startingMembers.length === 0) {
+    return { success: true, data: { members: [], households: [household] } };
+  }
+
+  // Collect all IC numbers from starting household
+  const icNumbers = new Set<string>();
+  startingMembers.forEach((m) => {
+    if (m.ic_number) {
+      const normalized = m.ic_number.replace(/[\s-]/g, "").toUpperCase();
+      icNumbers.add(normalized);
+      // Also add variations
+      icNumbers.add(normalized.replace(/(\d{6})(\d{2})(\d{4})/, "$1-$2-$3"));
+      icNumbers.add(normalized.replace(/-/g, ""));
+    }
+  });
+
+  // Get accessible zone IDs
+  const accessibleZoneIds = await getAccessibleZoneIds();
+
+  // Find all household members with matching IC numbers (potential relatives)
+  let relatedMembersQuery = supabase
+    .from("household_members")
+    .select("*");
+
+  // Filter by accessible zones if restricted
+  if (accessibleZoneIds !== null) {
+    if (accessibleZoneIds.length === 0) {
+      return { success: true, data: { members: startingMembers as HouseholdMember[], households: [household] } };
+    }
+    // Get household IDs in accessible zones
+    const { data: accessibleHouseholds } = await supabase
+      .from("households")
+      .select("id")
+      .in("zone_id", accessibleZoneIds);
+    
+    if (accessibleHouseholds && accessibleHouseholds.length > 0) {
+      const householdIds = accessibleHouseholds.map((h: any) => h.id);
+      relatedMembersQuery = relatedMembersQuery.in("household_id", householdIds);
+    } else {
+      return { success: true, data: { members: startingMembers as HouseholdMember[], households: [household] } };
+    }
+  }
+
+  const { data: allMembers } = await relatedMembersQuery;
+
+  // Normalize IC helper
+  const normalizeIc = (ic: string | null) => {
+    if (!ic) return null;
+    return ic.replace(/[\s-]/g, "").toUpperCase();
+  };
+
+  // Build IC to member map for quick lookup
+  const icToMembersMap = new Map<string, any[]>();
+  (allMembers || []).forEach((m: any) => {
+    if (m.ic_number) {
+      const normalized = normalizeIc(m.ic_number);
+      if (normalized) {
+        if (!icToMembersMap.has(normalized)) {
+          icToMembersMap.set(normalized, []);
+        }
+        icToMembersMap.get(normalized)!.push(m);
+      }
+    }
+  });
+
+  // Filter members with matching IC numbers OR relationship connections
+  const relatedMembers = (allMembers || []).filter((m: any) => {
+    // Skip if already in starting household
+    if (m.household_id === householdId) return false;
+
+    // Check IC number match - if IC matches, definitely related
+    if (m.ic_number) {
+      const normalized = normalizeIc(m.ic_number);
+      if (normalized && icNumbers.has(normalized)) return true;
+      // Check variations
+      const withDashes = normalized?.replace(/(\d{6})(\d{2})(\d{4})/, "$1-$2-$3");
+      const withoutDashes = normalized?.replace(/-/g, "");
+      if (withDashes && icNumbers.has(withDashes)) return true;
+      if (withoutDashes && icNumbers.has(withoutDashes)) return true;
+    }
+
+    // Relationship-based connections:
+    // If a starting member is a "child", find "parent" members in other households
+    // If a starting member is a "parent"/"head", find "child" members in other households
+    for (const startingMember of startingMembers) {
+      // If starting member is a child, look for parents in other households
+      if (startingMember.relationship === "child" && (m.relationship === "parent" || m.relationship === "head")) {
+        // Check if names suggest relationship (same surname or family name pattern)
+        // For Malaysian names, check if they share common patterns
+        return true; // Include potential parents
+      }
+      
+      // If starting member is parent/head, look for children in other households
+      if ((startingMember.relationship === "parent" || startingMember.relationship === "head") && m.relationship === "child") {
+        return true; // Include potential children
+      }
+
+      // If starting member is sibling, look for other siblings
+      if (startingMember.relationship === "sibling" && m.relationship === "sibling") {
+        return true;
+      }
+    }
+
+    return false;
+  });
+
+  // Combine starting members with related members (avoid duplicates)
+  const memberMap = new Map<number, HouseholdMember>();
+  [...startingMembers, ...relatedMembers].forEach((m: any) => {
+    if (!memberMap.has(m.id)) {
+      memberMap.set(m.id, m as HouseholdMember);
+    }
+  });
+
+  // Get unique household IDs
+  const householdIds = new Set<number>();
+  memberMap.forEach((m) => householdIds.add(m.household_id));
+
+  // Get all related households
+  const { data: relatedHouseholds } = await supabase
+    .from("households")
+    .select("*")
+    .in("id", Array.from(householdIds));
+
+  return {
+    success: true,
+    data: {
+      members: Array.from(memberMap.values()),
+      households: (relatedHouseholds || []) as Household[],
+    },
+  };
 }

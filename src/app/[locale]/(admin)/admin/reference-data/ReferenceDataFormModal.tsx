@@ -434,6 +434,47 @@ export default function ReferenceDataFormModal({
               </div>
             )}
 
+            {table === "parliaments" && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
+                    {t("form.latitude")}
+                  </label>
+                  <Input
+                    type="number"
+                    step="any"
+                    value={formData.lat !== undefined ? formData.lat.toString() : ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        lat: e.target.value ? parseFloat(e.target.value) : undefined,
+                      })
+                    }
+                    placeholder="e.g., 5.9804"
+                    disabled={isPending}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
+                    {t("form.longitude")}
+                  </label>
+                  <Input
+                    type="number"
+                    step="any"
+                    value={formData.lng !== undefined ? formData.lng.toString() : ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        lng: e.target.value ? parseFloat(e.target.value) : undefined,
+                      })
+                    }
+                    placeholder="e.g., 116.0735"
+                    disabled={isPending}
+                  />
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
                 {t("form.description")}

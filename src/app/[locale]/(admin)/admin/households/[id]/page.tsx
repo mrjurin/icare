@@ -2,12 +2,13 @@ import { ArrowLeft, Users, Home, DollarSign, Package, Plus, AlertCircle } from "
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import { getHouseholdById } from "@/lib/actions/households";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import HouseholdFormModal from "../HouseholdFormModal";
 import MembersSection from "./MembersSection";
 import IncomeSection from "./IncomeSection";
 import AidDistributionSection from "./AidDistributionSection";
-import { getUserWorkspaceType } from "@/lib/utils/access-control";
+import FamilyTreeView from "@/components/households/FamilyTreeView";
+import { getUserWorkspaceType, getCurrentUserAccessReadOnly } from "@/lib/utils/access-control";
 import { getTranslations } from "next-intl/server";
 
 export default async function HouseholdDetailPage({
@@ -22,9 +23,49 @@ export default async function HouseholdDetailPage({
     notFound();
   }
 
-  const result = await getHouseholdById(householdId);
+  // Check authentication first
+  try {
+    const access = await getCurrentUserAccessReadOnly();
+    if (!access.isAuthenticated || !access.staffId) {
+      redirect("/admin/login");
+    }
+  } catch (error: any) {
+    // Session expired or invalid - redirect to login
+    // Also catch cookie modification errors
+    if (error?.message?.includes("Cookies can only be modified") || 
+        error?.message?.includes("session") ||
+        error?.message?.includes("cookie")) {
+      redirect("/admin/login");
+    }
+    // Re-throw other errors
+    throw error;
+  }
 
-  if (!result.success || !result.data) {
+  let result;
+  try {
+    result = await getHouseholdById(householdId);
+  } catch (error: any) {
+    // Catch cookie modification errors or session errors
+    if (error?.message?.includes("Cookies can only be modified") || 
+        error?.message?.includes("Session expired") ||
+        error?.message?.includes("session")) {
+      redirect("/admin/login");
+    }
+    // Re-throw other errors
+    throw error;
+  }
+
+  if (!result.success) {
+    // Check if error is session-related
+    if (result.error?.includes("Session expired") || 
+        result.error?.includes("session") ||
+        result.error?.includes("cookie")) {
+      redirect("/admin/login");
+    }
+    notFound();
+  }
+
+  if (!result.data) {
     notFound();
   }
 
@@ -149,6 +190,9 @@ export default async function HouseholdDetailPage({
           )}
         </div>
       </div>
+
+      {/* Family Tree View */}
+      <FamilyTreeView members={household.members} />
 
       {/* Members Section */}
       <MembersSection householdId={householdId} members={household.members} isAdmin={isAdmin} />

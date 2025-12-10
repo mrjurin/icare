@@ -252,6 +252,9 @@ export async function createReferenceData(
     if (input.districtId) insertData.district_id = input.districtId;
     if (input.lat !== undefined) insertData.lat = input.lat;
     if (input.lng !== undefined) insertData.lng = input.lng;
+  } else if (table === "parliaments") {
+    if (input.lat !== undefined) insertData.lat = input.lat;
+    if (input.lng !== undefined) insertData.lng = input.lng;
   } else if (table === "polling_stations") {
     if (input.localityId) insertData.locality_id = input.localityId;
     if (input.address) insertData.address = input.address;
@@ -342,6 +345,9 @@ export async function updateReferenceData(
     if (input.parliamentId !== undefined) updates.parliament_id = input.parliamentId || null;
     if (input.dunId !== undefined) updates.dun_id = input.dunId || null;
     if (input.districtId !== undefined) updates.district_id = input.districtId || null;
+    if (input.lat !== undefined) updates.lat = input.lat || null;
+    if (input.lng !== undefined) updates.lng = input.lng || null;
+  } else if (table === "parliaments") {
     if (input.lat !== undefined) updates.lat = input.lat || null;
     if (input.lng !== undefined) updates.lng = input.lng || null;
   } else if (table === "polling_stations") {
@@ -840,6 +846,28 @@ export async function populateReferenceDataFromSpr(
           break;
         case "parliaments":
           value = voter.nama_parlimen;
+          // Try to split code and name if format is like "P171 SEPANGGAR"
+          if (value) {
+            const trimmedValue = value.trim();
+            // Match pattern: letter(s) + numbers + space + name
+            // Examples: "P171 SEPANGGAR", "P.171 SEPANGGAR", "P171-SEPANGGAR"
+            // Pattern: one or more letters, optional dot/dash, one or more digits, then space(s), then the rest
+            const match = trimmedValue.match(/^([A-Z]+[.\-]?\d+)\s+(.+)$/i);
+            if (match) {
+              // Extract code and clean it (remove dots and dashes)
+              code = match[1].trim().toUpperCase().replace(/[.\-]/g, "");
+              // Extract name
+              value = match[2].trim();
+            } else {
+              // Try pattern without space: "P171SEPANGGAR" -> "P171" and "SEPANGGAR"
+              // Pattern: letters + optional dot/dash + digits, then letters (start of name)
+              const matchNoSpace = trimmedValue.match(/^([A-Z]+[.\-]?\d+)([A-Z][A-Z\s].*)$/i);
+              if (matchNoSpace) {
+                code = matchNoSpace[1].trim().toUpperCase().replace(/[.\-]/g, "");
+                value = matchNoSpace[2].trim();
+              }
+            }
+          }
           break;
         case "duns":
           value = voter.nama_dun;

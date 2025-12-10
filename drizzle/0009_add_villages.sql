@@ -16,3 +16,5 @@ CREATE INDEX IF NOT EXISTS "villages_name_idx" ON "villages" USING btree ("name"
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "villages_zone_idx" ON "villages" USING btree ("zone_id");
 
+
+

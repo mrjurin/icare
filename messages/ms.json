@@ -85,6 +85,13 @@
       "issuesResolved": "Isu Diselesaikan",
       "activeMembers": "Ahli Aktif"
     },
+    "announcements": {
+      "title": "Pengumuman Komuniti",
+      "subtitle": "Kekal dimaklumkan tentang kemas kini dan acara penting dalam komuniti anda",
+      "showMore": "Tunjukkan {count} Lagi",
+      "showLess": "Tunjukkan Kurang",
+      "viewAll": "Lihat Semua Pengumuman"
+    },
     "features": {
       "title": "Suara Anda, Komuniti Kami",
       "subtitle": "Ciri-ciri berkuasa yang direka untuk menjadikan penglibatan komuniti mudah dan berkesan",
@@ -192,6 +199,12 @@
     },
     "browseReports": "Layari laporan untuk melihat apa yang berlaku dalam komuniti anda dan bagaimana anda boleh membantu."
   },
+  "announcements": {
+    "title": "Pengumuman Komuniti",
+    "subtitle": "Kekal dimaklumkan tentang kemas kini penting, acara dan berita dalam komuniti anda",
+    "noAnnouncements": "Tiada Pengumuman",
+    "noAnnouncementsDescription": "Tiada pengumuman aktif buat masa ini. Sila semak kemudian untuk kemas kini!"
+  },
   "language": {
     "switch": "Tukar Bahasa",
     "english": "English",
@@ -281,6 +294,8 @@
     "sprView": "Paparan SPR",
     "noDataAvailable": "Tiada data tersedia",
     "loadingReports": "Memuatkan laporan...",
+    "statistics": "Statistik",
+    "recentIssues": "Isu Terkini",
     "reportsTable": {
       "all": "Semua",
       "filters": "Tapis",
@@ -292,6 +307,7 @@
       "created": "Dicipta",
       "assignee": "Ditugaskan",
       "view": "Lihat",
+      "actions": "Tindakan",
       "noReportsFound": "Tiada laporan ditemui yang sepadan dengan penapis anda."
     }
   },
@@ -369,7 +385,14 @@
       "actions": "Tindakan",
       "activityLog": "Log Aktiviti",
       "issueLabel": "Isu",
-      "issueLocationTitle": "Lokasi Isu"
+      "issueLocationTitle": "Lokasi Isu",
+      "issuerInformation": "Maklumat Pengeluar",
+      "name": "Nama",
+      "email": "E-mel",
+      "phone": "Telefon",
+      "address": "Alamat",
+      "icNumber": "No. Kad Pengenalan",
+      "noIssuerInformation": "Tiada maklumat pengeluar tersedia"
     },
     "form": {
       "addNewIssue": "Tambah Isu Baharu",
@@ -498,7 +521,12 @@
       "atHome": "Di Rumah",
       "dependents": "Tanggungan",
       "income": "Pendapatan",
-      "view": "Lihat →"
+      "view": "Lihat →",
+      "actions": {
+        "addMember": "Tambah Ahli",
+        "addIncome": "Tambah Pendapatan",
+        "viewFamilyTree": "Lihat Pokok Keluarga"
+      }
     },
     "detail": {
       "back": "Kembali",
@@ -561,6 +589,7 @@
           "editTitle": "Edit Ahli Isi Rumah",
           "name": "Nama",
           "icNumber": "Nombor IC",
+          "phone": "Nombor Telefon",
           "relationship": "Hubungan",
           "dateOfBirth": "Tarikh Lahir",
           "locality": "Lokaliti",
@@ -571,6 +600,26 @@
           "save": "Simpan",
           "cancel": "Batal",
           "deleteConfirm": "Adakah anda pasti mahu memadam ahli ini?"
+        }
+      },
+      "tree": {
+        "title": "Pokok Keluarga",
+        "description": "Perwakilan visual hubungan keluarga",
+        "noData": "Tiada data pokok keluarga tersedia",
+        "otherRelationships": "Hubungan Lain",
+        "legend": {
+          "atHome": "Di Rumah",
+          "away": "Tidak Di Rumah",
+          "deceased": "Meninggal Dunia",
+          "dependent": "Tanggungan"
+        },
+        "relationships": {
+          "head": "Ketua",
+          "spouse": "Pasangan",
+          "child": "Anak",
+          "parent": "Ibu Bapa",
+          "sibling": "Adik Beradik",
+          "other": "Lain-lain"
         }
       },
       "income": {
@@ -917,6 +966,30 @@
       "resumeError": "Gagal menyambung geokod",
       "confirmTitle": "Sahkan Geokod",
       "confirmDescription": "Ini akan mengkodkan semua lokaliti yang belum mempunyai data lokasi. Proses akan berjalan di latar belakang dan mungkin mengambil masa beberapa minit bergantung pada bilangan lokaliti. Anda boleh meninggalkan halaman dan menyemak kemajuan kemudian. Teruskan?",
+      "confirm": "Mula Geokod",
+      "cancel": "Batal"
+    },
+    "parliamentGeocoding": {
+      "title": "Geokod Parlimen",
+      "description": "Dapatkan latitud dan longitud untuk semua parlimen. Proses ini mungkin mengambil masa.",
+      "geocodeAddresses": "Geokod Parlimen",
+      "geocoding": "Mengekod...",
+      "processing": "Memproses {processed} daripada {total} parlimen...",
+      "paused": "Dijeda: {processed} daripada {total} parlimen diproses",
+      "geocoded": "Dikodkan {count} daripada {total} parlimen",
+      "failed": "{count} parlimen gagal dikodkan",
+      "skipped": "{count} parlimen dilangkau (tiada data nama)",
+      "geocodeError": "Gagal mengkodkan parlimen",
+      "failedStatus": "Geokod gagal",
+      "complete": "lengkap",
+      "pause": "Jeda",
+      "pausing": "Menjeda...",
+      "pauseError": "Gagal menjeda geokod",
+      "resume": "Sambung",
+      "resuming": "Menyambung...",
+      "resumeError": "Gagal menyambung geokod",
+      "confirmTitle": "Sahkan Geokod",
+      "confirmDescription": "Ini akan mengkodkan semua parlimen yang belum mempunyai data lokasi. Proses akan berjalan di latar belakang dan mungkin mengambil masa beberapa minit bergantung pada bilangan parlimen. Anda boleh meninggalkan halaman dan menyemak kemajuan kemudian. Teruskan?",
       "confirm": "Mula Geokod",
       "cancel": "Batal"
     }

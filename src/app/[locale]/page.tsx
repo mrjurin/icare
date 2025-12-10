@@ -1,4 +1,5 @@
 import { getSetting } from "@/lib/actions/settings";
+import { getActiveAnnouncements, getActiveAnnouncementsPaginated } from "@/lib/actions/announcements";
 import HomeClient from "../../app/HomeClient";
 
 export default async function Home() {
@@ -7,5 +8,15 @@ export default async function Home() {
     ? appNameResult.data 
     : "N.18 Inanam Platform";
 
-  return <HomeClient appName={appName} />;
+  // Fetch active announcements (limit to 3 for landing page - most recent)
+  const announcementsResult = await getActiveAnnouncements(3);
+  const announcements = announcementsResult.success && announcementsResult.data
+    ? announcementsResult.data
+    : [];
+
+  // Get total count for "View All" button
+  const totalResult = await getActiveAnnouncementsPaginated({ page: 1, limit: 1 });
+  const totalCount = totalResult.success && totalResult.data ? totalResult.data.total : 0;
+
+  return <HomeClient appName={appName} announcements={announcements} totalAnnouncements={totalCount} />;
 }

@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Users, Home, DollarSign, AlertCircle } from "lucide-react";
+import { Users, Home, DollarSign, AlertCircle, UserPlus, Network } from "lucide-react";
 import type { Household } from "@/lib/actions/households";
+import QuickAddMemberModal from "@/components/households/QuickAddMemberModal";
+import QuickAddIncomeModal from "@/components/households/QuickAddIncomeModal";
+import FamilyTreeModal from "@/components/households/FamilyTreeModal";
 
 type Props = {
   households: Household[];
@@ -86,13 +89,49 @@ export default function HouseholdTable({ households }: Props) {
                   <span className="text-gray-400">—</span>
                 )}
               </td>
-              <td className="px-4 py-3 text-right">
-                <Link
-                  href={`/admin/households/${household.id}`}
-                  className="text-primary hover:underline text-sm font-medium"
-                >
-                  View →
-                </Link>
+              <td className="px-4 py-3">
+                <div className="flex items-center justify-end gap-2">
+                  <FamilyTreeModal
+                    householdId={household.id}
+                    trigger={
+                      <button
+                        className="p-1.5 text-purple-600 hover:text-purple-700 rounded-lg hover:bg-purple-50 transition-colors"
+                        title="View Family Tree"
+                      >
+                        <Network className="size-4" />
+                      </button>
+                    }
+                  />
+                  <QuickAddMemberModal
+                    householdId={household.id}
+                    trigger={
+                      <button
+                        className="p-1.5 text-blue-600 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition-colors"
+                        title="Add Member"
+                      >
+                        <UserPlus className="size-4" />
+                      </button>
+                    }
+                  />
+                  <QuickAddIncomeModal
+                    householdId={household.id}
+                    currentIncome={household.latest_income}
+                    trigger={
+                      <button
+                        className="p-1.5 text-green-600 hover:text-green-700 rounded-lg hover:bg-green-50 transition-colors"
+                        title="Add Income"
+                      >
+                        <DollarSign className="size-4" />
+                      </button>
+                    }
+                  />
+                  <Link
+                    href={`/admin/households/${household.id}`}
+                    className="text-primary hover:underline text-sm font-medium"
+                  >
+                    View →
+                  </Link>
+                </div>
               </td>
             </tr>
           ))}

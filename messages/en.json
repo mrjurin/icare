@@ -85,6 +85,13 @@
       "issuesResolved": "Issues Resolved",
       "activeMembers": "Active Members"
     },
+    "announcements": {
+      "title": "Community Announcements",
+      "subtitle": "Stay informed about important updates and events in your community",
+      "showMore": "Show {count} More",
+      "showLess": "Show Less",
+      "viewAll": "View All Announcements"
+    },
     "features": {
       "title": "Your Voice, Our Community",
       "subtitle": "Powerful features designed to make community engagement simple and effective",
@@ -192,6 +199,12 @@
     },
     "browseReports": "Browse reports to see what's happening in your community and how you can help."
   },
+  "announcements": {
+    "title": "Community Announcements",
+    "subtitle": "Stay informed about important updates, events, and news in your community",
+    "noAnnouncements": "No Announcements",
+    "noAnnouncementsDescription": "There are currently no active announcements. Check back later for updates!"
+  },
   "language": {
     "switch": "Switch Language",
     "english": "English",
@@ -281,6 +294,8 @@
     "sprView": "SPR View",
     "noDataAvailable": "No data available",
     "loadingReports": "Loading reports...",
+    "statistics": "Statistics",
+    "recentIssues": "Recent Issues",
     "reportsTable": {
       "all": "All",
       "filters": "Filters",
@@ -292,6 +307,7 @@
       "created": "Created",
       "assignee": "Assignee",
       "view": "View",
+      "actions": "Actions",
       "noReportsFound": "No reports found matching your filters."
     }
   },
@@ -369,7 +385,14 @@
       "actions": "Actions",
       "activityLog": "Activity Log",
       "issueLabel": "Issue",
-      "issueLocationTitle": "Issue Location"
+      "issueLocationTitle": "Issue Location",
+      "issuerInformation": "Issuer Information",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "address": "Address",
+      "icNumber": "IC Number",
+      "noIssuerInformation": "No issuer information available"
     },
     "form": {
       "addNewIssue": "Add New Issue",
@@ -501,7 +524,12 @@
       "atHome": "At Home",
       "dependents": "Dependents",
       "income": "Income",
-      "view": "View →"
+      "view": "View →",
+      "actions": {
+        "addMember": "Add Member",
+        "addIncome": "Add Income",
+        "viewFamilyTree": "View Family Tree"
+      }
     },
     "detail": {
       "back": "Back",
@@ -564,6 +592,7 @@
           "editTitle": "Edit Household Member",
           "name": "Name",
           "icNumber": "IC Number",
+          "phone": "Phone Number",
           "relationship": "Relationship",
           "dateOfBirth": "Date of Birth",
           "locality": "Locality",
@@ -574,6 +603,26 @@
           "save": "Save",
           "cancel": "Cancel",
           "deleteConfirm": "Are you sure you want to delete this member?"
+        }
+      },
+      "tree": {
+        "title": "Family Tree",
+        "description": "Visual representation of family relationships",
+        "noData": "No family tree data available",
+        "otherRelationships": "Other Relationships",
+        "legend": {
+          "atHome": "At Home",
+          "away": "Away",
+          "deceased": "Deceased",
+          "dependent": "Dependent"
+        },
+        "relationships": {
+          "head": "Head",
+          "spouse": "Spouse",
+          "child": "Child",
+          "parent": "Parent",
+          "sibling": "Sibling",
+          "other": "Other"
         }
       },
       "income": {
@@ -920,6 +969,30 @@
       "resumeError": "Failed to resume geocoding",
       "confirmTitle": "Confirm Geocoding",
       "confirmDescription": "This will geocode all localities that don't have location data yet. The process will run in the background and may take several minutes depending on the number of localities. You can navigate away and check progress later. Continue?",
+      "confirm": "Start Geocoding",
+      "cancel": "Cancel"
+    },
+    "parliamentGeocoding": {
+      "title": "Geocode Parliaments",
+      "description": "Retrieve latitude and longitude for all parliaments. This process may take some time.",
+      "geocodeAddresses": "Geocode Parliaments",
+      "geocoding": "Geocoding...",
+      "processing": "Processing {processed} of {total} parliaments...",
+      "paused": "Paused: {processed} of {total} parliaments processed",
+      "geocoded": "Geocoded {count} of {total} parliaments",
+      "failed": "{count} parliaments failed to geocode",
+      "skipped": "{count} parliaments skipped (no name data)",
+      "geocodeError": "Failed to geocode parliaments",
+      "failedStatus": "Geocoding failed",
+      "complete": "complete",
+      "pause": "Pause",
+      "pausing": "Pausing...",
+      "pauseError": "Failed to pause geocoding",
+      "resume": "Resume",
+      "resuming": "Resuming...",
+      "resumeError": "Failed to resume geocoding",
+      "confirmTitle": "Confirm Geocoding",
+      "confirmDescription": "This will geocode all parliaments that don't have location data yet. The process will run in the background and may take several minutes depending on the number of parliaments. You can navigate away and check progress later. Continue?",
       "confirm": "Start Geocoding",
       "cancel": "Cancel"
     }
