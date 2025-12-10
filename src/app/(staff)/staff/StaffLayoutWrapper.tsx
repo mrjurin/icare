@@ -2,7 +2,6 @@
 
 import { ReactNode, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import Input from "@/components/ui/Input";
 import styles from "./layout.module.css";
 import StaffNav from "./nav";
 import LogoutButton from "./LogoutButton";
@@ -77,8 +76,6 @@ export default function StaffLayoutWrapper({
             </div>
             <div className="flex items-center gap-3">
               <NotificationIcon href="/staff/notifications" />
-              {/* Radix Input wrapper preserves exact design */}
-              <Input className="h-9 w-72 rounded-lg border border-gray-200 bg-white px-3 text-sm" placeholder="Search issues, households..." />
             </div>
           </header>
           <main className={styles.main}>{children}</main>
