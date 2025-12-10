@@ -102,8 +102,20 @@ export async function getAuthenticatedUserReadOnly() {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error) {
-      // Log error but don't throw - return null for invalid sessions
-      if (error.code !== "refresh_token_not_found" && error.code !== "session_not_found") {
+      // Don't log expected session errors - these are normal when user is not authenticated
+      // Only log unexpected errors
+      const expectedErrors = [
+        "refresh_token_not_found",
+        "session_not_found",
+        "Auth session missing!",
+        "Invalid Refresh Token: Refresh Token Not Found",
+      ];
+      
+      const isExpectedError = expectedErrors.some(
+        (expected) => error.code === expected || error.message?.includes(expected)
+      );
+      
+      if (!isExpectedError) {
         console.error("Auth error:", error.message);
       }
       return null;
@@ -111,7 +123,11 @@ export async function getAuthenticatedUserReadOnly() {
     
     return user;
   } catch (err) {
-    console.error("Unexpected auth error:", err);
+    // Don't log if it's a session-related error
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    if (!errorMessage.includes("session") && !errorMessage.includes("Session")) {
+      console.error("Unexpected auth error:", err);
+    }
     return null;
   }
 }

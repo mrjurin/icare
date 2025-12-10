@@ -26,6 +26,7 @@ export type CreateIssueInput = {
   address: string;
   lat?: number;
   lng?: number;
+  localityId?: number;
   status?: "pending" | "in_progress" | "resolved" | "closed";
   reporterId?: number;
   media?: Array<{ url: string; type?: string; size_bytes?: number }>;
@@ -65,6 +66,7 @@ export async function createIssue(input: CreateIssueInput): Promise<ActionResult
       address: input.address.trim(),
       lat: input.lat,
       lng: input.lng,
+      locality_id: input.localityId || null,
       status: input.status || "pending",
       reporter_id: input.reporterId || null,
     })

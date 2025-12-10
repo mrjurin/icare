@@ -1,17 +1,21 @@
 "use client";
 
-import { AidsProgram, AidsProgramZone, AidsProgramAssignment } from "@/lib/actions/aidsPrograms";
+import { AidsProgram, AidsProgramZone, AidsProgramAssignment, ZoneProgressStats } from "@/lib/actions/aidsPrograms";
 
 type ProgramDetailsProps = {
   program: AidsProgram;
   zones: AidsProgramZone[];
   assignments: AidsProgramAssignment[];
+  zoneProgress: ZoneProgressStats[];
 };
 
-export default function ProgramDetails({ program, zones, assignments }: ProgramDetailsProps) {
-  const progress =
-    program.total_households && program.total_households > 0
-      ? Math.round(((program.distributed_households || 0) / program.total_households) * 100)
+export default function ProgramDetails({ program, zones, assignments, zoneProgress }: ProgramDetailsProps) {
+  // Calculate overall progress
+  const totalHouseholds = zoneProgress.reduce((sum, zp) => sum + zp.total_households, 0);
+  const totalDistributed = zoneProgress.reduce((sum, zp) => sum + zp.distributed_households, 0);
+  const overallProgress =
+    totalHouseholds > 0
+      ? Math.round((totalDistributed / totalHouseholds) * 100)
       : 0;
 
   return (
@@ -41,11 +45,11 @@ export default function ProgramDetails({ program, zones, assignments }: ProgramD
             <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-3">
               <div
                 className="bg-green-500 h-3 rounded-full transition-all"
-                style={{ width: `${progress}%` }}
+                style={{ width: `${overallProgress}%` }}
               />
             </div>
             <span className="text-sm font-medium">
-              {program.distributed_households || 0}/{program.total_households || 0}
+              {totalDistributed}/{totalHouseholds}
             </span>
           </div>
         </div>
@@ -55,23 +59,48 @@ export default function ProgramDetails({ program, zones, assignments }: ProgramD
         </div>
       </div>
 
-      {zones.length > 0 && (
+      {zoneProgress.length > 0 && (
         <div>
           <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Assigned Zones/Villages</h3>
-          <div className="space-y-2">
-            {zones.map((zone) => (
-              <div
-                key={zone.id}
-                className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded"
-              >
-                {zone.zone_name && <span className="font-medium">{zone.zone_name}</span>}
-                {zone.village_name && (
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    - {zone.village_name}
-                  </span>
-                )}
-              </div>
-            ))}
+          <div className="space-y-3">
+            {zoneProgress.map((zp, index) => {
+              const zoneProgressPercent =
+                zp.total_households > 0
+                  ? Math.round((zp.distributed_households / zp.total_households) * 100)
+                  : 0;
+
+              return (
+                <div
+                  key={`${zp.zone_id}-${zp.village_id || index}`}
+                  className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      {zp.zone_name && <span className="font-medium">{zp.zone_name}</span>}
+                      {zp.village_name && (
+                        <span className="text-sm text-gray-600 dark:text-gray-400 ml-2">
+                          - {zp.village_name}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-sm font-medium">
+                      {zp.distributed_households}/{zp.total_households}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div
+                        className="bg-green-500 h-2 rounded-full transition-all"
+                        style={{ width: `${zoneProgressPercent}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-gray-600 dark:text-gray-400 min-w-[3rem] text-right">
+                      {zoneProgressPercent}%
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -80,28 +109,50 @@ export default function ProgramDetails({ program, zones, assignments }: ProgramD
         <div>
           <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Assignments</h3>
           <div className="space-y-2">
-            {assignments.map((assignment) => (
-              <div
-                key={assignment.id}
-                className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded"
-              >
-                <div>
-                  <span className="font-medium">{assignment.assigned_to_name}</span>
-                  <span className="text-sm text-gray-600 dark:text-gray-400 ml-2">
-                    ({assignment.assignment_type === "zone_leader" ? "Zone Leader" : "Branch Chief"})
+            {assignments.map((assignment) => {
+              const getAssignmentTypeLabel = () => {
+                switch (assignment.assignment_type) {
+                  case "zone_leader":
+                    return "Zone Leader";
+                  case "ketua_cawangan":
+                    return "Branch Chief";
+                  case "assigned_staff":
+                    return "Assigned Staff";
+                  default:
+                    return assignment.assignment_type;
+                }
+              };
+
+              return (
+                <div
+                  key={assignment.id}
+                  className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{assignment.assigned_to_name}</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        ({getAssignmentTypeLabel()})
+                      </span>
+                    </div>
+                    {assignment.zone_name && (
+                      <span className="text-xs text-gray-500 dark:text-gray-500 mt-1 block">
+                        Zone: {assignment.zone_name}
+                      </span>
+                    )}
+                  </div>
+                  <span
+                    className={`text-xs px-2 py-1 rounded ${
+                      assignment.status === "active"
+                        ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300"
+                        : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+                    }`}
+                  >
+                    {assignment.status}
                   </span>
                 </div>
-                <span
-                  className={`text-xs px-2 py-1 rounded ${
-                    assignment.status === "active"
-                      ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300"
-                      : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
-                  }`}
-                >
-                  {assignment.status}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

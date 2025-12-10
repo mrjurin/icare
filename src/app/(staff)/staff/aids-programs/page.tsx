@@ -4,7 +4,7 @@ import AidsProgramsList from "./AidsProgramsList";
 export default async function StaffAidsProgramsPage() {
   const result = await getAidsPrograms({ status: "active" });
 
-  const programs = result.success ? result.data || [] : [];
+  const programs = result.success ? result.data?.programs || [] : [];
 
   return (
     <div className="space-y-6 p-4">

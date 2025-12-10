@@ -1,10 +1,6 @@
 "use client";
 
-import dynamic from "next/dynamic";
-
-const IssueActionsButton = dynamic(() => import("./IssueActionsButton"), {
-  ssr: false,
-});
+import IssueActionsButton from "./IssueActionsButton";
 
 type Props = {
   issueId: number;

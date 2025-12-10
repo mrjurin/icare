@@ -126,6 +126,7 @@ export const issues = pgTable(
     address: text("address").notNull(),
     lat: doublePrecision("lat"),
     lng: doublePrecision("lng"),
+    localityId: integer("locality_id").references(() => localities.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
     resolvedAt: timestamp("resolved_at"),
@@ -135,6 +136,7 @@ export const issues = pgTable(
     index("issues_reporter_idx").on(table.reporterId),
     index("issues_created_idx").on(table.createdAt),
     index("issues_issue_type_idx").on(table.issueTypeId),
+    index("issues_locality_idx").on(table.localityId),
   ]
 );
 
@@ -246,6 +248,10 @@ export const issuesRelations = relations(issues, ({ one, many }) => ({
   issueType: one(issueTypes, {
     fields: [issues.issueTypeId],
     references: [issueTypes.id],
+  }),
+  locality: one(localities, {
+    fields: [issues.localityId],
+    references: [localities.id],
   }),
   media: many(issueMedia),
   feedback: many(issueFeedback),
@@ -1173,7 +1179,7 @@ export const pollingStations = pgTable(
 );
 
 // Relations for reference data
-export const localitiesRelations = relations(localities, ({ one }) => ({
+export const localitiesRelations = relations(localities, ({ one, many }) => ({
   parliament: one(parliaments, {
     fields: [localities.parliamentId],
     references: [parliaments.id],
@@ -1186,6 +1192,7 @@ export const localitiesRelations = relations(localities, ({ one }) => ({
     fields: [localities.districtId],
     references: [districts.id],
   }),
+  issues: many(issues),
 }));
 
 export const pollingStationsRelations = relations(pollingStations, ({ one, many }) => ({
@@ -1444,3 +1451,41 @@ export const membershipApplicationsSprVotersRelations = relations(
     sprVoters: many(membershipApplicationSprVoters),
   })
 );
+
+// Audit Logs table - comprehensive audit trail for all system activities
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: serial("id").primaryKey(),
+    eventType: varchar("event_type", { length: 100 }).notNull(), // e.g., "staff.created", "household.updated"
+    entityType: varchar("entity_type", { length: 50 }).notNull(), // e.g., "staff", "household", "issue"
+    entityId: integer("entity_id"), // ID of the affected entity
+    userId: integer("user_id").references(() => staff.id, { onDelete: "set null" }), // Staff ID who performed the action
+    userEmail: text("user_email"), // Email of the user
+    userRole: varchar("user_role", { length: 50 }), // Role of the user (super_admin, adun, etc.)
+    action: text("action").notNull(), // Human-readable action description
+    details: text("details"), // JSON metadata with additional context
+    ipAddress: varchar("ip_address", { length: 45 }), // IP address (supports IPv6)
+    userAgent: text("user_agent"), // User agent string
+    success: boolean("success").default(true).notNull(), // Whether the action succeeded
+    errorMessage: text("error_message"), // Error message if action failed
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("audit_logs_event_type_idx").on(table.eventType),
+    index("audit_logs_entity_type_idx").on(table.entityType),
+    index("audit_logs_entity_id_idx").on(table.entityId),
+    index("audit_logs_user_id_idx").on(table.userId),
+    index("audit_logs_user_email_idx").on(table.userEmail),
+    index("audit_logs_created_at_idx").on(table.createdAt),
+    index("audit_logs_entity_composite_idx").on(table.entityType, table.entityId),
+  ]
+);
+
+// Relations for audit logs
+export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
+  user: one(staff, {
+    fields: [auditLogs.userId],
+    references: [staff.id],
+  }),
+}));

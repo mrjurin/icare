@@ -5,8 +5,14 @@ import { getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import StaffLayoutWrapper from "./StaffLayoutWrapper";
 
 export default async function StaffLayout({ children }: { children: ReactNode }) {
-  // Check workspace access
-  const workspaceAccess = await getWorkspaceAccess();
+  // Check workspace access (gracefully handle missing sessions)
+  let workspaceAccess;
+  try {
+    workspaceAccess = await getWorkspaceAccess();
+  } catch (error) {
+    // If workspace access check fails (e.g., session not available), let client handle it
+    return <StaffLayoutWrapper staffName="" staffPosition="">{children}</StaffLayoutWrapper>;
+  }
   
   // Allow both staff and admin users to access staff workspace
   // Only redirect if user has no staff/admin access

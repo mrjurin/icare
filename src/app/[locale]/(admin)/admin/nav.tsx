@@ -4,7 +4,7 @@ import { usePathname } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import styles from "./layout.module.css";
 import type { ElementType } from "react";
-import { LayoutDashboard, FileText, Users, Megaphone, ChartPie, Settings, Bell, UserCog, Home, MapPin, UserCheck, Building2, FileEdit, Package, Vote, Database, HardDrive, UserPlus } from "lucide-react";
+import { LayoutDashboard, FileText, Users, Megaphone, ChartPie, Settings, Bell, UserCog, Home, MapPin, UserCheck, Building2, FileEdit, Package, Vote, Database, HardDrive, UserPlus, ScrollText } from "lucide-react";
 
 type NavItem = { href: string; labelKey: string; icon: ElementType };
 const items: NavItem[] = [
@@ -24,6 +24,7 @@ const items: NavItem[] = [
   { href: "/admin/reports", labelKey: "reports", icon: ChartPie },
   { href: "/admin/pages", labelKey: "pages", icon: FileEdit },
   { href: "/admin/backups", labelKey: "backups", icon: HardDrive },
+  { href: "/admin/audit-logs", labelKey: "auditLogs", icon: ScrollText },
   { href: "/admin/settings", labelKey: "settings", icon: Settings },
 ];
 

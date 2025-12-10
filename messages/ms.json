@@ -52,7 +52,8 @@
     "reports": "Laporan",
     "pages": "Halaman",
     "backups": "Sandaran",
-    "settings": "Tetapan"
+    "settings": "Tetapan",
+    "auditLogs": "Log Audit"
   },
   "home": {
     "hero": {
@@ -407,6 +408,15 @@
       "address": "Alamat",
       "addressPlaceholder": "Masukkan alamat atau mercu tanda",
       "addressRequired": "Alamat diperlukan",
+      "detectLocation": "Kesan Lokasi",
+      "detecting": "Mengesan...",
+      "geocoding": "Mengesan lokasi...",
+      "locationDetected": "Lokasi dikesan",
+      "locationNotFound": "Lokasi tidak dijumpai",
+      "geocodeError": "Gagal mengesan lokasi",
+      "enterAddressFirst": "Sila masukkan alamat terlebih dahulu",
+      "locality": "Lokaliti",
+      "selectLocality": "Pilih lokaliti...",
       "latitude": "Latitud",
       "latitudePlaceholder": "cth., 6.1234",
       "longitude": "Longitud",
@@ -1011,7 +1021,21 @@
         "active": "Aktif",
         "completed": "Selesai",
         "cancelled": "Dibatalkan"
-      }
+      },
+      "reactivate": "Aktifkan Semula Program",
+      "complete": "Lengkapkan Program",
+      "activate": "Aktifkan Program",
+      "delete": "Padam Program",
+      "deleting": "Memadam...",
+      "deleteError": "Gagal memadam program",
+      "saving": "Menyimpan...",
+      "statusChangeError": "Gagal mengemaskini status program",
+      "confirmCompleteTitle": "Lengkapkan Program",
+      "confirmCompleteMessage": "Adakah anda pasti mahu menandakan \"{name}\" sebagai selesai? Ini akan menukar status program kepada selesai.",
+      "confirmReactivateTitle": "Aktifkan Semula Program",
+      "confirmReactivateMessage": "Adakah anda pasti mahu mengaktifkan semula \"{name}\"? Ini akan menukar status program kembali kepada aktif.",
+      "confirmDeleteTitle": "Padam Program",
+      "confirmDeleteMessage": "Adakah anda pasti mahu memadam \"{name}\"? Tindakan ini tidak boleh dibatalkan. Hanya program draf boleh dipadam."
     },
     "form": {
       "createTitle": "Cipta Program Bantuan Baharu",
@@ -1022,6 +1046,11 @@
       "aidType": "Jenis Bantuan",
       "aidTypeRequired": "Jenis bantuan diperlukan",
       "aidTypePlaceholder": "cth., Bakul Makanan, Bantuan Tunai, Bekalan Perubatan",
+      "status": "Status",
+      "statusDraft": "Draf",
+      "statusActive": "Aktif",
+      "statusCompleted": "Selesai",
+      "statusHelp": "Pilih status awal untuk program ini. Anda boleh menukarnya kemudian.",
       "description": "Penerangan",
       "descriptionPlaceholder": "Penerangan program...",
       "startDate": "Tarikh Mula",
@@ -1048,7 +1077,8 @@
       "assignedZonesVillages": "Zon/Kampung yang Ditugaskan",
       "assignments": "Tugasan",
       "zoneLeader": "Ketua Zon",
-      "branchChief": "Ketua Cawangan"
+      "branchChief": "Ketua Cawangan",
+      "assignedStaff": "Kakitangan yang Ditugaskan"
     },
     "assign": {
       "title": "Tugaskan kepada Ketua Cawangan",
@@ -1064,6 +1094,17 @@
       "selectZoneAndChief": "Sila pilih zon dan Ketua Cawangan",
       "assignSuccess": "Berjaya menugaskan program kepada Ketua Cawangan",
       "assignError": "Gagal menugaskan program"
+    },
+    "assignStaff": {
+      "title": "Tugaskan Kakitangan",
+      "description": "Pilih kakitangan untuk mengendalikan program bantuan ini. Mereka akan dapat menandakan isi rumah sebagai menerima bantuan di zon/kampung yang ditugaskan.",
+      "selectStaff": "Pilih Kakitangan",
+      "selectedStaff": "Kakitangan Terpilih",
+      "noStaffAvailable": "Tiada kakitangan aktif tersedia",
+      "saving": "Menyimpan...",
+      "saveAssignments": "Simpan Tugasan",
+      "saveSuccess": "Tugasan kakitangan berjaya disimpan!",
+      "saveError": "Gagal menyimpan tugasan"
     }
   },
   "sprVoters": {
@@ -1350,6 +1391,69 @@
       "noHouseholdMembersFound": "Tiada ahli isi rumah ditemui",
       "noIdentifier": "Tiada pengenalan",
       "createNewStaff": "Cipta Kakitangan Baharu"
+    }
+  },
+  "auditLogs": {
+    "title": "Log Audit",
+    "description": "Lihat dan cari semua aktiviti dan perubahan sistem",
+    "tabs": {
+      "logs": "Log",
+      "reports": "Laporan"
+    },
+    "filters": {
+      "searchPlaceholder": "Cari mengikut tindakan, pengguna, jenis acara...",
+      "showFilters": "Penapis",
+      "reset": "Set Semula",
+      "search": "Cari",
+      "export": "Eksport CSV",
+      "eventType": "Jenis Acara",
+      "entityType": "Jenis Entiti",
+      "user": "Pengguna",
+      "success": "Status",
+      "startDate": "Tarikh Mula",
+      "endDate": "Tarikh Akhir",
+      "all": "Semua",
+      "successOnly": "Berjaya Sahaja",
+      "failedOnly": "Gagal Sahaja"
+    },
+    "table": {
+      "timestamp": "Masa",
+      "eventType": "Jenis Acara",
+      "entity": "Entiti",
+      "user": "Pengguna",
+      "action": "Tindakan",
+      "status": "Status",
+      "ipAddress": "Alamat IP",
+      "details": "Butiran",
+      "success": "Berjaya",
+      "failed": "Gagal",
+      "viewDetails": "Lihat Butiran",
+      "noLogs": "Tiada log audit dijumpai"
+    },
+    "reports": {
+      "title": "Laporan Audit",
+      "description": "Statistik dan analitik komprehensif untuk log audit",
+      "noData": "Tiada data tersedia",
+      "filters": {
+        "startDate": "Tarikh Mula",
+        "endDate": "Tarikh Akhir",
+        "apply": "Guna",
+        "export": "Eksport Laporan"
+      },
+      "summary": {
+        "totalEvents": "Jumlah Acara",
+        "successful": "Berjaya",
+        "failed": "Gagal",
+        "successRate": "Kadar Kejayaan"
+      },
+      "charts": {
+        "topEventTypes": "Jenis Acara Teratas",
+        "topEntityTypes": "Jenis Entiti Teratas",
+        "topUsers": "Pengguna Teratas",
+        "recentActivity": "Aktiviti Terkini (30 Hari Terakhir)",
+        "events": "acara",
+        "noData": "Tiada data tersedia"
+      }
     }
   },
   "backups": {

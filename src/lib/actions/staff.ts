@@ -50,6 +50,46 @@ function getAuthEmail(email: string | null | undefined, icNumber: string | null 
   throw new Error("Either email or IC number must be provided");
 }
 
+/**
+ * Find an auth user by email, handling pagination
+ * Returns the user if found, null otherwise
+ */
+async function findAuthUserByEmail(supabaseAdmin: ReturnType<typeof getSupabaseAdminClient>, email: string): Promise<{ id: string; email: string } | null> {
+  const normalizedEmail = email.toLowerCase();
+  let page = 1;
+  const perPage = 1000; // Supabase default is 50, but we can request up to 1000
+  
+  while (true) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({
+      page,
+      perPage,
+    });
+
+    if (error) {
+      console.error("Error listing users:", error);
+      return null;
+    }
+
+    if (!data?.users || data.users.length === 0) {
+      break;
+    }
+
+    const user = data.users.find((u) => u.email?.toLowerCase() === normalizedEmail);
+    if (user) {
+      return { id: user.id, email: user.email! };
+    }
+
+    // If we got fewer users than requested, we've reached the end
+    if (data.users.length < perPage) {
+      break;
+    }
+
+    page++;
+  }
+
+  return null;
+}
+
 export type StaffRole = "adun" | "super_admin" | "zone_leader" | "staff_manager" | "staff";
 export type StaffStatus = "active" | "inactive";
 
@@ -366,21 +406,26 @@ export async function createStaff(
     try {
       const supabaseAdmin = getSupabaseAdminClient();
       
-      // Check if auth user already exists
-      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-      const existingUser = existingUsers?.users?.find(
-        (u) => u.email?.toLowerCase() === authEmail.toLowerCase()
-      );
+      // Check if auth user already exists (with pagination support)
+      const existingUser = await findAuthUserByEmail(supabaseAdmin, authEmail);
 
       if (existingUser) {
         // Update existing user password
-        await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
+        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
           password: input.password.trim(),
           email_confirm: true,
         });
+
+        if (updateError) {
+          console.error("Failed to update auth user password:", updateError);
+          return { 
+            success: false, 
+            error: `Failed to set password: ${updateError.message}` 
+          };
+        }
       } else {
         // Create new auth user
-        await supabaseAdmin.auth.admin.createUser({
+        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email: authEmail.toLowerCase(),
           password: input.password.trim(),
           email_confirm: true,
@@ -389,11 +434,29 @@ export async function createStaff(
             staff_id: data.id,
           },
         });
+
+        if (createError) {
+          console.error("Failed to create auth user:", createError);
+          return { 
+            success: false, 
+            error: `Failed to create authentication account: ${createError.message}` 
+          };
+        }
+
+        if (!newUser?.user) {
+          return { 
+            success: false, 
+            error: "Failed to create authentication account: User was not created" 
+          };
+        }
       }
     } catch (authError) {
-      // Log error but don't fail staff creation
+      // Log error and fail staff creation
       console.error("Failed to create/update auth user:", authError);
-      // Continue - staff record is created, admin can set password later
+      return { 
+        success: false, 
+        error: `Failed to create authentication account: ${authError instanceof Error ? authError.message : 'Unknown error'}` 
+      };
     }
   }
 
@@ -569,21 +632,26 @@ export async function updateStaff(
       const updatedIcNumber = input.icNumber !== undefined ? input.icNumber : currentStaff.ic_number;
       const authEmail = getAuthEmail(updatedEmail, updatedIcNumber);
       
-      // Find auth user by email
-      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-      const existingUser = existingUsers?.users?.find(
-        (u) => u.email?.toLowerCase() === authEmail.toLowerCase()
-      );
+      // Find auth user by email (with pagination support)
+      const existingUser = await findAuthUserByEmail(supabaseAdmin, authEmail);
 
       if (existingUser) {
         // Update existing user password
-        await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
+        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
           password: input.password.trim(),
           email_confirm: true,
         });
+
+        if (updateError) {
+          console.error("Failed to update auth user password:", updateError);
+          return { 
+            success: false, 
+            error: `Failed to update password: ${updateError.message}` 
+          };
+        }
       } else {
         // Create new auth user if doesn't exist
-        await supabaseAdmin.auth.admin.createUser({
+        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email: authEmail.toLowerCase(),
           password: input.password.trim(),
           email_confirm: true,
@@ -592,11 +660,29 @@ export async function updateStaff(
             staff_id: data.id,
           },
         });
+
+        if (createError) {
+          console.error("Failed to create auth user:", createError);
+          return { 
+            success: false, 
+            error: `Failed to create authentication account: ${createError.message}` 
+          };
+        }
+
+        if (!newUser?.user) {
+          return { 
+            success: false, 
+            error: "Failed to create authentication account: User was not created" 
+          };
+        }
       }
     } catch (authError) {
-      // Log error but don't fail staff update
+      // Log error and fail staff update
       console.error("Failed to update auth user password:", authError);
-      // Continue - staff record is updated, password update can be retried
+      return { 
+        success: false, 
+        error: `Failed to update password: ${authError instanceof Error ? authError.message : 'Unknown error'}` 
+      };
     }
   }
 

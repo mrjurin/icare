@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, Loader2, Plus } from "lucide-react";
+import { X, Loader2, Plus, MapPin } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { createIssue, type CreateIssueInput } from "@/lib/actions/issues";
 import MediaUploader from "./MediaUploader";
+import SearchableSelect from "@/components/ui/SearchableSelect";
+import { getReferenceDataList, type ReferenceData } from "@/lib/actions/reference-data";
 
 type Props = {
   trigger: React.ReactNode;
@@ -19,6 +21,10 @@ export default function IssueFormModal({ trigger }: Props) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [media, setMedia] = useState<Array<{ url: string; type?: string; size_bytes?: number }>>([]);
+  const [localities, setLocalities] = useState<ReferenceData[]>([]);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [geocodeStatus, setGeocodeStatus] = useState<string>("");
+  const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [formData, setFormData] = useState<CreateIssueInput>({
     title: "",
@@ -27,8 +33,106 @@ export default function IssueFormModal({ trigger }: Props) {
     address: "",
     lat: undefined,
     lng: undefined,
+    localityId: undefined,
     status: "pending",
   });
+
+  // Load localities when modal opens
+  useEffect(() => {
+    if (open) {
+      const loadLocalities = async () => {
+        const result = await getReferenceDataList("localities");
+        if (result.success && result.data) {
+          setLocalities(result.data.filter((loc) => loc.is_active));
+        }
+      };
+      loadLocalities();
+    }
+  }, [open]);
+
+  // Geocode address to get coordinates
+  const geocodeAddress = async (address: string) => {
+    if (!address.trim()) {
+      setGeocodeStatus("");
+      return;
+    }
+
+    setIsGeocoding(true);
+    setGeocodeStatus("Detecting location...");
+
+    try {
+      // Use Nominatim OpenStreetMap API (same as LocationCapture component)
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`,
+        {
+          headers: {
+            "User-Agent": "iCare-Issue-Management/1.0", // Required by Nominatim usage policy
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Geocoding failed");
+      }
+
+      const results: Array<{ lat: string; lon: string; display_name?: string }> = await response.json();
+
+      if (results.length > 0) {
+        const lat = parseFloat(results[0].lat);
+        const lon = parseFloat(results[0].lon);
+
+        if (!isNaN(lat) && !isNaN(lon)) {
+          setFormData((prev) => ({
+            ...prev,
+            lat,
+            lng: lon,
+          }));
+          setGeocodeStatus("Location detected");
+          setTimeout(() => setGeocodeStatus(""), 3000);
+        } else {
+          setGeocodeStatus("Location not found");
+        }
+      } else {
+        setGeocodeStatus("Location not found");
+      }
+    } catch (err) {
+      setGeocodeStatus("Failed to detect location");
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
+  // Debounced geocoding when address changes
+  useEffect(() => {
+    // Clear previous timeout
+    if (geocodeTimeoutRef.current) {
+      clearTimeout(geocodeTimeoutRef.current);
+    }
+
+    // Only geocode if address has meaningful content (at least 5 characters)
+    if (formData.address.trim().length >= 5) {
+      geocodeTimeoutRef.current = setTimeout(() => {
+        geocodeAddress(formData.address);
+      }, 1000); // Wait 1 second after user stops typing
+    } else {
+      setGeocodeStatus("");
+    }
+
+    return () => {
+      if (geocodeTimeoutRef.current) {
+        clearTimeout(geocodeTimeoutRef.current);
+      }
+    };
+  }, [formData.address]);
+
+  // Manual geocode button handler
+  const handleManualGeocode = () => {
+    if (formData.address.trim()) {
+      geocodeAddress(formData.address);
+    } else {
+      setGeocodeStatus("Please enter an address first");
+    }
+  };
 
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
@@ -40,10 +144,13 @@ export default function IssueFormModal({ trigger }: Props) {
         address: "",
         lat: undefined,
         lng: undefined,
+        localityId: undefined,
         status: "pending",
       });
       setMedia([]);
       setError(null);
+      setGeocodeStatus("");
+      setIsGeocoding(false);
     }
   };
 
@@ -176,16 +283,65 @@ export default function IssueFormModal({ trigger }: Props) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Address <span className="text-red-500">*</span>
+                Locality (optional)
               </label>
+              <SearchableSelect
+                options={localities.map((loc) => ({ value: loc.id, label: loc.name }))}
+                value={formData.localityId || ""}
+                onChange={(value) =>
+                  setFormData({
+                    ...formData,
+                    localityId: value ? Number(value) : undefined,
+                  })
+                }
+                placeholder="Select locality..."
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Address <span className="text-red-500">*</span>
+                </label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleManualGeocode}
+                  disabled={isGeocoding || !formData.address.trim()}
+                  className="h-8 px-2 text-xs gap-1.5"
+                >
+                  {isGeocoding ? (
+                    <>
+                      <Loader2 className="size-3 animate-spin" />
+                      Detecting...
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="size-3" />
+                      Detect Location
+                    </>
+                  )}
+                </Button>
+              </div>
               <Input
                 type="text"
-                placeholder="Enter address or landmark"
+                placeholder="Enter address or postcode (location will auto-detect)"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 required
                 className="w-full"
               />
+              {geocodeStatus && (
+                <p className={`mt-1.5 text-xs ${
+                  geocodeStatus.includes("detected") || geocodeStatus.includes("Location detected")
+                    ? "text-green-600 dark:text-green-400"
+                    : geocodeStatus.includes("not found") || geocodeStatus.includes("failed")
+                    ? "text-orange-600 dark:text-orange-400"
+                    : "text-gray-600 dark:text-gray-400"
+                }`}>
+                  {geocodeStatus}
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

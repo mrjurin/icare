@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Link } from '@/i18n/routing';
+import { useState, useEffect, useRef } from "react";
+import { Link, useRouter } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import Button from "@/components/ui/Button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User, LogOut, LayoutDashboard } from "lucide-react";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import Image from "next/image";
+import { createBrowserClient } from "@supabase/ssr";
+import { getCurrentUserProfile, type ProfileData } from "@/lib/actions/profile";
 
 interface PublicHeaderClientProps {
   appName: string;
@@ -13,7 +16,98 @@ interface PublicHeaderClientProps {
 
 export default function PublicHeaderClient({ appName }: PublicHeaderClientProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [user, setUser] = useState<{ email: string | null; avatarUrl: string | null } | null>(null);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   const t = useTranslations('nav');
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const supabase = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        
+        if (authUser) {
+          // Get profile data
+          const profileData = await getCurrentUserProfile();
+          setProfile(profileData);
+          
+          setUser({
+            email: authUser.email || null,
+            avatarUrl: authUser.user_metadata?.avatar_url || profileData?.avatarUrl || null,
+          });
+        } else {
+          setUser(null);
+          setProfile(null);
+        }
+      } catch (error) {
+        console.error("Error checking auth:", error);
+        setUser(null);
+        setProfile(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+
+    // Listen for auth state changes
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      checkAuth();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+
+    if (userMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [userMenuOpen]);
+
+  const handleLogout = async () => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    await supabase.auth.signOut();
+    setUser(null);
+    setProfile(null);
+    setUserMenuOpen(false);
+    router.push("/community/login");
+    router.refresh();
+  };
+
+  const displayName = profile?.fullName || user?.email?.split('@')[0] || 'User';
+  const avatarUrl = profile?.avatarUrl || user?.avatarUrl;
 
   return (
     <>
@@ -49,9 +143,72 @@ export default function PublicHeaderClient({ appName }: PublicHeaderClientProps)
             <Button asChild className="rounded-lg h-10 px-5 bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors">
               <Link href="/report-issue">{t('reportIssue')}</Link>
             </Button>
-            <Button asChild variant="outline" className="h-10 px-5">
-              <Link href="/community/login">{t('loginRegister')}</Link>
-            </Button>
+            {!loading && (
+              user ? (
+                <div className="relative" ref={userMenuRef}>
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center gap-2 h-10 px-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    aria-label="User menu"
+                    aria-expanded={userMenuOpen}
+                  >
+                    {avatarUrl ? (
+                      <Image
+                        src={avatarUrl}
+                        alt={displayName}
+                        width={32}
+                        height={32}
+                        className="rounded-full"
+                      />
+                    ) : (
+                      <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <User className="size-4 text-primary" />
+                      </div>
+                    )}
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden md:block">
+                      {displayName}
+                    </span>
+                  </button>
+                  {userMenuOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+                      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{displayName}</p>
+                        {user.email && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+                        )}
+                      </div>
+                      <Link
+                        href="/community/profile"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <User className="size-4" />
+                        Profile
+                      </Link>
+                      <Link
+                        href="/community/dashboard"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <LayoutDashboard className="size-4" />
+                        Dashboard
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <LogOut className="size-4" />
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Button asChild variant="outline" className="h-10 px-5">
+                  <Link href="/community/login">{t('loginRegister')}</Link>
+                </Button>
+              )
+            )}
           </div>
         </div>
 
@@ -104,9 +261,60 @@ export default function PublicHeaderClient({ appName }: PublicHeaderClientProps)
               <Button asChild className="w-full rounded-lg h-12 bg-primary text-white font-bold">
                 <Link href="/report-issue" onClick={() => setMobileMenuOpen(false)}>{t('reportIssue')}</Link>
               </Button>
-              <Button asChild variant="outline" className="w-full h-12">
-                <Link href="/community/login" onClick={() => setMobileMenuOpen(false)}>{t('loginRegister')}</Link>
-              </Button>
+              {!loading && (
+                user ? (
+                  <>
+                    <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      {avatarUrl ? (
+                        <Image
+                          src={avatarUrl}
+                          alt={displayName}
+                          width={40}
+                          height={40}
+                          className="rounded-full"
+                        />
+                      ) : (
+                        <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <User className="size-5 text-primary" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{displayName}</p>
+                        {user.email && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+                        )}
+                      </div>
+                    </div>
+                    <Link
+                      href="/community/profile"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary font-medium"
+                    >
+                      Profile
+                    </Link>
+                    <Link
+                      href="/community/dashboard"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary font-medium"
+                    >
+                      Dashboard
+                    </Link>
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setMobileMenuOpen(false);
+                      }}
+                      className="px-4 py-2 text-left text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium"
+                    >
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <Button asChild variant="outline" className="w-full h-12">
+                    <Link href="/community/login" onClick={() => setMobileMenuOpen(false)}>{t('loginRegister')}</Link>
+                  </Button>
+                )
+              )}
             </div>
           </nav>
         </div>

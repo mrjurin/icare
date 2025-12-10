@@ -52,7 +52,8 @@
     "reports": "Reports",
     "pages": "Pages",
     "backups": "Backups",
-    "settings": "Settings"
+    "settings": "Settings",
+    "auditLogs": "Audit Logs"
   },
   "home": {
     "hero": {
@@ -407,6 +408,15 @@
       "address": "Address",
       "addressPlaceholder": "Enter address or landmark",
       "addressRequired": "Address is required",
+      "detectLocation": "Detect Location",
+      "detecting": "Detecting...",
+      "geocoding": "Detecting location...",
+      "locationDetected": "Location detected",
+      "locationNotFound": "Location not found",
+      "geocodeError": "Failed to detect location",
+      "enterAddressFirst": "Please enter an address first",
+      "locality": "Locality",
+      "selectLocality": "Select locality...",
       "latitude": "Latitude",
       "latitudePlaceholder": "e.g., 6.1234",
       "longitude": "Longitude",
@@ -1009,12 +1019,33 @@
       "created": "Created",
       "actions": "Actions",
       "noPrograms": "No programs found. Create your first AIDS distribution program to get started.",
+      "searchPlaceholder": "Search programs...",
+      "zone": "Zone",
+      "year": "Year",
+      "allStatuses": "All",
+      "allZones": "All Zones",
+      "allYears": "All Years",
+      "resetFilters": "Reset",
       "statuses": {
         "draft": "Draft",
         "active": "Active",
         "completed": "Completed",
         "cancelled": "Cancelled"
-      }
+      },
+      "reactivate": "Reactivate Program",
+      "complete": "Complete Program",
+      "activate": "Activate Program",
+      "delete": "Delete Program",
+      "deleting": "Deleting...",
+      "deleteError": "Failed to delete program",
+      "saving": "Saving...",
+      "statusChangeError": "Failed to update program status",
+      "confirmCompleteTitle": "Complete Program",
+      "confirmCompleteMessage": "Are you sure you want to mark \"{name}\" as completed? This will change the program status to completed.",
+      "confirmReactivateTitle": "Reactivate Program",
+      "confirmReactivateMessage": "Are you sure you want to reactivate \"{name}\"? This will change the program status back to active.",
+      "confirmDeleteTitle": "Delete Program",
+      "confirmDeleteMessage": "Are you sure you want to delete \"{name}\"? This action cannot be undone. Only draft programs can be deleted."
     },
     "form": {
       "createTitle": "Create New AIDS Program",
@@ -1025,6 +1056,11 @@
       "aidType": "Aid Type",
       "aidTypeRequired": "Aid type is required",
       "aidTypePlaceholder": "e.g., Food Basket, Cash Aid, Medical Supplies",
+      "status": "Status",
+      "statusDraft": "Draft",
+      "statusActive": "Active",
+      "statusCompleted": "Completed",
+      "statusHelp": "Select the initial status for this program. You can change it later.",
       "description": "Description",
       "descriptionPlaceholder": "Program description...",
       "startDate": "Start Date",
@@ -1051,7 +1087,8 @@
       "assignedZonesVillages": "Assigned Zones/Villages",
       "assignments": "Assignments",
       "zoneLeader": "Zone Leader",
-      "branchChief": "Branch Chief"
+      "branchChief": "Branch Chief",
+      "assignedStaff": "Assigned Staff"
     },
     "assign": {
       "title": "Assign to Branch Chief",
@@ -1067,6 +1104,17 @@
       "selectZoneAndChief": "Please select a zone and Branch Chief",
       "assignSuccess": "Successfully assigned program to Branch Chief",
       "assignError": "Failed to assign program"
+    },
+    "assignStaff": {
+      "title": "Assign Staff Members",
+      "description": "Select staff members to handle this aids program. They will be able to mark households as receiving aids in their assigned zones/villages.",
+      "selectStaff": "Select Staff Members",
+      "selectedStaff": "Selected Staff",
+      "noStaffAvailable": "No active staff available",
+      "saving": "Saving...",
+      "saveAssignments": "Save Assignments",
+      "saveSuccess": "Staff assignments saved successfully!",
+      "saveError": "Failed to save assignments"
     }
   },
   "sprVoters": {
@@ -1352,6 +1400,69 @@
       "noHouseholdMembersFound": "No household members found",
       "noIdentifier": "No identifier",
       "createNewStaff": "Create New Staff"
+    }
+  },
+  "auditLogs": {
+    "title": "Audit Logs",
+    "description": "View and search all system activities and changes",
+    "tabs": {
+      "logs": "Logs",
+      "reports": "Reports"
+    },
+    "filters": {
+      "searchPlaceholder": "Search by action, user, event type...",
+      "showFilters": "Filters",
+      "reset": "Reset",
+      "search": "Search",
+      "export": "Export CSV",
+      "eventType": "Event Type",
+      "entityType": "Entity Type",
+      "user": "User",
+      "success": "Status",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "all": "All",
+      "successOnly": "Success Only",
+      "failedOnly": "Failed Only"
+    },
+    "table": {
+      "timestamp": "Timestamp",
+      "eventType": "Event Type",
+      "entity": "Entity",
+      "user": "User",
+      "action": "Action",
+      "status": "Status",
+      "ipAddress": "IP Address",
+      "details": "Details",
+      "success": "Success",
+      "failed": "Failed",
+      "viewDetails": "View Details",
+      "noLogs": "No audit logs found"
+    },
+    "reports": {
+      "title": "Audit Reports",
+      "description": "Comprehensive statistics and analytics for audit logs",
+      "noData": "No data available",
+      "filters": {
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "apply": "Apply",
+        "export": "Export Report"
+      },
+      "summary": {
+        "totalEvents": "Total Events",
+        "successful": "Successful",
+        "failed": "Failed",
+        "successRate": "Success Rate"
+      },
+      "charts": {
+        "topEventTypes": "Top Event Types",
+        "topEntityTypes": "Top Entity Types",
+        "topUsers": "Top Users",
+        "recentActivity": "Recent Activity (Last 30 Days)",
+        "events": "events",
+        "noData": "No data available"
+      }
     }
   },
   "backups": {

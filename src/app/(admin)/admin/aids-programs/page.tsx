@@ -13,7 +13,7 @@ export default async function AdminAidsProgramsPage({
 
   const result = await getAidsPrograms({ status });
 
-  const programs = result.success ? result.data || [] : [];
+  const programs = result.success && result.data ? result.data.programs : [];
 
   return (
     <div className="space-y-8">

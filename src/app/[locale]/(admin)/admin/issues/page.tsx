@@ -109,36 +109,48 @@ export default async function AdminIssuesPage({
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
-        <table className="min-w-full text-sm">
-          <thead className="text-left">
-            <tr className="border-b border-gray-200">
-              <th className="px-4 py-3"><input type="checkbox" aria-label={t("table.selectAll")} className="size-4" /></th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.issueId")}</th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.title")}</th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.dateSubmitted")}</th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.category")}</th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.status")}</th>
-              <th className="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-t border-gray-200">
-                <td className="px-4 py-3"><input type="checkbox" aria-label={`Select #${r.id}`} className="size-4" /></td>
-                <td className="px-4 py-3 text-primary font-medium"><Link href={`/admin/issues/${r.id}`}>#{r.id}</Link></td>
-                <td className="px-4 py-3"><Link href={`/admin/issues/${r.id}`} className="hover:text-primary">{r.title}</Link></td>
-                <td className="px-4 py-3">{new Date(r.created_at).toLocaleDateString()}</td>
-                <td className="px-4 py-3">{r.category.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${r.status==="pending"?"bg-blue-100 text-blue-800":r.status==="in_progress"?"bg-yellow-100 text-yellow-800":r.status==="resolved"?"bg-green-100 text-green-800":"bg-gray-100 text-gray-800"}`}>{statusLabels[r.status] || r.status.replace(/_/g, " ")}</span>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <IssueActionsButtonWrapper issueId={r.id} reporterId={r.reporter_id} />
-                </td>
+        {rows.length === 0 ? (
+          <div className="p-12 text-center text-gray-500">
+            <p>{t("table.noIssues") || "No issues found"}</p>
+          </div>
+        ) : (
+          <table className="min-w-full text-sm">
+            <thead className="text-left">
+              <tr className="border-b border-gray-200">
+                <th className="px-4 py-3"><input type="checkbox" aria-label={t("table.selectAll")} className="size-4" /></th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.issueId")}</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.title")}</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.dateSubmitted")}</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.category")}</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.status")}</th>
+                <th className="px-4 py-3"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id} className="border-t border-gray-200">
+                  <td className="px-4 py-3"><input type="checkbox" aria-label={`Select #${r.id}`} className="size-4" /></td>
+                  <td className="px-4 py-3 text-primary font-medium"><Link href={`/admin/issues/${r.id}`}>#{r.id}</Link></td>
+                  <td className="px-4 py-3"><Link href={`/admin/issues/${r.id}`} className="hover:text-primary">{r.title}</Link></td>
+                  <td className="px-4 py-3">
+                    {new Date(r.created_at).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </td>
+                  <td className="px-4 py-3">{r.category.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${r.status==="pending"?"bg-blue-100 text-blue-800":r.status==="in_progress"?"bg-yellow-100 text-yellow-800":r.status==="resolved"?"bg-green-100 text-green-800":"bg-gray-100 text-gray-800"}`}>{statusLabels[r.status] || r.status.replace(/_/g, " ")}</span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <IssueActionsButtonWrapper issueId={r.id} reporterId={r.reporter_id} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

@@ -11,8 +11,10 @@ import {
   type AidsProgram,
   type CreateAidsProgramInput,
   type UpdateAidsProgramInput,
+  getProgramAssignedStaffIds,
 } from "@/lib/actions/aidsPrograms";
 import { getZones } from "@/lib/actions/zones";
+import { getActiveStaff } from "@/lib/actions/staff";
 
 type AidsProgramFormProps = {
   program?: AidsProgram | null;
@@ -30,8 +32,10 @@ export default function AidsProgramForm({
   const [isOpen, setIsOpen] = useState(!!program);
   const [zones, setZones] = useState<Array<{ id: number; name: string }>>([]);
   const [villages, setVillages] = useState<Array<{ id: number; name: string; zone_id: number }>>([]);
+  const [staff, setStaff] = useState<Array<{ id: number; name: string }>>([]);
   const [selectedZones, setSelectedZones] = useState<number[]>([]);
   const [selectedVillages, setSelectedVillages] = useState<number[]>([]);
+  const [selectedStaff, setSelectedStaff] = useState<number[]>([]);
 
   // Initialize form data
   const getInitialFormData = (prog?: AidsProgram | null): CreateAidsProgramInput => {
@@ -47,6 +51,7 @@ export default function AidsProgramForm({
       name: prog?.name || "",
       description: prog?.description || "",
       aidType: prog?.aid_type || "",
+      status: prog?.status || "draft",
       startDate,
       endDate,
       notes: prog?.notes || "",
@@ -57,7 +62,7 @@ export default function AidsProgramForm({
     getInitialFormData(program)
   );
 
-  // Load zones and villages
+  // Load zones, villages, and staff
   useEffect(() => {
     const loadData = async () => {
       const zonesResult = await getZones();
@@ -74,28 +79,53 @@ export default function AidsProgramForm({
           zone_id: v.zone_id || 0, // zone_id may be null, use 0 as fallback
         })));
       }
+
+      const staffResult = await getActiveStaff();
+      if (staffResult.success && staffResult.data) {
+        setStaff(staffResult.data.map((s) => ({
+          id: s.id,
+          name: s.name || "",
+        })));
+      }
     };
     loadData();
   }, []);
 
-  // Load program zones/villages if editing
+  // Load program zones/villages and assigned staff if editing
   useEffect(() => {
-    if (program) {
-      const loadProgramZones = async () => {
+    if (program && program.id) {
+      // Reset selections first
+      setSelectedZones([]);
+      setSelectedVillages([]);
+      setSelectedStaff([]);
+      
+      const loadProgramData = async () => {
         const { getProgramZones } = await import("@/lib/actions/aidsPrograms");
-        const result = await getProgramZones(program.id);
-        if (result.success && result.data) {
-          const zoneIds = result.data
+        const zonesResult = await getProgramZones(program.id);
+        if (zonesResult.success && zonesResult.data) {
+          const zoneIds = zonesResult.data
             .map((pz) => pz.zone_id)
             .filter((id): id is number => id !== null);
-          const villageIds = result.data
+          const villageIds = zonesResult.data
             .map((pz) => pz.village_id)
             .filter((id): id is number => id !== null);
           setSelectedZones(zoneIds);
           setSelectedVillages(villageIds);
         }
+
+        const staffResult = await getProgramAssignedStaffIds(program.id);
+        if (staffResult.success && staffResult.data && Array.isArray(staffResult.data)) {
+          // Ensure we're setting an array of numbers
+          const staffIds = staffResult.data.map(id => Number(id)).filter(id => !isNaN(id));
+          setSelectedStaff(staffIds);
+        }
       };
-      loadProgramZones();
+      loadProgramData();
+    } else {
+      // Reset when program is null (form closed)
+      setSelectedZones([]);
+      setSelectedVillages([]);
+      setSelectedStaff([]);
     }
   }, [program?.id]);
 
@@ -116,6 +146,7 @@ export default function AidsProgramForm({
         setFormData(getInitialFormData(null));
         setSelectedZones([]);
         setSelectedVillages([]);
+        setSelectedStaff([]);
         const formElement = document.getElementById("new-aids-program-form");
         if (formElement) {
           formElement.classList.remove("hidden");
@@ -155,6 +186,7 @@ export default function AidsProgramForm({
           startDate: formData.startDate,
           endDate: formData.endDate,
           notes: formData.notes,
+          staffIds: selectedStaff.length > 0 ? selectedStaff : [], // Pass array (empty if no selection)
         };
         result = await updateAidsProgram(updateInput);
       } else {
@@ -244,6 +276,26 @@ export default function AidsProgramForm({
               className="w-full"
             />
           </div>
+
+          {!program && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Status
+              </label>
+              <select
+                value={formData.status || "draft"}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                className="w-full h-10 px-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark text-gray-900 dark:text-white"
+              >
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+              </select>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Select the initial status for this program. You can change it later.
+              </p>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -344,6 +396,42 @@ export default function AidsProgramForm({
                   </label>
                 ))}
               </div>
+            </div>
+          )}
+
+          {program && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Assign Staff Members
+              </label>
+              <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                {staff.length === 0 ? (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    No active staff available
+                  </p>
+                ) : (
+                  staff.map((staffMember) => (
+                    <label key={staffMember.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedStaff.includes(staffMember.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedStaff([...selectedStaff, staffMember.id]);
+                          } else {
+                            setSelectedStaff(selectedStaff.filter((id) => id !== staffMember.id));
+                          }
+                        }}
+                        className="rounded border-gray-300"
+                      />
+                      <span className="text-sm">{staffMember.name}</span>
+                    </label>
+                  ))
+                )}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Selected staff will be able to mark households as receiving aids in their assigned zones/villages
+              </p>
             </div>
           )}
 

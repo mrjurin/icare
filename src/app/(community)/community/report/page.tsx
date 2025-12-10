@@ -10,6 +10,8 @@ import LocationCapture from "./LocationCapture";
 import MediaUploader from "./MediaUploader";
 import { AlertCircle } from "lucide-react";
 import { getActiveIssueTypes, type IssueType } from "@/lib/actions/issue-types";
+import SearchableSelect from "@/components/ui/SearchableSelect";
+import { getReferenceDataList, type ReferenceData } from "@/lib/actions/reference-data";
 
 const issueSchema = z.object({
   title: z.string().min(1, "Title is required").trim(),
@@ -18,6 +20,7 @@ const issueSchema = z.object({
   address: z.string().min(1, "Address is required").trim(),
   lat: z.string().optional(),
   lng: z.string().optional(),
+  localityId: z.string().optional(),
   mediaJson: z.string().optional(),
 });
 
@@ -28,18 +31,26 @@ export default function CommunityReportIssuePage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [issueTypes, setIssueTypes] = useState<IssueType[]>([]);
   const [isLoadingTypes, setIsLoadingTypes] = useState(true);
+  const [localities, setLocalities] = useState<ReferenceData[]>([]);
+  const [selectedLocalityId, setSelectedLocalityId] = useState<string | number>("");
 
-  // Load issue types on mount
+  // Load issue types and localities on mount
   useEffect(() => {
-    const loadIssueTypes = async () => {
+    const loadData = async () => {
       setIsLoadingTypes(true);
-      const result = await getActiveIssueTypes();
-      if (result.success && result.data) {
-        setIssueTypes(result.data);
+      const [typesResult, localitiesResult] = await Promise.all([
+        getActiveIssueTypes(),
+        getReferenceDataList("localities"),
+      ]);
+      if (typesResult.success && typesResult.data) {
+        setIssueTypes(typesResult.data);
+      }
+      if (localitiesResult.success && localitiesResult.data) {
+        setLocalities(localitiesResult.data.filter((loc) => loc.is_active));
       }
       setIsLoadingTypes(false);
     };
-    loadIssueTypes();
+    loadData();
   }, []);
 
   const createIssue = async (formData: FormData, issueTypes: IssueType[]) => {
@@ -56,6 +67,7 @@ export default function CommunityReportIssuePage() {
       address: String(formData.get("address") || ""),
       lat: String(formData.get("lat") || ""),
       lng: String(formData.get("lng") || ""),
+      localityId: String(formData.get("localityId") || ""),
       mediaJson: String(formData.get("mediaJson") || ""),
     };
 
@@ -65,9 +77,10 @@ export default function CommunityReportIssuePage() {
       throw new Error("Invalid form data. Please check all required fields.");
     }
 
-    const { title, description, category, address, lat, lng, mediaJson } = result.data;
+    const { title, description, category, address, lat, lng, localityId, mediaJson } = result.data;
     const latNum = lat ? Number(lat) : undefined;
     const lngNum = lng ? Number(lng) : undefined;
+    const localityIdNum = localityId ? Number(localityId) : undefined;
 
     // Find the issue type ID from the category (which is now the issue type ID)
     let issueTypeId: number | undefined;
@@ -96,7 +109,8 @@ export default function CommunityReportIssuePage() {
         issue_type_id: issueTypeId,
         address, 
         lat: latNum, 
-        lng: lngNum 
+        lng: lngNum,
+        locality_id: localityIdNum || null,
       })
       .select("id")
       .single();
@@ -141,6 +155,7 @@ export default function CommunityReportIssuePage() {
       address: String(formData.get("address") || ""),
       lat: String(formData.get("lat") || ""),
       lng: String(formData.get("lng") || ""),
+      localityId: String(formData.get("localityId") || ""),
       mediaJson: String(formData.get("mediaJson") || ""),
     };
 
@@ -297,6 +312,35 @@ export default function CommunityReportIssuePage() {
               <div>
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Step 2: Location</h3>
                 <div className="mt-3 space-y-3 sm:space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Locality (optional)
+                    </label>
+                    <input
+                      type="hidden"
+                      name="localityId"
+                      value={selectedLocalityId || ""}
+                    />
+                    <div className="mt-1">
+                      <SearchableSelect
+                        options={localities.map((loc) => ({ value: loc.id, label: loc.name }))}
+                        value={selectedLocalityId}
+                        onChange={(value) => {
+                          setSelectedLocalityId(value);
+                          // Update hidden input for form submission
+                          const form = document.querySelector('form');
+                          if (form) {
+                            const hiddenInput = form.querySelector('input[name="localityId"]') as HTMLInputElement;
+                            if (hiddenInput) {
+                              hiddenInput.value = String(value || "");
+                            }
+                          }
+                        }}
+                        placeholder="Select locality..."
+                        disabled={isLoadingTypes}
+                      />
+                    </div>
+                  </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       Address or Landmark <span className="text-red-500">*</span>

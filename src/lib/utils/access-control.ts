@@ -307,6 +307,7 @@ export async function getUserWorkspaceType(): Promise<WorkspaceType> {
   const user = await getAuthenticatedUserReadOnly();
   
   if (!user || !user.email) {
+    // Session not available or user not authenticated
     return null;
   }
 

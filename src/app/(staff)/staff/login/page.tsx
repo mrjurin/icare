@@ -187,8 +187,13 @@ export default function StaffLoginPage() {
         }
 
         staffData = data;
-        // Generate auth email from IC number
-        authEmail = `${cleanIc}@staff.local`;
+        // Use the same logic as creation: prioritize email if available, otherwise use IC-based email
+        if (data.email?.trim()) {
+          authEmail = data.email.toLowerCase();
+        } else {
+          // Generate auth email from IC number
+          authEmail = `${cleanIc}@staff.local`;
+        }
       }
 
       // Attempt to sign in with Supabase using the auth email
@@ -200,10 +205,19 @@ export default function StaffLoginPage() {
       if (signInError) {
         // Provide user-friendly error messages
         if (signInError.message.includes("Invalid login credentials") || signInError.message.includes("Invalid login")) {
-          setError(
-            "Invalid password. Please check your credentials and try again. " +
-            "If you believe this is an error, please contact your administrator."
-          );
+          // Check if staff record exists but auth user doesn't
+          if (staffData) {
+            setError(
+              "This account exists in the system but hasn't been set up in authentication. " +
+              "Please contact your administrator to set up your login credentials. " +
+              "The administrator needs to create your authentication account with the password they provided."
+            );
+          } else {
+            setError(
+              "Invalid password. Please check your credentials and try again. " +
+              "If you believe this is an error, please contact your administrator."
+            );
+          }
         } else if (signInError.message.includes("Email not confirmed")) {
           setError("Please verify your email address before signing in.");
         } else {
@@ -223,10 +237,10 @@ export default function StaffLoginPage() {
         }
 
         setSuccess(true);
-        // Small delay to show success state
+        // Small delay to show success state, then use window.location for full page reload
+        // This ensures cookies are properly set before server-side layout runs
         setTimeout(() => {
-          router.push("/staff/dashboard");
-          router.refresh();
+          window.location.href = "/staff/dashboard";
         }, 500);
       }
     } catch (err) {
