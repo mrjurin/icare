@@ -6,7 +6,7 @@ export default async function Home() {
   const appNameResult = await getSetting("app_name");
   const appName = appNameResult.success && appNameResult.data 
     ? appNameResult.data 
-    : "N.18 Inanam Platform";
+    : "N.17 Darau Platform";
 
   // Fetch active announcements (limit to 3 for landing page - most recent)
   const announcementsResult = await getActiveAnnouncements(3);
