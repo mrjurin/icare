@@ -3,6 +3,7 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { normalizeIcNumber } from "@/lib/utils/ic-number";
+import { getEmailVerificationUrl } from "@/lib/utils/site-url";
 
 export type RegisterInput = {
   fullName: string;
@@ -96,6 +97,9 @@ export async function registerCommunityUser(
     householdMemberId = householdMember.id;
   }
 
+  // Get the base URL for email verification links
+  const baseUrl = getEmailVerificationUrl();
+  
   // Create auth user with Supabase
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email: input.email.toLowerCase().trim(),
@@ -105,6 +109,7 @@ export async function registerCommunityUser(
         full_name: input.fullName.trim(),
         role: "community", // Set role in user metadata
       },
+      emailRedirectTo: `${baseUrl}/community/login`, // Redirect to login after email verification
     },
   });
 

@@ -24,3 +24,10 @@ export default async function AdminIssueTypesPage() {
 }
 
 
+
+
+
+
+
+
+
