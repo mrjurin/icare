@@ -213,8 +213,8 @@ export default function CommunityLayoutClient({ children }: { children: ReactNod
               <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/profile` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/profile`} onClick={closeSidebar}>My Profile</Link>
             </div>
             <div className={styles.sideMeta}>
-              <Link className={`${styles.sideLink} ${pathname === "/community/faq" ? styles.sideLinkActive : ""}`} href="/community/faq" onClick={closeSidebar}>FAQ</Link>
-              <Link className={`${styles.sideLink} ${pathname === "/community/support" ? styles.sideLinkActive : ""}`} href="/community/support" onClick={closeSidebar}>Contact Support</Link>
+              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/faq` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/faq`} onClick={closeSidebar}>FAQ</Link>
+              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/support` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/support`} onClick={closeSidebar}>Contact Support</Link>
               <Link className={styles.sideLink} href="#" onClick={handleLogout}>Logout</Link>
             </div>
           </div>
