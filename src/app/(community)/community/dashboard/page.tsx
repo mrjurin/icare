@@ -1,4 +1,4 @@
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseReadOnlyClient, getAuthenticatedUserReadOnly } from "@/lib/supabase/server";
 import Link from "next/link";
 
 type DbIssue = {
@@ -21,19 +21,54 @@ function statusBadge(s: string) {
 }
 
 export default async function CommunityDashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const supabase = await getSupabaseServerClient();
+  const supabase = await getSupabaseReadOnlyClient();
   const sp = await searchParams;
+  
+  // Get authenticated user from session
+  const user = await getAuthenticatedUserReadOnly();
+  
+  // Get user's profile ID to filter their issues
+  let profileId: number | null = null;
+  if (user?.id && user?.email) {
+    // Query profile using the authenticated user's email from the session
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("email", user.email.toLowerCase().trim())
+      .maybeSingle();
+    
+    if (profileError) {
+      console.error("Error fetching profile for authenticated user:", profileError);
+    }
+    
+    profileId = profile?.id ?? null;
+  }
+  
   const active = typeof sp.status === "string" ? sp.status : undefined;
   const allowed = new Set(["pending", "in_progress", "resolved"]);
   const filter = allowed.has(active ?? "") ? active : undefined;
+  
   let builder = supabase
     .from("issues")
-    .select("id,title,category,status,created_at")
-    .order("created_at", { ascending: false })
-    .limit(20);
+    .select("id,title,category,status,created_at");
+  
+  // Filter by user's profile ID (only show issues reported by this user)
+  if (profileId) {
+    builder = builder.eq("reporter_id", profileId);
+  } else {
+    // If no profile found, return empty results
+    builder = builder.eq("reporter_id", -1); // Will return empty
+  }
+  
   if (filter) {
     builder = builder.eq("status", filter);
   }
+  
+  // Apply sorting (descending by created date - newest first)
+  builder = builder
+    .order("created_at", { ascending: false })
+    .limit(20);
+  
   const { data } = await builder;
   const issues: DbIssue[] = Array.isArray(data) ? data : [];
 

@@ -117,6 +117,27 @@ export default function CommunityReportIssuePage() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
+    // Get authenticated user from session to set reporter_id
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      throw new Error("You must be logged in to report an issue.");
+    }
+
+    // Get user's profile ID to set as reporter_id
+    let reporterId: number | null = null;
+    if (user.email) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", user.email.toLowerCase().trim())
+        .maybeSingle();
+      reporterId = profile?.id ?? null;
+    }
+
+    if (!reporterId) {
+      throw new Error("Profile not found. Please ensure your account is properly set up.");
+    }
+
     // Extract and validate form data with Zod
     const formValues = {
       title: String(formData.get("title") || ""),
@@ -125,6 +146,7 @@ export default function CommunityReportIssuePage() {
       address: String(formData.get("address") || ""),
       lat: String(formData.get("lat") || ""),
       lng: String(formData.get("lng") || ""),
+      localityId: String(formData.get("localityId") || ""),
       mediaJson: String(formData.get("mediaJson") || ""),
     };
 
@@ -157,18 +179,26 @@ export default function CommunityReportIssuePage() {
     const issueType = issueTypes.find((it) => it.id === issueTypeId);
     const categoryCode = issueType?.code || "other";
 
+    // Build insert object conditionally
+    const insertData: Record<string, unknown> = {
+      title, 
+      description, 
+      category: categoryCode, // Keep for backward compatibility
+      issue_type_id: issueTypeId,
+      address, 
+      lat: latNum, 
+      lng: lngNum,
+      reporter_id: reporterId, // Set the reporter_id from authenticated user's profile
+    };
+    
+    // Only include locality_id if it has a value (to avoid errors if column doesn't exist)
+    if (localityIdNum !== undefined && localityIdNum !== null) {
+      insertData.locality_id = localityIdNum;
+    }
+
     const { data: inserted, error: insertErr } = await supabase
       .from("issues")
-      .insert({ 
-        title, 
-        description, 
-        category: categoryCode, // Keep for backward compatibility
-        issue_type_id: issueTypeId,
-        address, 
-        lat: latNum, 
-        lng: lngNum,
-        locality_id: localityIdNum || null,
-      })
+      .insert(insertData)
       .select("id")
       .single();
 

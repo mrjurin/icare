@@ -36,7 +36,7 @@ export default async function CommunityDashboardPage({
   const { locale } = await params;
   const sp = await searchParams;
   
-  // Get authenticated user
+  // Get authenticated user from session (this is the real authenticated user)
   const user = await getAuthenticatedUserReadOnly();
   
   // Fetch active announcements (limit to 2 for dashboard)
@@ -44,13 +44,21 @@ export default async function CommunityDashboardPage({
   const announcements: Announcement[] = announcementsResult.success && announcementsResult.data ? announcementsResult.data : [];
   
   // Get user's profile ID to filter their issues
+  // Use the authenticated user's email from the session to find the profile
   let profileId: number | null = null;
-  if (user?.email) {
-    const { data: profile } = await supabase
+  if (user?.id && user?.email) {
+    // Query profile using the authenticated user's email from the session
+    // This ensures we're using the correct user from auth, not a separate lookup
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("id")
       .eq("email", user.email.toLowerCase().trim())
       .maybeSingle();
+    
+    if (profileError) {
+      console.error("Error fetching profile for authenticated user:", profileError);
+    }
+    
     profileId = profile?.id ?? null;
   }
 
@@ -73,9 +81,7 @@ export default async function CommunityDashboardPage({
   
   let dataBuilder = supabase
     .from("issues")
-    .select("id,title,category,status,created_at")
-    .order("created_at", { ascending: false })
-    .range(from, to);
+    .select("id,title,category,status,created_at");
 
   // Filter by user's profile ID
   if (profileId) {
@@ -92,6 +98,11 @@ export default async function CommunityDashboardPage({
     countBuilder = countBuilder.eq("status", filter);
     dataBuilder = dataBuilder.eq("status", filter);
   }
+
+  // Apply sorting and pagination (order must be before range)
+  dataBuilder = dataBuilder
+    .order("created_at", { ascending: false })
+    .range(from, to);
 
   const { count: totalCount } = await countBuilder;
   const { data } = await dataBuilder;

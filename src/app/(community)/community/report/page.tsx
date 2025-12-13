@@ -59,6 +59,27 @@ export default function CommunityReportIssuePage() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
+    // Get authenticated user from session to set reporter_id
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      throw new Error("You must be logged in to report an issue.");
+    }
+
+    // Get user's profile ID to set as reporter_id
+    let reporterId: number | null = null;
+    if (user.email) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", user.email.toLowerCase().trim())
+        .maybeSingle();
+      reporterId = profile?.id ?? null;
+    }
+
+    if (!reporterId) {
+      throw new Error("Profile not found. Please ensure your account is properly set up.");
+    }
+
     // Extract and validate form data with Zod
     const formValues = {
       title: String(formData.get("title") || ""),
@@ -111,6 +132,7 @@ export default function CommunityReportIssuePage() {
         lat: latNum, 
         lng: lngNum,
         locality_id: localityIdNum || null,
+        reporter_id: reporterId, // Set the reporter_id from authenticated user's profile
       })
       .select("id")
       .single();

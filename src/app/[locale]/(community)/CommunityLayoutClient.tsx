@@ -12,9 +12,61 @@ import NotificationIcon from "@/components/NotificationIcon";
 
 export default function CommunityLayoutClient({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<{ fullName: string | null; avatarUrl: string | null; email: string | null } | null>(null);
+  const [loading, setLoading] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
   const locale = useLocale();
+
+  // Fetch user profile from session
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
+      try {
+        // Get authenticated user from session
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError || !user || !user.email) {
+          setUserProfile(null);
+          setLoading(false);
+          return;
+        }
+
+        // Fetch profile using the authenticated user's email
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("full_name, avatar_url, email")
+          .eq("email", user.email.toLowerCase().trim())
+          .maybeSingle();
+
+        if (profileError || !profile) {
+          // If profile not found, use auth user data as fallback
+          setUserProfile({
+            fullName: user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
+            avatarUrl: null,
+            email: user.email,
+          });
+        } else {
+          setUserProfile({
+            fullName: profile.full_name || user.email?.split("@")[0] || "User",
+            avatarUrl: profile.avatar_url,
+            email: profile.email || user.email,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+        setUserProfile(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   // Close sidebar when route changes on mobile
   useEffect(() => {
@@ -51,7 +103,7 @@ export default function CommunityLayoutClient({ children }: { children: ReactNod
     );
 
     await supabase.auth.signOut();
-    router.push("/community/login");
+    router.push(`/${locale}/community/login`);
     router.refresh();
   };
 
@@ -78,9 +130,26 @@ export default function CommunityLayoutClient({ children }: { children: ReactNod
         <div className={styles.topbarActions}>
           <NotificationIcon href={`/${locale}/community/notifications`} />
           <Button asChild className={styles.reportBtn}>
-            <Link href="/community/report">Report a New Issue</Link>
+            <Link href={`/${locale}/community/report`}>Report a New Issue</Link>
           </Button>
-          <Image className={styles.avatar} alt="User" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC37nveW1T8IydQRZz7GWQBGOzblpUWT-dPtz4nkMGvR2BAvAUq1Ik6BRj-oOpg2Wm5-bSk9V6_SBkSzj0FZuG2L_mghpwLdxgUqTBo7Bi0vx0k9mbMno3RivnhWx-XbNi4VH-5GZsmfFC6fI4kDr-VwmmaQzuOKVTFlO-EIAQSpr71dE96KVj7C_V66UQSOy1WxDRgQ0xEqcnkKnWIhNr8wiqRClc5tVCtdn6rTi2COCjBJXlZHmxIvDgBxgYVFu_Ezm6OsGDAwR0" width={40} height={40} />
+          {userProfile?.avatarUrl ? (
+            <Image className={styles.avatar} alt="User" src={userProfile.avatarUrl} width={40} height={40} />
+          ) : (
+            <div className={styles.avatar} style={{ 
+              width: 40, 
+              height: 40, 
+              borderRadius: "50%", 
+              backgroundColor: "var(--primary)", 
+              display: "flex", 
+              alignItems: "center", 
+              justifyContent: "center",
+              color: "white",
+              fontWeight: "bold",
+              fontSize: "16px"
+            }}>
+              {userProfile?.fullName?.[0]?.toUpperCase() || "U"}
+            </div>
+          )}
         </div>
       </header>
 
@@ -94,9 +163,38 @@ export default function CommunityLayoutClient({ children }: { children: ReactNod
           <div className={styles.sideCard}>
             <div className={styles.sideHeader}>
               <div className={styles.sideUserRow}>
-                <Image className={styles.avatar} alt="User" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDYWyAzvZ-wTVEUM6E8b3eO9urEFiuvN8jNkmtLy4BCt1aVv064lWeDffuDjvZriNWbJgmBAVaMvIPesuvcprXjtHUf0XTzK8ZxPixPDfOBPKS1gQxQb_DMs8n4NzpqzfOz6aMCIQ50cTfH6L64TGMQUs4lx7Rr9QrBpOmvxMGbsD6a4sTXZqpbKQIUeTI925ONU23HJwzMKgbvzcIB6cy17WCTx5lZWHmrJnTlpLXK76uvydgLITrwBy5fkyfn5001FRSmdYLs5M" width={40} height={40} />
+                {loading ? (
+                  <div className={styles.avatar} style={{ 
+                    width: 40, 
+                    height: 40, 
+                    borderRadius: "50%", 
+                    backgroundColor: "#e5e7eb",
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "center"
+                  }} />
+                ) : userProfile?.avatarUrl ? (
+                  <Image className={styles.avatar} alt="User" src={userProfile.avatarUrl} width={40} height={40} />
+                ) : (
+                  <div className={styles.avatar} style={{ 
+                    width: 40, 
+                    height: 40, 
+                    borderRadius: "50%", 
+                    backgroundColor: "var(--primary)", 
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "center",
+                    color: "white",
+                    fontWeight: "bold",
+                    fontSize: "16px"
+                  }}>
+                    {userProfile?.fullName?.[0]?.toUpperCase() || "U"}
+                  </div>
+                )}
                 <div>
-                  <p className={styles.sideUserName}>Amelia Tan</p>
+                  <p className={styles.sideUserName}>
+                    {loading ? "Loading..." : (userProfile?.fullName || "User")}
+                  </p>
                   <p className={styles.sideUserRole}>Resident</p>
                 </div>
               </div>
@@ -109,10 +207,10 @@ export default function CommunityLayoutClient({ children }: { children: ReactNod
               </button>
             </div>
             <div className={styles.sideNav}>
-              <Link className={`${styles.sideLink} ${pathname === "/community/dashboard" ? styles.sideLinkActive : ""}`} href="/community/dashboard" onClick={closeSidebar}>Dashboard</Link>
-              <Link className={`${styles.sideLink} ${pathname === "/community/report" ? styles.sideLinkActive : ""}`} href="/community/report" onClick={closeSidebar}>Report a New Issue</Link>
+              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/dashboard` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/dashboard`} onClick={closeSidebar}>Dashboard</Link>
+              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/report` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/report`} onClick={closeSidebar}>Report a New Issue</Link>
               <Link className={styles.sideLink} href="#" onClick={closeSidebar}>Community Updates</Link>
-              <Link className={`${styles.sideLink} ${pathname === "/community/profile" ? styles.sideLinkActive : ""}`} href="/community/profile" onClick={closeSidebar}>My Profile</Link>
+              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/profile` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/profile`} onClick={closeSidebar}>My Profile</Link>
             </div>
             <div className={styles.sideMeta}>
               <Link className={`${styles.sideLink} ${pathname === "/community/faq" ? styles.sideLinkActive : ""}`} href="/community/faq" onClick={closeSidebar}>FAQ</Link>
