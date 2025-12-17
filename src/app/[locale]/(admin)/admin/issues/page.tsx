@@ -54,6 +54,15 @@ export default async function AdminIssuesPage({
   const issueStatuses = issueStatusesResult || [];
 
   // Fetch statistics with proper error handling
+  // Total Issues: count of all issues regardless of status
+  const { count: totalIssuesCount, error: totalIssuesError } = await supabase
+    .from("issues")
+    .select("*", { count: "exact", head: true });
+  
+  if (totalIssuesError) {
+    console.error("Error fetching total issues:", totalIssuesError);
+  }
+  
   // Total Open Issues: status IN ('pending', 'in_progress') - excludes 'resolved' and 'closed'
   const { count: totalOpenCount, error: totalOpenError } = await supabase
     .from("issues")
@@ -106,6 +115,11 @@ export default async function AdminIssuesPage({
   }
 
   const counters = [
+    { 
+      label: t("counters.totalIssues"), 
+      value: String(totalIssuesCount ?? 0),
+      color: "bg-purple-50 border-purple-200 text-purple-900"
+    },
     { 
       label: t("counters.totalOpenIssues"), 
       value: String(totalOpenCount ?? 0),
@@ -288,7 +302,7 @@ export default async function AdminIssuesPage({
     <div className="space-y-8">
       <h1 className="text-2xl md:text-3xl font-black tracking-[-0.015em]">{t("title")}</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {counters.map((k, i) => (
           <div key={i} className={`rounded-xl border p-6 ${k.color}`}>
             <p className="text-sm opacity-80">{k.label}</p>

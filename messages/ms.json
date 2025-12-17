@@ -316,6 +316,7 @@
     "list": {
       "title": "Papan Pemuka Isu",
       "counters": {
+        "totalIssues": "Jumlah Isu",
         "totalOpenIssues": "Jumlah Isu Terbuka",
         "pendingReview": "Menunggu Semakan",
         "resolvedThisWeek": "Diselesaikan Minggu Ini",

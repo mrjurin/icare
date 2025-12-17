@@ -656,19 +656,136 @@ export type IssueResolutionData = {
     resolved: number;
     resolution_rate: number;
   }>;
+  issues_by_priority: Array<{
+    priority: string;
+    total: number;
+    resolved: number;
+    resolution_rate: number;
+  }>;
 };
 
 export async function getIssueResolutionReport(): Promise<ActionResult<IssueResolutionData>> {
   const supabase = await getSupabaseServerClient();
+  const accessibleZoneIds = await getAccessibleZoneIds();
 
-  // Get all issues
-  const { data: issues, error: issuesError } = await supabase
+  // Get accessible zones first
+  let zonesQuery = supabase.from("zones").select("id, name, dun_id");
+  if (accessibleZoneIds !== null) {
+    if (accessibleZoneIds.length === 0) {
+      return { success: true, data: {
+        total_issues: 0,
+        resolved_issues: 0,
+        pending_issues: 0,
+        in_progress_issues: 0,
+        closed_issues: 0,
+        resolution_rate: 0,
+        average_resolution_time_days: 0,
+        issues_by_category: [],
+        issues_by_zone: [],
+        issues_by_priority: [],
+      } };
+    }
+    zonesQuery = zonesQuery.in("id", accessibleZoneIds);
+  }
+
+  const { data: zones, error: zonesError } = await zonesQuery;
+  if (zonesError || !zones) {
+    return { success: false, error: zonesError?.message || "Failed to fetch zones" };
+  }
+
+  const zoneIds = zones.map(z => z.id);
+  const zoneMap = new Map(zones.map(z => [z.id, z.name]));
+  const dunIds = [...new Set(zones.map(z => z.dun_id).filter(Boolean))];
+
+  // Get localities to map to zones
+  let localitiesQuery = supabase.from("localities").select("id, dun_id");
+  if (dunIds.length > 0) {
+    localitiesQuery = localitiesQuery.in("dun_id", dunIds);
+  }
+  const { data: localities, error: localitiesError } = await localitiesQuery;
+
+  if (localitiesError) {
+    return { success: false, error: localitiesError.message };
+  }
+
+  // Get locality IDs that belong to accessible zones
+  const accessibleLocalityIds = (localities || [])
+    .filter(l => l.dun_id && dunIds.includes(l.dun_id))
+    .map(l => l.id);
+
+  // Get all issue types for mapping
+  const { data: issueTypes, error: issueTypesError } = await supabase
+    .from("issue_types")
+    .select("id, name, code");
+
+  if (issueTypesError) {
+    return { success: false, error: issueTypesError.message };
+  }
+
+  // Create a map from issue_type_id to issue type name
+  const issueTypeMap = new Map<number, string>();
+  (issueTypes || []).forEach(it => {
+    if (it.id) {
+      issueTypeMap.set(it.id, it.name);
+    }
+  });
+
+  // Get issues - filter by accessible localities if we have zone restrictions
+  let issuesQuery = supabase
     .from("issues")
-    .select("id, status, category, created_at, resolved_at");
+    .select("id, status, category, issue_type_id, priority, created_at, resolved_at, locality_id");
+
+  if (accessibleZoneIds !== null && accessibleLocalityIds.length > 0) {
+    // Filter by accessible localities
+    issuesQuery = issuesQuery.in("locality_id", accessibleLocalityIds);
+  } else if (accessibleZoneIds !== null && accessibleLocalityIds.length === 0) {
+    // No accessible localities, return empty data
+    return { success: true, data: {
+      total_issues: 0,
+      resolved_issues: 0,
+      pending_issues: 0,
+      in_progress_issues: 0,
+      closed_issues: 0,
+      resolution_rate: 0,
+      average_resolution_time_days: 0,
+      issues_by_category: [],
+      issues_by_zone: [],
+    } };
+  }
+
+  const { data: issues, error: issuesError } = await issuesQuery;
 
   if (issuesError) {
     return { success: false, error: issuesError.message };
   }
+
+  // Create a map from locality_id to dun_id, then to zone
+  const localityToDunMap = new Map((localities || []).map(l => [l.id, l.dun_id]));
+  const dunToZonesMap = new Map<number, number[]>();
+  zones.forEach(zone => {
+    if (zone.dun_id) {
+      const existing = dunToZonesMap.get(zone.dun_id) || [];
+      existing.push(zone.id);
+      dunToZonesMap.set(zone.dun_id, existing);
+    }
+  });
+
+  // Map issues to zones
+  const issueZoneMap = new Map<number, number>(); // issue_id -> zone_id
+  (issues || []).forEach(issue => {
+    if (issue.locality_id) {
+      const dunId = localityToDunMap.get(issue.locality_id);
+      if (dunId) {
+        const zoneIdsForDun = dunToZonesMap.get(dunId) || [];
+        // For now, assign to first zone in the DUN (could be enhanced to distribute evenly)
+        if (zoneIdsForDun.length > 0) {
+          issueZoneMap.set(issue.id, zoneIdsForDun[0]);
+        }
+      }
+    }
+    // Note: Issues without locality_id are not included in zone breakdown
+    // but are still counted in overall totals
+  });
 
   const totalIssues = issues?.length || 0;
   const resolvedIssues = (issues || []).filter(i => i.status === "resolved").length;
@@ -692,27 +809,86 @@ export async function getIssueResolutionReport(): Promise<ActionResult<IssueReso
     avgResolutionTime = Number((totalDays / resolvedWithDates.length).toFixed(1));
   }
 
-  // Issues by category
+  // Issues by category (using issue type name from issue_types table)
   const categoryMap = new Map<string, { total: number; resolved: number }>();
   (issues || []).forEach(issue => {
-    const category = issue.category || "other";
-    const current = categoryMap.get(category) || { total: 0, resolved: 0 };
+    // Use issue type name if available, otherwise fallback to category enum
+    let categoryName: string;
+    if (issue.issue_type_id && issueTypeMap.has(issue.issue_type_id)) {
+      categoryName = issueTypeMap.get(issue.issue_type_id)!;
+    } else {
+      // Fallback to category enum, formatted nicely
+      const category = issue.category || "other";
+      categoryName = category.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+    }
+    
+    const current = categoryMap.get(categoryName) || { total: 0, resolved: 0 };
     current.total++;
     if (issue.status === "resolved") current.resolved++;
-    categoryMap.set(category, current);
+    categoryMap.set(categoryName, current);
   });
 
   const issuesByCategory = Array.from(categoryMap.entries())
     .map(([category, stats]) => ({
-      category: category.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
+      category: category,
       total: stats.total,
       resolved: stats.resolved,
       resolution_rate: stats.total > 0 ? Number(((stats.resolved / stats.total) * 100).toFixed(2)) : 0,
     }))
     .sort((a, b) => b.total - a.total);
 
-  // Issues by zone (simplified - can be enhanced)
-  const issuesByZone: Array<{ zone_name: string; total: number; resolved: number; resolution_rate: number }> = [];
+  // Issues by zone
+  const zoneStatsMap = new Map<number, { total: number; resolved: number }>();
+  (issues || []).forEach(issue => {
+    const zoneId = issueZoneMap.get(issue.id);
+    if (zoneId) {
+      const current = zoneStatsMap.get(zoneId) || { total: 0, resolved: 0 };
+      current.total++;
+      if (issue.status === "resolved") current.resolved++;
+      zoneStatsMap.set(zoneId, current);
+    }
+  });
+
+  const issuesByZone = Array.from(zoneStatsMap.entries())
+    .map(([zoneId, stats]) => ({
+      zone_name: zoneMap.get(zoneId) || `Zone ${zoneId}`,
+      total: stats.total,
+      resolved: stats.resolved,
+      resolution_rate: stats.total > 0 ? Number(((stats.resolved / stats.total) * 100).toFixed(2)) : 0,
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  // Issues by priority
+  const priorityMap = new Map<string, { total: number; resolved: number }>();
+  (issues || []).forEach(issue => {
+    const priority = issue.priority || "medium";
+    const priorityName = priority.charAt(0).toUpperCase() + priority.slice(1);
+    const current = priorityMap.get(priorityName) || { total: 0, resolved: 0 };
+    current.total++;
+    if (issue.status === "resolved") current.resolved++;
+    priorityMap.set(priorityName, current);
+  });
+
+  // Define priority order for sorting
+  const priorityOrder: Record<string, number> = {
+    "Critical": 0,
+    "High": 1,
+    "Medium": 2,
+    "Low": 3,
+  };
+
+  const issuesByPriority = Array.from(priorityMap.entries())
+    .map(([priority, stats]) => ({
+      priority: priority,
+      total: stats.total,
+      resolved: stats.resolved,
+      resolution_rate: stats.total > 0 ? Number(((stats.resolved / stats.total) * 100).toFixed(2)) : 0,
+    }))
+    .sort((a, b) => {
+      const orderA = priorityOrder[a.priority] ?? 999;
+      const orderB = priorityOrder[b.priority] ?? 999;
+      return orderA - orderB;
+    });
 
   return {
     success: true,
@@ -726,6 +902,7 @@ export async function getIssueResolutionReport(): Promise<ActionResult<IssueReso
       average_resolution_time_days: avgResolutionTime,
       issues_by_category: issuesByCategory,
       issues_by_zone: issuesByZone,
+      issues_by_priority: issuesByPriority,
     },
   };
 }

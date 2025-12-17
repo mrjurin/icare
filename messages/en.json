@@ -316,6 +316,7 @@
     "list": {
       "title": "Issues Dashboard",
       "counters": {
+        "totalIssues": "Total Issues",
         "totalOpenIssues": "Total Open Issues",
         "pendingReview": "Pending Review",
         "resolvedThisWeek": "Resolved This Week",

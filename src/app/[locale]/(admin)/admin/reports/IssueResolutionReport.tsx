@@ -295,6 +295,167 @@ export default function IssueResolutionReport() {
           </table>
         </div>
       </div>
+
+      {/* Issues by Zone */}
+      {data.issues_by_zone && data.issues_by_zone.length > 0 && (
+        <div className="rounded-lg border border-gray-200 dark:border-gray-800 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Issues by Zone
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="text-left bg-gray-50 dark:bg-gray-900">
+                <tr>
+                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">Zone</th>
+                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300 text-right">
+                    Total
+                  </th>
+                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300 text-right">
+                    Resolved
+                  </th>
+                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300 text-right">
+                    Resolution Rate
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.issues_by_zone.map((zone, index) => (
+                  <tr
+                    key={index}
+                    className="border-t border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900"
+                  >
+                    <td className="px-4 py-3 font-medium">{zone.zone_name}</td>
+                    <td className="px-4 py-3 text-right">{zone.total}</td>
+                    <td className="px-4 py-3 text-right text-green-600 dark:text-green-400">
+                      {zone.resolved}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <span
+                          className={
+                            zone.resolution_rate >= 70
+                              ? "text-green-600 dark:text-green-400"
+                              : zone.resolution_rate >= 50
+                              ? "text-yellow-600 dark:text-yellow-400"
+                              : "text-red-600 dark:text-red-400"
+                          }
+                        >
+                          {zone.resolution_rate}%
+                        </span>
+                        <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${zone.resolution_rate >= 70 ? "bg-green-500" : zone.resolution_rate >= 50 ? "bg-yellow-500" : "bg-red-500"}`}
+                            style={{ width: `${zone.resolution_rate}%` }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Issues by Priority */}
+      {data.issues_by_priority && data.issues_by_priority.length > 0 && (
+        <div className="rounded-lg border border-gray-200 dark:border-gray-800 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Issues by Priority
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="text-left bg-gray-50 dark:bg-gray-900">
+                <tr>
+                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">Priority</th>
+                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300 text-right">
+                    Total
+                  </th>
+                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300 text-right">
+                    Resolved
+                  </th>
+                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300 text-right">
+                    Resolution Rate
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.issues_by_priority.map((priority, index) => {
+                  const getPriorityColor = (priorityName: string) => {
+                    const p = priorityName.toLowerCase();
+                    if (p === "critical") {
+                      return {
+                        badge: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+                        text: "text-red-600 dark:text-red-400",
+                        bar: "bg-red-500",
+                      };
+                    } else if (p === "high") {
+                      return {
+                        badge: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+                        text: "text-orange-600 dark:text-orange-400",
+                        bar: "bg-orange-500",
+                      };
+                    } else if (p === "medium") {
+                      return {
+                        badge: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+                        text: "text-yellow-600 dark:text-yellow-400",
+                        bar: "bg-yellow-500",
+                      };
+                    } else {
+                      return {
+                        badge: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+                        text: "text-blue-600 dark:text-blue-400",
+                        bar: "bg-blue-500",
+                      };
+                    }
+                  };
+
+                  const colors = getPriorityColor(priority.priority);
+
+                  return (
+                    <tr
+                      key={index}
+                      className="border-t border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900"
+                    >
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${colors.badge}`}>
+                          {priority.priority}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">{priority.total}</td>
+                      <td className="px-4 py-3 text-right text-green-600 dark:text-green-400">
+                        {priority.resolved}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <span
+                            className={
+                              priority.resolution_rate >= 70
+                                ? "text-green-600 dark:text-green-400"
+                                : priority.resolution_rate >= 50
+                                ? "text-yellow-600 dark:text-yellow-400"
+                                : "text-red-600 dark:text-red-400"
+                            }
+                          >
+                            {priority.resolution_rate}%
+                          </span>
+                          <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${priority.resolution_rate >= 70 ? "bg-green-500" : priority.resolution_rate >= 50 ? "bg-yellow-500" : "bg-red-500"}`}
+                              style={{ width: `${priority.resolution_rate}%` }}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
