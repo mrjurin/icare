@@ -5,7 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Eye, EyeOff, AlertCircle, Loader2, Mail, Lock, CheckCircle2, UserCheck } from "lucide-react";
-import { getSetting } from "@/lib/actions/settings";
+import { getSetting, getDunName } from "@/lib/actions/settings";
 
 export default function StaffLoginPage() {
   const router = useRouter();
@@ -19,6 +19,7 @@ export default function StaffLoginPage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loginImageUrl, setLoginImageUrl] = useState<string | null>(null);
+  const [dunName, setDunName] = useState<string>("N.18 Inanam");
 
   // Memoize supabase client to avoid recreating on every render
   const supabase = useMemo(
@@ -30,19 +31,25 @@ export default function StaffLoginPage() {
     []
   );
 
-  // Load login image setting
+  // Load login image setting and DUN name
   useEffect(() => {
-    const loadLoginImage = async () => {
+    const loadSettings = async () => {
       try {
-        const result = await getSetting("staff_login_image_url");
-        if (result.success && result.data) {
-          setLoginImageUrl(result.data);
+        const [imageResult, dunNameResult] = await Promise.all([
+          getSetting("staff_login_image_url"),
+          getDunName(),
+        ]);
+        if (imageResult.success && imageResult.data) {
+          setLoginImageUrl(imageResult.data);
+        }
+        if (dunNameResult) {
+          setDunName(dunNameResult);
         }
       } catch (err) {
-        console.error("Failed to load login image:", err);
+        console.error("Failed to load settings:", err);
       }
     };
-    loadLoginImage();
+    loadSettings();
   }, []);
 
   // Check if user is already logged in as staff
@@ -298,7 +305,7 @@ export default function StaffLoginPage() {
                   </h1>
                 </div>
                 <p className="text-[#617589] dark:text-gray-400 text-base">
-                  Sign in to access your staff dashboard for N.18 Inanam.
+                  Sign in to access your staff dashboard for {dunName}.
                 </p>
               </div>
 

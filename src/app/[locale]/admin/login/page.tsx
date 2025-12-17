@@ -5,7 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Eye, EyeOff, AlertCircle, Loader2, Mail, Lock, CheckCircle2, Shield } from "lucide-react";
-import { getSetting } from "@/lib/actions/settings";
+import { getSetting, getDunName } from "@/lib/actions/settings";
 import Link from "next/link";
 
 export default function AdminLoginPage() {
@@ -21,6 +21,7 @@ export default function AdminLoginPage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loginImageUrl, setLoginImageUrl] = useState<string | null>(null);
+  const [dunName, setDunName] = useState<string>("N.18 Inanam");
 
   // Memoize supabase client to avoid recreating on every render
   const supabase = useMemo(
@@ -32,19 +33,25 @@ export default function AdminLoginPage() {
     []
   );
 
-  // Load login image setting
+  // Load login image setting and DUN name
   useEffect(() => {
-    const loadLoginImage = async () => {
+    const loadSettings = async () => {
       try {
-        const result = await getSetting("admin_login_image_url");
-        if (result.success && result.data) {
-          setLoginImageUrl(result.data);
+        const [imageResult, dunNameResult] = await Promise.all([
+          getSetting("admin_login_image_url"),
+          getDunName(),
+        ]);
+        if (imageResult.success && imageResult.data) {
+          setLoginImageUrl(imageResult.data);
+        }
+        if (dunNameResult) {
+          setDunName(dunNameResult);
         }
       } catch (err) {
-        console.error("Failed to load login image:", err);
+        console.error("Failed to load settings:", err);
       }
     };
-    loadLoginImage();
+    loadSettings();
   }, []);
 
   // Auto-populate credentials in development mode (local development only)
@@ -259,7 +266,7 @@ export default function AdminLoginPage() {
                   <Shield className="size-6" />
                   <h2 className="text-2xl font-bold">Admin Portal</h2>
                 </div>
-                <p className="text-sm text-gray-200">Manage N.18 Inanam community services and resources.</p>
+                <p className="text-sm text-gray-200">Manage {dunName} community services and resources.</p>
               </div>
             </div>
           </div>
@@ -276,7 +283,7 @@ export default function AdminLoginPage() {
                   </h1>
                 </div>
                 <p className="text-[#617589] dark:text-gray-400 text-base">
-                  Sign in to access the admin dashboard for N.18 Inanam.
+                  Sign in to access the admin dashboard for {dunName}.
                 </p>
               </div>
 

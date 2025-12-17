@@ -1,22 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import * as Switch from "@radix-ui/react-switch";
 import * as Select from "@radix-ui/react-select";
 import { UploadCloud, Save, Image as ImageIcon, X, Loader2, UserCheck, Shield, Users } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import { getSetting, updateSetting, uploadImage } from "@/lib/actions/settings";
+import { getSetting, updateSetting, uploadImage, getDunName } from "@/lib/actions/settings";
 import { getReferenceDataList } from "@/lib/actions/reference-data";
 import { useRouter } from "next/navigation";
 
 type LoginPageType = "staff" | "admin" | "community";
 
-export default function AdminSettingsPage() {
+export default function AdminSettingsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  // Unwrap params and searchParams to prevent Next.js 16 async params errors
+  use(params);
+  use(searchParams);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<LoginPageType>("staff");
   const [adminHeaderTitle, setAdminHeaderTitle] = useState("");
   const [appName, setAppName] = useState("");
+  const [dunName, setDunName] = useState<string>("N.18 Inanam");
   
   // Login image states for each page type
   const [loginImages, setLoginImages] = useState<Record<LoginPageType, {
@@ -83,7 +93,8 @@ export default function AdminSettingsPage() {
         defaultPriorityResult,
         notifyNewIssueResult,
         notifyStatusChangedResult,
-        notifyNewUserResult
+        notifyNewUserResult,
+        dunNameResult
       ] = await Promise.all([
         getSetting("admin_header_title"),
         getSetting("app_name"),
@@ -100,10 +111,14 @@ export default function AdminSettingsPage() {
         getSetting("notify_new_issue"),
         getSetting("notify_status_changed"),
         getSetting("notify_new_user"),
+        getDunName(),
       ]);
       
+      const defaultDunName = dunNameResult || "N.18 Inanam";
+      setDunName(defaultDunName);
+      
       if (titleResult.success) {
-        setAdminHeaderTitle(titleResult.data || "N.18 Inanam Community Watch");
+        setAdminHeaderTitle(titleResult.data || `${defaultDunName} Community Watch`);
       }
       if (appNameResult.success) {
         setAppName(appNameResult.data || "Community Watch");
@@ -376,7 +391,7 @@ export default function AdminSettingsPage() {
     ] = await Promise.all([
       updateSetting(
         "admin_header_title",
-        adminHeaderTitle || "N.18 Inanam Community Watch",
+        adminHeaderTitle || `${dunName} Community Watch`,
         "The title displayed in the admin header"
       ),
       updateSetting(
@@ -551,7 +566,7 @@ export default function AdminSettingsPage() {
                   value={adminHeaderTitle || ""}
                   onChange={(e) => setAdminHeaderTitle(e.target.value)}
                   className="mt-1 w-full"
-                  placeholder="N.18 Inanam Community Watch"
+                  placeholder={`${dunName} Community Watch`}
                 />
               )}
             </div>

@@ -12,6 +12,7 @@ import { AlertCircle } from "lucide-react";
 import { getActiveIssueTypes, type IssueType } from "@/lib/actions/issue-types";
 import SearchableSelect from "@/components/ui/SearchableSelect";
 import { getReferenceDataList, type ReferenceData } from "@/lib/actions/reference-data";
+import { getDunName } from "@/lib/actions/settings";
 
 const issueSchema = z.object({
   title: z.string().min(1, "Title is required").trim(),
@@ -34,20 +35,25 @@ export default function CommunityReportIssuePage() {
   const [isLoadingTypes, setIsLoadingTypes] = useState(true);
   const [localities, setLocalities] = useState<ReferenceData[]>([]);
   const [selectedLocalityId, setSelectedLocalityId] = useState<string | number>("");
+  const [dunName, setDunName] = useState<string>("N.18 Inanam");
 
   // Load issue types and localities on mount
   useEffect(() => {
     const loadData = async () => {
       setIsLoadingTypes(true);
-      const [typesResult, localitiesResult] = await Promise.all([
+      const [typesResult, localitiesResult, dunNameResult] = await Promise.all([
         getActiveIssueTypes(),
         getReferenceDataList("localities"),
+        getDunName(),
       ]);
       if (typesResult.success && typesResult.data) {
         setIssueTypes(typesResult.data);
       }
       if (localitiesResult.success && localitiesResult.data) {
         setLocalities(localitiesResult.data.filter((loc) => loc.is_active));
+      }
+      if (dunNameResult) {
+        setDunName(dunNameResult);
       }
       setIsLoadingTypes(false);
     };
@@ -239,11 +245,11 @@ export default function CommunityReportIssuePage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
         <section className="lg:col-span-1 flex flex-col gap-4 order-2 lg:order-1">
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-4 sm:p-6">
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">N.18 INANAM</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">{dunName.toUpperCase()}</h2>
             <p className="text-sm sm:text-base text-primary font-semibold mt-1">Community Issue Reporting</p>
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-4 leading-relaxed">
               Facing issues like potholes, clogged drains, or faulty streetlights? Let us know.
-              We are committed to monitoring every report from the residents of N.18 Inanam.
+              We are committed to monitoring every report from the residents of {dunName}.
             </p>
             <div className="mt-6 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 p-4">
               <p className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">CARELINE Contact</p>

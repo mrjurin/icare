@@ -1,4 +1,8 @@
-export default function CommunityFaqPage() {
+import { getDunName } from "@/lib/actions/settings";
+
+export default async function CommunityFaqPage() {
+  const dunName = await getDunName();
+  
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap justify-between gap-3 pb-2">
@@ -58,7 +62,7 @@ export default function CommunityFaqPage() {
                 <p className="text-base font-medium text-gray-900 dark:text-white">What is the purpose of this platform?</p>
                 <span className="text-gray-900 dark:text-white">▾</span>
               </summary>
-              <p className="text-sm text-gray-600 dark:text-gray-400 pt-3">This platform enables residents of N.18 Inanam to report local community issues, track their resolution, and stay informed about community developments. Our goal is to foster a responsive and collaborative environment.</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 pt-3">This platform enables residents of {dunName} to report local community issues, track their resolution, and stay informed about community developments. Our goal is to foster a responsive and collaborative environment.</p>
             </details>
           </div>
 

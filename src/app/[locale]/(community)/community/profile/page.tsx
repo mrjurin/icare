@@ -7,6 +7,7 @@ import { Pencil } from "lucide-react";
 import { useState, useEffect, FormEvent } from "react";
 import { getCurrentUserProfile, updateProfile, type ProfileData } from "@/lib/actions/profile";
 import { createClient } from "@supabase/supabase-js";
+import { getDunName } from "@/lib/actions/settings";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,6 +22,7 @@ export default function CommunityProfilePage() {
   const [success, setSuccess] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [dunName, setDunName] = useState<string>("N.18 Inanam");
 
   // Form state
   const [formData, setFormData] = useState({
@@ -75,6 +77,17 @@ export default function CommunityProfilePage() {
     } finally {
       setLoading(false);
     }
+    
+    // Load DUN name
+    const loadDunName = async () => {
+      try {
+        const name = await getDunName();
+        setDunName(name);
+      } catch (err) {
+        console.error("Failed to load DUN name:", err);
+      }
+    };
+    loadDunName();
   };
 
   const validateForm = (): boolean => {
@@ -218,7 +231,7 @@ export default function CommunityProfilePage() {
             </div>
             <div className="flex flex-col">
               <p className="text-[22px] font-bold leading-tight tracking-[-0.015em] text-gray-900 dark:text-white">{displayName}</p>
-              <p className="text-base text-gray-600 dark:text-gray-400">N.18 Inanam Resident</p>
+              <p className="text-base text-gray-600 dark:text-gray-400">{dunName} Resident</p>
             </div>
           </div>
 

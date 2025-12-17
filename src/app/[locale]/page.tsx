@@ -1,12 +1,15 @@
-import { getSetting } from "@/lib/actions/settings";
+import { getSetting, getDunName } from "@/lib/actions/settings";
 import { getActiveAnnouncements, getActiveAnnouncementsPaginated } from "@/lib/actions/announcements";
 import HomeClient from "../../app/HomeClient";
 
 export default async function Home() {
-  const appNameResult = await getSetting("app_name");
+  const [appNameResult, dunName] = await Promise.all([
+    getSetting("app_name"),
+    getDunName(),
+  ]);
   const appName = appNameResult.success && appNameResult.data 
     ? appNameResult.data 
-    : "N.17 Darau Platform";
+    : `${dunName} Platform`;
 
   // Fetch active announcements (limit to 3 for landing page - most recent)
   const announcementsResult = await getActiveAnnouncements(3);

@@ -9,7 +9,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import NotificationIcon from "@/components/NotificationIcon";
 import { getCurrentUserAccessReadOnly, getWorkspaceAccess } from "@/lib/utils/access-control";
 import { getSupabaseReadOnlyClient } from "@/lib/supabase/server";
-import { getSetting } from "@/lib/actions/settings";
+import { getSetting, getDunName } from "@/lib/actions/settings";
 import { getLocale } from "next-intl/server";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
@@ -49,13 +49,14 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const staffPosition = staffData?.position || "Staff Member";
 
   // Get configured settings
-  const [titleResult, appNameResult] = await Promise.all([
+  const [titleResult, appNameResult, dunName] = await Promise.all([
     getSetting("admin_header_title"),
     getSetting("app_name"),
+    getDunName(),
   ]);
   const adminHeaderTitle = titleResult.success && titleResult.data 
     ? titleResult.data 
-    : "N.18 Inanam Community Watch";
+    : `${dunName} Community Watch`;
   const appName = appNameResult.success && appNameResult.data 
     ? appNameResult.data 
     : "Community Watch";

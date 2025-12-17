@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { getSupabaseServerClient, getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/utils/access-control";
 import { revalidatePath } from "next/cache";
+import { getReferenceData } from "./reference-data";
 
 export type ActionResult<T = void> = {
   success: boolean;
@@ -225,4 +226,46 @@ export async function uploadImage(
       error: error instanceof Error ? error.message : "Failed to upload image" 
     };
   }
+}
+
+/**
+ * Get the DUN name from system settings
+ * Returns the DUN name if configured, otherwise returns a default value
+ */
+export async function getDunName(): Promise<string> {
+  const dunIdResult = await getSetting("system_dun_id");
+  
+  if (dunIdResult.success && dunIdResult.data) {
+    const dunId = parseInt(dunIdResult.data, 10);
+    if (!isNaN(dunId)) {
+      const dunResult = await getReferenceData("duns", dunId);
+      if (dunResult.success && dunResult.data) {
+        return dunResult.data.name || "N.18 Inanam";
+      }
+    }
+  }
+  
+  // Default fallback
+  return "N.18 Inanam";
+}
+
+/**
+ * Get the DUN code from system settings
+ * Returns the DUN code if configured, otherwise returns a default value
+ */
+export async function getDunCode(): Promise<string> {
+  const dunIdResult = await getSetting("system_dun_id");
+  
+  if (dunIdResult.success && dunIdResult.data) {
+    const dunId = parseInt(dunIdResult.data, 10);
+    if (!isNaN(dunId)) {
+      const dunResult = await getReferenceData("duns", dunId);
+      if (dunResult.success && dunResult.data) {
+        return dunResult.data.code || "N18";
+      }
+    }
+  }
+  
+  // Default fallback
+  return "N18";
 }

@@ -2,7 +2,7 @@ import { getActiveAnnouncementsPaginated } from "@/lib/actions/announcements";
 import { getTranslations } from "next-intl/server";
 import PublicAnnouncementsList from "@/components/PublicAnnouncementsList";
 import PublicHeaderClient from "@/components/PublicHeaderClient";
-import { getSetting } from "@/lib/actions/settings";
+import { getSetting, getDunName } from "@/lib/actions/settings";
 
 export default async function AnnouncementsPage({
   searchParams,
@@ -15,10 +15,13 @@ export default async function AnnouncementsPage({
   const limit = typeof sp.limit === "string" ? parseInt(sp.limit, 10) : 12;
   const category = typeof sp.category === "string" ? sp.category : undefined;
 
-  const appNameResult = await getSetting("app_name");
+  const [appNameResult, dunName] = await Promise.all([
+    getSetting("app_name"),
+    getDunName(),
+  ]);
   const appName = appNameResult.success && appNameResult.data 
     ? appNameResult.data 
-    : "N.18 Inanam Platform";
+    : `${dunName} Platform`;
 
   const result = await getActiveAnnouncementsPaginated({
     page: isNaN(page) ? 1 : page,
