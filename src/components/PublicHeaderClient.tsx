@@ -19,6 +19,7 @@ export default function PublicHeaderClient({ appName }: PublicHeaderClientProps)
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [user, setUser] = useState<{ email: string | null; avatarUrl: string | null } | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [userRole, setUserRole] = useState<'admin' | 'staff' | 'community' | null>(null);
   const [loading, setLoading] = useState(true);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -43,14 +44,66 @@ export default function PublicHeaderClient({ appName }: PublicHeaderClientProps)
             email: authUser.email || null,
             avatarUrl: authUser.user_metadata?.avatar_url || profileData?.avatarUrl || null,
           });
+
+          // Check if user is staff/admin
+          const userEmail = authUser.email?.toLowerCase().trim();
+          if (userEmail) {
+            // Check staff table
+            let { data: staff } = await supabase
+              .from("staff")
+              .select("id, role, status, email, ic_number")
+              .eq("email", userEmail)
+              .eq("status", "active")
+              .maybeSingle();
+
+            // If not found by email, check if it's a generated email from IC number
+            if (!staff && userEmail.endsWith("@staff.local")) {
+              const icNumber = userEmail.replace("@staff.local", "").replace(/[-\s]/g, "");
+              const { data: staffByIc } = await supabase
+                .from("staff")
+                .select("id, role, status, email, ic_number")
+                .eq("ic_number", icNumber)
+                .eq("status", "active")
+                .maybeSingle();
+              
+              if (staffByIc) {
+                staff = staffByIc;
+              }
+            }
+
+            if (staff) {
+              // User is a staff member
+              const adminRoles = ["super_admin", "adun", "zone_leader", "staff_manager"];
+              if (adminRoles.includes(staff.role)) {
+                setUserRole('admin');
+              } else {
+                setUserRole('staff');
+              }
+            } else {
+              // Check if user is a community user
+              const { data: profile } = await supabase
+                .from("profiles")
+                .select("id")
+                .eq("email", userEmail)
+                .maybeSingle();
+
+              if (profile) {
+                setUserRole('community');
+              } else {
+                setUserRole(null);
+              }
+            }
+          }
         } else {
           setUser(null);
           setProfile(null);
+          setUserRole(null);
         }
       } catch (error) {
         console.error("Error checking auth:", error);
         setUser(null);
         setProfile(null);
+        setUserRole(null);
       } finally {
         setLoading(false);
       }
@@ -106,8 +159,25 @@ export default function PublicHeaderClient({ appName }: PublicHeaderClientProps)
     router.refresh();
   };
 
-  const displayName = profile?.fullName || user?.email?.split('@')[0] || 'User';
+  const rawDisplayName = profile?.fullName || user?.email?.split('@')[0] || 'User';
+  const displayName = rawDisplayName
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
   const avatarUrl = profile?.avatarUrl || user?.avatarUrl;
+
+  // Determine dashboard URL based on user role
+  // The Link component from '@/i18n/routing' automatically handles locale
+  const getDashboardUrl = () => {
+    if (userRole === 'admin') {
+      return '/admin/dashboard';
+    } else if (userRole === 'staff') {
+      return '/staff/dashboard';
+    } else if (userRole === 'community') {
+      return '/community/dashboard';
+    }
+    return '/community/dashboard'; // Default fallback
+  };
 
   return (
     <>
@@ -186,7 +256,7 @@ export default function PublicHeaderClient({ appName }: PublicHeaderClientProps)
                         Profile
                       </Link>
                       <Link
-                        href="/community/dashboard"
+                        href={getDashboardUrl()}
                         onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       >
@@ -293,7 +363,7 @@ export default function PublicHeaderClient({ appName }: PublicHeaderClientProps)
                       Profile
                     </Link>
                     <Link
-                      href="/community/dashboard"
+                      href={getDashboardUrl()}
                       onClick={() => setMobileMenuOpen(false)}
                       className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary font-medium"
                     >

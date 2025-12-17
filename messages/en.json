@@ -241,6 +241,34 @@
       "createAccount": "Create an Account"
     }
   },
+  "reportIssue": {
+    "hero": {
+      "title": "Report an Issue",
+      "description": "Help us make {dunName} a better place. Your report matters and can drive real change in your community.",
+      "loginToReport": "Login to Report",
+      "createAccount": "Create Account"
+    },
+    "getStarted": {
+      "title": "Get Started",
+      "description": "To report an issue, you need to be logged in. This helps us track reports and keep you updated on their progress.",
+      "loginToReport": "Login to Report",
+      "createAccount": "Create an Account"
+    },
+    "steps": {
+      "describe": {
+        "title": "Describe the Issue",
+        "description": "Provide details about the problem you've encountered in your community."
+      },
+      "addLocation": {
+        "title": "Add Location",
+        "description": "Pinpoint the exact location on a map so authorities can find and address it."
+      },
+      "trackProgress": {
+        "title": "Track Progress",
+        "description": "Monitor your report's status and get updates as it's being resolved."
+      }
+    }
+  },
   "announcements": {
     "title": "Community Announcements",
     "subtitle": "Stay informed about important updates, events, and news in your community",

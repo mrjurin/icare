@@ -241,6 +241,34 @@
       "createAccount": "Cipta Akaun"
     }
   },
+  "reportIssue": {
+    "hero": {
+      "title": "Laporkan Isu",
+      "description": "Bantu kami menjadikan {dunName} tempat yang lebih baik. Laporan anda penting dan boleh memacu perubahan sebenar dalam komuniti anda.",
+      "loginToReport": "Log Masuk untuk Laporkan",
+      "createAccount": "Cipta Akaun"
+    },
+    "getStarted": {
+      "title": "Mula",
+      "description": "Untuk melaporkan isu, anda perlu log masuk. Ini membantu kami menjejaki laporan dan memastikan anda dimaklumkan tentang kemajuan mereka.",
+      "loginToReport": "Log Masuk untuk Laporkan",
+      "createAccount": "Cipta Akaun"
+    },
+    "steps": {
+      "describe": {
+        "title": "Terangkan Isu",
+        "description": "Berikan butiran tentang masalah yang anda hadapi dalam komuniti anda."
+      },
+      "addLocation": {
+        "title": "Tambah Lokasi",
+        "description": "Tentukan lokasi tepat di peta supaya pihak berkuasa dapat mencari dan menanganinya."
+      },
+      "trackProgress": {
+        "title": "Pantau Kemajuan",
+        "description": "Pantau status laporan anda dan dapatkan kemas kini semasa ia diselesaikan."
+      }
+    }
+  },
   "announcements": {
     "title": "Pengumuman Komuniti",
     "subtitle": "Kekal dimaklumkan tentang kemas kini penting, acara dan berita dalam komuniti anda",
