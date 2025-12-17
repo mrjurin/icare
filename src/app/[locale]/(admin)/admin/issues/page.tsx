@@ -17,6 +17,9 @@ type DbIssue = {
   reporter_name: string | null;
   issue_types?: { name: string } | null;
   issue_type_name?: string | null;
+  issue_statuses?: { id: number; name: string; code: string | null } | null;
+  issue_status_id?: number | null;
+  issue_status_name?: string | null;
 };
 
 export default async function AdminIssuesPage({
@@ -43,16 +46,50 @@ export default async function AdminIssuesPage({
 
   const supabase = await getSupabaseReadOnlyClient();
 
-  // Fetch counters (keep existing logic for top counters)
+  // Fetch issue statuses and types first (needed for counters and filters)
+  const { data: issueTypesResult } = await getReferenceDataList("issue_types");
+  const issueTypes = issueTypesResult || [];
+
+  const { data: issueStatusesResult } = await getReferenceDataList("issue_statuses");
+  const issueStatuses = issueStatusesResult || [];
+
+  // Fetch counters using issue_statuses table
+  // Get status IDs for "open" statuses (pending, in_progress, resolved)
+  // We'll look for statuses by name or code that match these patterns
+  const openStatusNames = ["pending", "in_progress", "resolved"];
+  const openStatusIds = issueStatuses
+    .filter((s) => {
+      const nameLower = s.name.toLowerCase();
+      const codeLower = s.code?.toLowerCase() || "";
+      return openStatusNames.some((os) => nameLower.includes(os) || codeLower.includes(os));
+    })
+    .map((s) => s.id);
+
+  const pendingStatusIds = issueStatuses
+    .filter((s) => {
+      const nameLower = s.name.toLowerCase();
+      const codeLower = s.code?.toLowerCase() || "";
+      return nameLower.includes("pending") || codeLower.includes("pending");
+    })
+    .map((s) => s.id);
+
+  const resolvedStatusIds = issueStatuses
+    .filter((s) => {
+      const nameLower = s.name.toLowerCase();
+      const codeLower = s.code?.toLowerCase() || "";
+      return nameLower.includes("resolved") || codeLower.includes("resolved");
+    })
+    .map((s) => s.id);
+
   const { count: totalOpenCount } = await supabase
     .from("issues")
     .select("*", { count: "exact", head: true })
-    .in("status", ["pending", "in_progress", "resolved"]);
+    .in("issue_status_id", openStatusIds.length > 0 ? openStatusIds : [-1]);
 
   const { count: pendingCount } = await supabase
     .from("issues")
     .select("*", { count: "exact", head: true })
-    .eq("status", "pending");
+    .in("issue_status_id", pendingStatusIds.length > 0 ? pendingStatusIds : [-1]);
 
   const now = new Date();
   const startOfWeek = new Date(now);
@@ -62,7 +99,7 @@ export default async function AdminIssuesPage({
   const { count: resolvedThisWeekCount } = await supabase
     .from("issues")
     .select("*", { count: "exact", head: true })
-    .eq("status", "resolved")
+    .in("issue_status_id", resolvedStatusIds.length > 0 ? resolvedStatusIds : [-1])
     .gte("resolved_at", startOfWeek.toISOString());
 
   const counters = [
@@ -71,17 +108,20 @@ export default async function AdminIssuesPage({
     { label: t("counters.resolvedThisWeek"), value: String(resolvedThisWeekCount || 0) },
   ];
 
-  const { data: issueTypesResult } = await getReferenceDataList("issue_types");
-  const issueTypes = issueTypesResult || [];
-
-  // Build main query
+  // Build main query with join to issue_statuses
   let query = supabase
     .from("issues")
-    .select("id,title,category,status,created_at,reporter_id,issue_types(name)", { count: "exact" });
+    .select("id,title,category,status,created_at,reporter_id,issue_status_id,issue_types(name),issue_statuses(id,name,code)", { count: "exact" });
 
   // Apply filters
   if (statusFilter) {
-    query = query.eq("status", statusFilter);
+    // If statusFilter is a number, it's an issue_status_id
+    if (!isNaN(Number(statusFilter))) {
+      query = query.eq("issue_status_id", parseInt(statusFilter));
+    } else {
+      // Fallback to enum status for backward compatibility
+      query = query.eq("status", statusFilter);
+    }
   }
 
   if (categoryFilter) {
@@ -140,11 +180,22 @@ export default async function AdminIssuesPage({
     .order("created_at", { ascending: false })
     .range(from, to);
 
-  const { data, count } = await query;
+  const { data, count, error: queryError } = await query;
+  
+  if (queryError) {
+    console.error("Error fetching issues:", queryError);
+  }
+  
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const issues = (Array.isArray(data) ? data : []) as any[];
   const totalItems = count || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
+  
+  // Create a map of status ID to status name for manual lookup
+  const statusIdToNameMap = new Map<number, string>();
+  issueStatuses.forEach((status) => {
+    statusIdToNameMap.set(status.id, status.name);
+  });
 
   // Fetch reporter information for visible issues
   const reporterIds = [...new Set(issues.map((i) => i.reporter_id).filter((id): id is number => id !== null))];
@@ -165,12 +216,45 @@ export default async function AdminIssuesPage({
     }
   }
 
-  // Add reporter names and flatten issue type
-  const rows: DbIssue[] = issues.map((issue) => ({
-    ...issue,
-    reporter_name: issue.reporter_id ? reporterMap.get(issue.reporter_id) || null : null,
-    issue_type_name: issue.issue_types?.name || null,
-  }));
+  // Create a map of status enum values to status names for fallback lookup
+  // This handles cases where issue_status_id might be null but we have the enum status
+  const statusEnumToNameMap = new Map<string, string>();
+  issueStatuses.forEach((status) => {
+    // Match by code if it matches enum values (e.g., "pending", "in_progress")
+    if (status.code) {
+      statusEnumToNameMap.set(status.code.toLowerCase(), status.name);
+    }
+    // Also match by name if it contains enum values
+    const nameLower = status.name.toLowerCase();
+    if (nameLower.includes("pending")) statusEnumToNameMap.set("pending", status.name);
+    if (nameLower.includes("in_progress") || nameLower.includes("in progress")) statusEnumToNameMap.set("in_progress", status.name);
+    if (nameLower.includes("resolved")) statusEnumToNameMap.set("resolved", status.name);
+    if (nameLower.includes("closed")) statusEnumToNameMap.set("closed", status.name);
+  });
+
+  // Add reporter names and flatten issue type and status
+  // Note: We use the 'name' field from issue_statuses for display, not the 'code' field
+  const rows: DbIssue[] = issues.map((issue) => {
+    // Try to get status name from joined data first
+    let statusName = issue.issue_statuses?.name;
+    
+    // If join didn't work, try manual lookup by issue_status_id
+    if (!statusName && issue.issue_status_id) {
+      statusName = statusIdToNameMap.get(issue.issue_status_id) || null;
+    }
+    
+    // If still not available, try to look it up from the enum status value
+    if (!statusName && issue.status) {
+      statusName = statusEnumToNameMap.get(issue.status.toLowerCase()) || null;
+    }
+    
+    return {
+      ...issue,
+      reporter_name: issue.reporter_id ? reporterMap.get(issue.reporter_id) || null : null,
+      issue_type_name: issue.issue_types?.name || null,
+      issue_status_name: statusName, // Using 'name' field, not 'code'
+    };
+  });
 
   // Fetch issues with coordinates for map visualization (separate query to show density of ALL issues matching filter)
   // We apply the same filters EXCEPT pagination to the map
@@ -204,7 +288,7 @@ export default async function AdminIssuesPage({
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white">
-        <IssuesFilters issueTypes={issueTypes} />
+        <IssuesFilters issueTypes={issueTypes} issueStatuses={issueStatuses} />
         <div className="h-px bg-gray-200" />
       </div>
 

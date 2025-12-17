@@ -13,6 +13,8 @@ type DbIssue = {
   reporter_id: number | null;
   reporter_name: string | null;
   issue_type_name?: string | null;
+  issue_status_name?: string | null;
+  issue_status_id?: number | null;
 };
 
 type IssuesTableProps = {
@@ -27,6 +29,30 @@ export default function IssuesTable({ issues }: IssuesTableProps) {
     in_progress: t("status.inProgress"),
     resolved: t("status.resolved"),
     closed: t("status.closed"),
+  };
+
+  // Helper function to get status display name
+  // Uses the 'name' field from issue_statuses table (user-friendly), not the 'code' field
+  const getStatusDisplay = (issue: DbIssue): string => {
+    if (issue.issue_status_name) {
+      return issue.issue_status_name; // This is the 'name' field from issue_statuses table
+    }
+    // Fallback to enum status with translation
+    return statusLabels[issue.status] || issue.status.replace(/_/g, " ");
+  };
+
+  // Helper function to get status badge class
+  const getStatusBadgeClass = (issue: DbIssue): string => {
+    const statusName = (issue.issue_status_name || issue.status).toLowerCase();
+    if (statusName.includes("pending") || statusName === "pending") {
+      return "bg-blue-100 text-blue-800";
+    } else if (statusName.includes("in_progress") || statusName.includes("in progress") || statusName === "in_progress") {
+      return "bg-yellow-100 text-yellow-800";
+    } else if (statusName.includes("resolved") || statusName === "resolved") {
+      return "bg-green-100 text-green-800";
+    } else {
+      return "bg-gray-100 text-gray-800";
+    }
   };
 
   if (issues.length === 0) {
@@ -80,16 +106,9 @@ export default function IssuesTable({ issues }: IssuesTableProps) {
             <td className="px-4 py-3">{r.reporter_name || "—"}</td>
             <td className="px-4 py-3">
               <span
-                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${r.status === "pending"
-                  ? "bg-blue-100 text-blue-800"
-                  : r.status === "in_progress"
-                    ? "bg-yellow-100 text-yellow-800"
-                    : r.status === "resolved"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-gray-100 text-gray-800"
-                  }`}
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusBadgeClass(r)}`}
               >
-                {statusLabels[r.status] || r.status.replace(/_/g, " ")}
+                {getStatusDisplay(r)}
               </span>
             </td>
             <td className="px-4 py-3 text-right">

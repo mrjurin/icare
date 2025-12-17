@@ -12,9 +12,10 @@ import type { ReferenceData } from "@/lib/actions/reference-data";
 
 type Props = {
   issueTypes: ReferenceData[];
+  issueStatuses?: ReferenceData[];
 };
 
-export default function IssuesFilters({ issueTypes = [] }: Props) {
+export default function IssuesFilters({ issueTypes = [], issueStatuses = [] }: Props) {
   const t = useTranslations("issues.list");
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -144,10 +145,27 @@ export default function IssuesFilters({ issueTypes = [] }: Props) {
           className="h-10 px-3 text-sm rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
         >
           <option value="">{t("filters.status.label")}</option>
-          <option value="pending">{t("filters.status.new")}</option>
-          <option value="in_progress">{t("filters.status.inProgress")}</option>
-          <option value="resolved">{t("filters.status.resolved")}</option>
-          <option value="closed">{t("filters.status.closed")}</option>
+          {issueStatuses.length > 0 ? (
+            issueStatuses
+              .filter((status) => status.is_active !== false)
+              .sort((a, b) => {
+                const aOrder = (a as any).display_order || 0;
+                const bOrder = (b as any).display_order || 0;
+                return aOrder - bOrder;
+              })
+              .map((status) => (
+                <option key={status.id} value={status.id.toString()}>
+                  {status.name}
+                </option>
+              ))
+          ) : (
+            <>
+              <option value="pending">{t("filters.status.new")}</option>
+              <option value="in_progress">{t("filters.status.inProgress")}</option>
+              <option value="resolved">{t("filters.status.resolved")}</option>
+              <option value="closed">{t("filters.status.closed")}</option>
+            </>
+          )}
         </select>
         <select
           value={typeFilter}
