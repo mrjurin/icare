@@ -55,7 +55,7 @@ export default async function middleware(request: NextRequest) {
     if (hasLocale) {
       url.pathname = `/${locale}/staff/login`;
     } else {
-      url.pathname = `/en/staff/login`;
+      url.pathname = `/${routing.defaultLocale}/staff/login`;
     }
 
     return NextResponse.redirect(url);
