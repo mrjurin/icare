@@ -12,6 +12,8 @@
  *   - priorities
  *   - profiles
  *   - issues (depends on profiles and issue_types - will auto-seed dependencies if missing)
+ *   - app_settings (or app-settings)
+ *   - announcements
  * 
  * Examples:
  *   npm run db:seed
@@ -20,6 +22,8 @@
  *   npm run db:seed -- --table=priorities
  *   npm run db:seed -- --table=profiles
  *   npm run db:seed -- --table=issues
+ *   npm run db:seed -- --table=announcements
+ *   npm run db:seed -- --table=announcements --clear
  *   npm run db:seed -- --table=issue_types --clear
  *   npm run db:seed -- -t issues -c
  *   tsx src/db/seed.ts --table=issues
@@ -599,100 +603,100 @@ Welcome to the Community Watch platform! This platform connects community member
 
 If you need assistance or have questions, please don't hesitate to contact us through the Contact page or reach out to your local community representatives.`;
 
-  const defaultViewReportsContent = `## View Reports
+  const defaultViewReportsContent = `## Lihat Laporan
 
-Stay informed about community activities, statistics, and developments through our comprehensive reporting system.
+Kekal dimaklumkan tentang aktiviti komuniti, statistik, dan perkembangan melalui sistem pelaporan komprehensif kami.
 
-### Available Reports
+### Laporan Tersedia
 
-- **Issue Reports:** Track all reported issues in your community, including their status, priority, and resolution progress.
-- **Community Statistics:** View demographic data, household information, and community metrics.
-- **Aid Program Reports:** Access information about aid distributions and program participation.
-- **Activity Reports:** Monitor community activities, announcements, and engagement metrics.
+- **Laporan Isu:** Jejaki semua isu yang dilaporkan dalam komuniti anda, termasuk status, keutamaan, dan kemajuan penyelesaian.
+- **Statistik Komuniti:** Lihat data demografi, maklumat isi rumah, dan metrik komuniti.
+- **Laporan Program Bantuan:** Akses maklumat tentang pengagihan bantuan dan penyertaan program.
+- **Laporan Aktiviti:** Pantau aktiviti komuniti, pengumuman, dan metrik penglibatan.
 
-### How to Access Reports
+### Cara Mengakses Laporan
 
-1. Log in to your account
-2. Navigate to the Reports section
-3. Select the type of report you wish to view
-4. Filter and customize the report based on your needs
-5. Export or share reports as needed
+1. Log masuk ke akaun anda
+2. Navigasi ke bahagian Laporan
+3. Pilih jenis laporan yang ingin anda lihat
+4. Tapis dan sesuaikan laporan berdasarkan keperluan anda
+5. Eksport atau kongsi laporan mengikut keperluan
 
-### Report Features
+### Ciri Laporan
 
-- Real-time data updates
-- Customizable filters and date ranges
-- Export capabilities (PDF, Excel)
-- Visual charts and graphs
-- Detailed breakdowns by zone, village, or category
+- Kemas kini data masa nyata
+- Penapis dan julat tarikh yang boleh disesuaikan
+- Keupayaan eksport (PDF, Excel)
+- Carta dan graf visual
+- Perincian terperinci mengikut zon, kampung, atau kategori
 
-For more information or assistance with reports, please contact your community administrator.`;
+Untuk maklumat lanjut atau bantuan dengan laporan, sila hubungi pentadbir komuniti anda.`;
 
-  const defaultAboutUsContent = `## About Us
+  const defaultAboutUsContent = `## Tentang Kami
 
-Welcome to the N.18 Inanam Community Watch platform, a comprehensive community engagement and issue management system designed to strengthen the connection between community members and their local representatives.
+Selamat datang ke platform N.18 Inanam Community Watch, sistem penglibatan komuniti dan pengurusan isu yang komprehensif yang direka untuk mengukuhkan hubungan antara ahli komuniti dan wakil tempatan mereka.
 
-### Our Mission
+### Misi Kami
 
-Our mission is to create a transparent, efficient, and responsive platform that empowers community members to report issues, access information, and engage with local governance. We strive to improve the quality of life in our community by facilitating better communication and faster problem resolution.
+Misi kami adalah untuk mewujudkan platform yang telus, cekap, dan responsif yang memberdayakan ahli komuniti untuk melaporkan isu, mengakses maklumat, dan terlibat dengan tadbir urus tempatan. Kami berusaha untuk meningkatkan kualiti hidup dalam komuniti kami dengan memudahkan komunikasi yang lebih baik dan penyelesaian masalah yang lebih pantas.
 
-### What We Do
+### Apa Yang Kami Lakukan
 
-- **Issue Management:** We provide a streamlined system for reporting and tracking community issues, ensuring they are addressed promptly and efficiently.
-- **Community Engagement:** We facilitate communication between community members, staff, and representatives to foster a collaborative environment.
-- **Information Access:** We provide easy access to community reports, statistics, and important announcements.
-- **Support Services:** We connect community members with aid programs, support services, and resources available in the area.
+- **Pengurusan Isu:** Kami menyediakan sistem yang teratur untuk melaporkan dan menjejaki isu komuniti, memastikan mereka ditangani dengan segera dan cekap.
+- **Penglibatan Komuniti:** Kami memudahkan komunikasi antara ahli komuniti, kakitangan, dan wakil untuk memupuk persekitaran kolaboratif.
+- **Akses Maklumat:** Kami menyediakan akses mudah kepada laporan komuniti, statistik, dan pengumuman penting.
+- **Perkhidmatan Sokongan:** Kami menghubungkan ahli komuniti dengan program bantuan, perkhidmatan sokongan, dan sumber yang tersedia di kawasan ini.
 
-### Our Values
+### Nilai Kami
 
-- **Transparency:** We believe in open communication and accountability.
-- **Responsiveness:** We are committed to addressing community needs quickly and effectively.
-- **Inclusivity:** We ensure all community members have equal access to services and information.
-- **Integrity:** We maintain the highest standards of service and ethical conduct.
+- **Ketelusan:** Kami percaya pada komunikasi terbuka dan akauntabiliti.
+- **Responsif:** Kami komited untuk menangani keperluan komuniti dengan cepat dan berkesan.
+- **Inklusiviti:** Kami memastikan semua ahli komuniti mempunyai akses yang sama kepada perkhidmatan dan maklumat.
+- **Integriti:** Kami mengekalkan standard perkhidmatan dan tingkah laku etika yang tertinggi.
 
-### Contact Information
+### Maklumat Hubungan
 
-For more information about our services or to get involved, please visit our Contact page or reach out to your local community representatives.`;
+Untuk maklumat lanjut tentang perkhidmatan kami atau untuk terlibat, sila lawati halaman Hubungi Kami atau hubungi wakil komuniti tempatan anda.`;
 
-  const defaultContactContent = `## Contact Us
+  const defaultContactContent = `## Hubungi Kami
 
-We're here to help! Get in touch with us through any of the following methods:
+Kami di sini untuk membantu! Hubungi kami melalui mana-mana kaedah berikut:
 
-### Office Information
+### Maklumat Pejabat
 
 **N.18 Inanam Community Watch**  
-Address: [Your Office Address]  
-Phone: [Your Phone Number]  
-Email: [Your Email Address]
+Alamat: [Alamat Pejabat Anda]  
+Telefon: [Nombor Telefon Anda]  
+E-mel: [Alamat E-mel Anda]
 
-### Office Hours
+### Waktu Pejabat
 
-Monday - Friday: 9:00 AM - 5:00 PM  
-Saturday: 9:00 AM - 1:00 PM  
-Sunday: Closed
+Isnin - Jumaat: 9:00 AM - 5:00 PM  
+Sabtu: 9:00 AM - 1:00 PM  
+Ahad: Tutup
 
-### Contact Methods
+### Kaedah Hubungan
 
-- **In-Person:** Visit our office during business hours
-- **Phone:** Call us during office hours for immediate assistance
-- **Email:** Send us an email and we'll respond within 24-48 hours
-- **Online:** Submit issues or inquiries through this platform
+- **Secara Peribadi:** Lawati pejabat kami semasa waktu perniagaan
+- **Telefon:** Hubungi kami semasa waktu pejabat untuk bantuan segera
+- **E-mel:** Hantar e-mel kepada kami dan kami akan membalas dalam masa 24-48 jam
+- **Dalam Talian:** Hantar isu atau pertanyaan melalui platform ini
 
-### Emergency Contacts
+### Hubungan Kecemasan
 
-For emergencies, please contact:
+Untuk kecemasan, sila hubungi:
 
-- Police: 999
-- Fire Department: 994
-- Ambulance: 999
+- Polis: 999
+- Bomba: 994
+- Ambulans: 999
 
-### Staff Directory
+### Direktori Kakitangan
 
-You can also reach out to specific staff members or departments through the platform. Log in to access the staff directory and contact information.
+Anda juga boleh menghubungi kakitangan atau jabatan tertentu melalui platform. Log masuk untuk mengakses direktori kakitangan dan maklumat hubungan.
 
-### Feedback
+### Maklum Balas
 
-We value your feedback! If you have suggestions, comments, or concerns about our services, please don't hesitate to reach out. Your input helps us improve and serve the community better.`;
+Kami menghargai maklum balas anda! Jika anda mempunyai cadangan, komen, atau kebimbangan tentang perkhidmatan kami, jangan teragak-agak untuk menghubungi kami. Input anda membantu kami memperbaiki dan berkhidmat kepada komuniti dengan lebih baik.`;
 
   // Delete existing settings for these keys (in case they were created by migrations)
   await db.execute(sql`
@@ -765,6 +769,50 @@ We value your feedback! If you have suggestions, comments, or concerns about our
 
 seedFunctions['app_settings'] = seedAppSettings;
 seedFunctions['app-settings'] = seedAppSettings; // Also support kebab-case
+
+async function seedAnnouncements(existingData?: SeedResult): Promise<SeedResult> {
+  console.log("📢 Seeding announcements...");
+
+  // Check if we should clear existing data
+  if (shouldClearData()) {
+    await db.execute(sql`DELETE FROM announcements`);
+  }
+
+  const insertedAnnouncements = await db.insert(announcements).values([
+    {
+      title: "Penyelenggaraan Dewan Komuniti",
+      content: "Dewan komuniti akan ditutup untuk penyelenggaraan dari 1 Ogos hingga 5 Ogos. Kami memohon maaf atas sebarang kesulitan yang disebabkan. Tempat alternatif untuk aktiviti komuniti akan diaturkan.",
+      category: "general",
+      publishedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+      expiresAt: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000), // 20 days from now
+    },
+    {
+      title: "Mesyuarat Dewan Bandar Akan Datang",
+      content: "Sertai kami untuk mesyuarat dewan bandar suku tahunan pada 28 Julai jam 7 PM untuk membincangkan projek komuniti yang akan datang dan menangani kebimbangan penduduk. Penyertaan anda adalah penting!",
+      category: "general",
+      publishedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+      expiresAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 days from now
+    },
+    {
+      title: "Notis Penutupan Jalan - Jalan Inanam 3",
+      content: "Jalan Inanam 3 akan ditutup untuk kerja-kerja penurapan semula jalan dari 25 Julai hingga 27 Julai, 8 AM hingga 6 PM setiap hari. Sila gunakan laluan alternatif dalam tempoh ini.",
+      category: "general",
+      publishedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+      expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+    },
+    {
+      title: "Inisiatif Taman Komuniti Baharu",
+      content: "Kami melancarkan inisiatif taman komuniti baharu! Penduduk yang berminat untuk menyertai boleh mendaftar di pusat komuniti. Benih percuma dan alat berkebun akan disediakan.",
+      category: "general",
+      publishedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+    },
+  ]).returning();
+
+  console.log(`✅ Seeded ${insertedAnnouncements.length} announcements`);
+  return { announcements: insertedAnnouncements };
+}
+
+seedFunctions['announcements'] = seedAnnouncements;
 
 async function seed() {
   const tableToSeed = getTableToSeed();
@@ -1382,38 +1430,8 @@ async function seed() {
     console.log("✅ Inserted issue assignments");
 
     // 9. Insert Announcements
-    console.log("📢 Inserting announcements...");
-    await db.insert(announcements).values([
-      {
-        title: "Community Hall Maintenance",
-        content: "The community hall will be closed for maintenance from August 1st to August 5th. We apologize for any inconvenience caused. Alternative venues for community activities will be arranged.",
-        category: "general",
-        publishedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-        expiresAt: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000), // 20 days from now
-      },
-      {
-        title: "Upcoming Town Hall Meeting",
-        content: "Join us for the quarterly town hall meeting on July 28th at 7 PM to discuss upcoming community projects and address resident concerns. Your participation is important!",
-        category: "general",
-        publishedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-        expiresAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 days from now
-      },
-      {
-        title: "Road Closure Notice - Jalan Inanam 3",
-        content: "Jalan Inanam 3 will be closed for road resurfacing work from July 25th to July 27th, 8 AM to 6 PM daily. Please use alternative routes during this period.",
-        category: "general",
-        publishedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-        expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
-      },
-      {
-        title: "New Community Garden Initiative",
-        content: "We're launching a new community garden initiative! Residents interested in participating can register at the community center. Free seeds and gardening tools will be provided.",
-        category: "general",
-        publishedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-      },
-    ]);
-
-    console.log("✅ Inserted announcements");
+    const announcementsResult = await seedAnnouncements(seedResults);
+    seedResults.announcements = announcementsResult.announcements;
 
     // 10. Insert Notifications
     console.log("🔔 Inserting notifications...");

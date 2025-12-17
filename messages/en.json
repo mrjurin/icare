@@ -134,6 +134,16 @@
   "about": {
     "title": "About Us",
     "subtitle": "{dunName} Community Platform",
+    "hero": {
+      "title": "About Us",
+      "description": "Empowering communities to take action. Connecting residents with local authorities to build a better {dunName} together.",
+      "getInvolved": "Get Involved",
+      "contactUs": "Contact Us"
+    },
+    "buttons": {
+      "reportIssue": "Report an Issue",
+      "contactUs": "Contact Us"
+    },
     "mission": {
       "title": "Our Mission",
       "description": "We believe in empowering communities to take action. Our platform connects residents with local authorities, making it easy to report issues, track progress, and work together to build a better {dunName}."
@@ -158,6 +168,16 @@
     "title": "Contact Us",
     "subtitle": "Get in Touch",
     "description": "We're here to help! Reach out to us through any of the following channels.",
+    "hero": {
+      "title": "Contact Us",
+      "description": "We're here to help! Reach out to us through any of our channels. Your feedback and questions are always welcome.",
+      "callCareline": "Call CARELINE",
+      "whatsappUs": "WhatsApp Us"
+    },
+    "buttons": {
+      "reportIssue": "Report an Issue",
+      "loginRegister": "Login / Register"
+    },
     "careline": {
       "title": "CARELINE",
       "description": "For urgent matters and general inquiries, contact our CARELINE."
@@ -198,7 +218,28 @@
       "resolved": "Resolved: Issues that have been successfully addressed",
       "closed": "Closed: Issues that have been completed or are no longer relevant"
     },
-    "browseReports": "Browse reports to see what's happening in your community and how you can help."
+    "browseReports": "Browse reports to see what's happening in your community and how you can help.",
+    "hero": {
+      "title": "View Reports",
+      "description": "Stay informed about issues reported in your community. Track progress and see how we're working together to make {dunName} better.",
+      "viewReports": "View Reports",
+      "reportIssue": "Report an Issue"
+    },
+    "buttons": {
+      "loginToView": "Login to View Reports",
+      "reportIssue": "Report an Issue"
+    }
+  },
+  "howItWorks": {
+    "hero": {
+      "title": "How It Works",
+      "description": "Learn how our platform makes it easy for you to report issues and make a positive impact in your community",
+      "getStarted": "Get Started"
+    },
+    "buttons": {
+      "reportIssueNow": "Report an Issue Now",
+      "createAccount": "Create an Account"
+    }
   },
   "announcements": {
     "title": "Community Announcements",

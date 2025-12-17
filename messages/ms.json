@@ -134,6 +134,16 @@
   "about": {
     "title": "Tentang Kami",
     "subtitle": "Platform Komuniti {dunName}",
+    "hero": {
+      "title": "Tentang Kami",
+      "description": "Memperkasakan komuniti untuk bertindak. Menghubungkan penduduk dengan pihak berkuasa tempatan untuk membina {dunName} yang lebih baik bersama.",
+      "getInvolved": "Terlibat",
+      "contactUs": "Hubungi Kami"
+    },
+    "buttons": {
+      "reportIssue": "Laporkan Isu",
+      "contactUs": "Hubungi Kami"
+    },
     "mission": {
       "title": "Misi Kami",
       "description": "Kami percaya dalam memperkasakan komuniti untuk bertindak. Platform kami menghubungkan penduduk dengan pihak berkuasa tempatan, memudahkan untuk melaporkan isu, menjejaki kemajuan, dan bekerjasama untuk membina {dunName} yang lebih baik."
@@ -158,6 +168,16 @@
     "title": "Hubungi Kami",
     "subtitle": "Berhubung",
     "description": "Kami di sini untuk membantu! Hubungi kami melalui mana-mana saluran berikut.",
+    "hero": {
+      "title": "Hubungi Kami",
+      "description": "Kami di sini untuk membantu! Hubungi kami melalui mana-mana saluran kami. Maklum balas dan soalan anda sentiasa dialu-alukan.",
+      "callCareline": "Panggil CARELINE",
+      "whatsappUs": "WhatsApp Kami"
+    },
+    "buttons": {
+      "reportIssue": "Laporkan Isu",
+      "loginRegister": "Log Masuk / Daftar"
+    },
     "careline": {
       "title": "CARELINE",
       "description": "Untuk perkara mendesak dan pertanyaan umum, hubungi CARELINE kami."
@@ -198,7 +218,28 @@
       "resolved": "Diselesaikan: Isu yang telah berjaya ditangani",
       "closed": "Tutup: Isu yang telah selesai atau tidak lagi relevan"
     },
-    "browseReports": "Layari laporan untuk melihat apa yang berlaku dalam komuniti anda dan bagaimana anda boleh membantu."
+    "browseReports": "Layari laporan untuk melihat apa yang berlaku dalam komuniti anda dan bagaimana anda boleh membantu.",
+    "hero": {
+      "title": "Lihat Laporan",
+      "description": "Kekal dimaklumkan tentang isu yang dilaporkan dalam komuniti anda. Pantau kemajuan dan lihat bagaimana kami bekerjasama untuk menjadikan {dunName} lebih baik.",
+      "viewReports": "Lihat Laporan",
+      "reportIssue": "Laporkan Isu"
+    },
+    "buttons": {
+      "loginToView": "Log Masuk untuk Lihat Laporan",
+      "reportIssue": "Laporkan Isu"
+    }
+  },
+  "howItWorks": {
+    "hero": {
+      "title": "Cara Ia Berfungsi",
+      "description": "Pelajari bagaimana platform kami memudahkan anda untuk melaporkan isu dan membuat impak positif dalam komuniti anda",
+      "getStarted": "Mula"
+    },
+    "buttons": {
+      "reportIssueNow": "Laporkan Isu Sekarang",
+      "createAccount": "Cipta Akaun"
+    }
   },
   "announcements": {
     "title": "Pengumuman Komuniti",

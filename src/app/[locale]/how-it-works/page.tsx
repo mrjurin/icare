@@ -1,11 +1,15 @@
-import { getSetting } from "@/lib/actions/settings";
+import { getSetting, getDunName } from "@/lib/actions/settings";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import { HelpCircle, ArrowRight } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 import MarkdownContent from "@/components/MarkdownContent";
+import Image from "next/image";
+import { getTranslations } from "next-intl/server";
 
 export default async function HowItWorksPage() {
+  const t = await getTranslations("howItWorks");
+  const dunName = await getDunName();
   const contentResult = await getSetting("page_how_it_works_content");
   const content = contentResult.success && contentResult.data 
     ? contentResult.data 
@@ -39,20 +43,31 @@ Follow the status of your report from submission to final resolution. Get update
         <section className="w-full py-12 md:py-20 lg:py-24">
           <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-0">
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-primary dark:from-blue-600 dark:via-blue-700 dark:to-primary p-8 md:p-12 lg:p-16">
+              {/* Illustration Image */}
+              <div className="absolute inset-0 opacity-20 dark:opacity-10">
+                <Image
+                  src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=1200&q=80"
+                  alt="Community collaboration illustration"
+                  fill
+                  className="object-cover object-center"
+                  priority
+                />
+              </div>
+              
               <div className="relative z-10 flex flex-col items-center text-center gap-6">
                 <div className="p-4 bg-white/20 backdrop-blur-sm rounded-full mb-4">
                   <HelpCircle className="size-12 text-white" />
                 </div>
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-tight tracking-[-0.033em] text-white">
-                  How It Works
+                  {t("hero.title")}
                 </h1>
                 <p className="text-lg md:text-xl text-white/90 max-w-2xl leading-relaxed">
-                  Learn how our platform makes it easy for you to report issues and make a positive impact in your community
+                  {t("hero.description")}
                 </p>
                 <div className="flex flex-wrap gap-4 justify-center mt-4">
                   <Button asChild variant="outline" className="!bg-white !text-primary !border-0 h-12 px-6 text-base font-bold hover:!bg-gray-100 transition-all hover:scale-105 shadow-lg">
                     <Link href="/report-issue" className="flex items-center gap-2">
-                      Get Started
+                      {t("hero.getStarted")}
                       <ArrowRight className="size-5" />
                     </Link>
                   </Button>
@@ -70,10 +85,10 @@ Follow the status of your report from submission to final resolution. Get update
           
           <div className="mt-8 flex gap-4">
             <Button asChild className="rounded-lg h-12 px-5 bg-primary text-white text-base font-bold">
-              <Link href="/report-issue">Report an Issue Now</Link>
+              <Link href="/report-issue">{t("buttons.reportIssueNow")}</Link>
             </Button>
             <Button asChild variant="outline" className="rounded-lg h-12 px-5">
-              <Link href="/community/login">Create an Account</Link>
+              <Link href="/community/login">{t("buttons.createAccount")}</Link>
             </Button>
           </div>
         </section>
