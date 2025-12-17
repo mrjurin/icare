@@ -24,6 +24,7 @@ export default function IssueFormModal({ trigger }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [media, setMedia] = useState<Array<{ url: string; type?: string; size_bytes?: number }>>([]);
   const [localities, setLocalities] = useState<ReferenceData[]>([]);
+  const [issueTypes, setIssueTypes] = useState<ReferenceData[]>([]);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [geocodeStatus, setGeocodeStatus] = useState<string>("");
   const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -32,6 +33,7 @@ export default function IssueFormModal({ trigger }: Props) {
     title: "",
     description: "",
     category: "other",
+    issueTypeId: undefined,
     address: "",
     lat: undefined,
     lng: undefined,
@@ -46,6 +48,11 @@ export default function IssueFormModal({ trigger }: Props) {
         const result = await getReferenceDataList("localities");
         if (result.success && result.data) {
           setLocalities(result.data.filter((loc) => loc.is_active));
+        }
+
+        const typesResult = await getReferenceDataList("issue_types");
+        if (typesResult.success && typesResult.data) {
+          setIssueTypes(typesResult.data.filter((t) => t.is_active));
         }
       };
       loadLocalities();
@@ -143,6 +150,7 @@ export default function IssueFormModal({ trigger }: Props) {
         title: "",
         description: "",
         category: "other",
+        issueTypeId: undefined,
         address: "",
         lat: undefined,
         lng: undefined,
@@ -253,21 +261,39 @@ export default function IssueFormModal({ trigger }: Props) {
                 {t("category") || "Category"} <span className="text-red-500">*</span>
               </label>
               <select
-                value={formData.category}
-                onChange={(e) =>
+                value={formData.issueTypeId || ""}
+                onChange={(e) => {
+                  const id = e.target.value ? Number(e.target.value) : undefined;
+                  const selectedType = issueTypes.find((t) => t.id === id);
+                  const validCategories = ["road_maintenance", "drainage", "public_safety", "sanitation", "other"];
+                  const derivedCategory = validCategories.includes(selectedType?.code || "")
+                    ? selectedType?.code
+                    : "other";
+
                   setFormData({
                     ...formData,
-                    category: e.target.value as CreateIssueInput["category"],
-                  })
-                }
+                    issueTypeId: id,
+                    category: derivedCategory as any,
+                  });
+                }}
                 required
                 className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark text-gray-900 dark:text-white"
               >
-                {categoryOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
+                <option value="">{t("selectCategory") || "Select Category"}</option>
+                {issueTypes.length > 0 ? (
+                  issueTypes.map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.name}
+                    </option>
+                  ))
+                ) : (
+                  // Fallback to hardcoded options if no dynamic types
+                  categoryOptions.map((option) => (
+                    <option key={option.value} value="">
+                      {option.label} (Legacy)
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 
@@ -336,13 +362,12 @@ export default function IssueFormModal({ trigger }: Props) {
                 className="w-full"
               />
               {geocodeStatus && (
-                <p className={`mt-1.5 text-xs ${
-                  geocodeStatus.includes("detected") || geocodeStatus.includes("Location detected")
-                    ? "text-green-600 dark:text-green-400"
-                    : geocodeStatus.includes("not found") || geocodeStatus.includes("failed")
+                <p className={`mt-1.5 text-xs ${geocodeStatus.includes("detected") || geocodeStatus.includes("Location detected")
+                  ? "text-green-600 dark:text-green-400"
+                  : geocodeStatus.includes("not found") || geocodeStatus.includes("failed")
                     ? "text-orange-600 dark:text-orange-400"
                     : "text-gray-600 dark:text-gray-400"
-                }`}>
+                  }`}>
                   {geocodeStatus}
                 </p>
               )}

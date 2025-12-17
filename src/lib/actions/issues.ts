@@ -23,7 +23,8 @@ const STATUS_LABELS: Record<string, string> = {
 export type CreateIssueInput = {
   title: string;
   description: string;
-  category: "road_maintenance" | "drainage" | "public_safety" | "sanitation" | "other";
+  category?: "road_maintenance" | "drainage" | "public_safety" | "sanitation" | "other" | string;
+  issueTypeId?: number;
   address: string;
   lat?: number;
   lng?: number;
@@ -58,17 +59,15 @@ export const createIssue = withAudit(
     if (!input.description?.trim()) {
       return { success: false, error: "Description is required" };
     }
-    if (!input.category) {
-      return { success: false, error: "Category is required" };
+    if (!input.category && !input.issueTypeId) {
+      return { success: false, error: "Category or Issue Type is required" };
     }
     if (!input.address?.trim()) {
       return { success: false, error: "Address is required" };
     }
 
-    const validCategories = ["road_maintenance", "drainage", "public_safety", "sanitation", "other"];
-    if (!validCategories.includes(input.category)) {
-      return { success: false, error: "Invalid category" };
-    }
+    // database constraint will check enum validity, but we default to 'other' if unknown
+    const category = input.category || "other";
 
     // Determine reporter ID
     let reporterId = input.reporterId;
@@ -90,7 +89,8 @@ export const createIssue = withAudit(
       .insert({
         title: input.title.trim(),
         description: input.description.trim(),
-        category: input.category,
+        category: category,
+        issue_type_id: input.issueTypeId || null,
         address: input.address.trim(),
         lat: input.lat,
         lng: input.lng,

@@ -98,43 +98,43 @@ function shouldClearData(): boolean {
 
 async function seedIssueTypes(existingData?: SeedResult): Promise<SeedResult> {
   console.log("📋 Seeding issue types...");
-  
+
   // Check if we should clear existing data
   if (shouldClearData()) {
     await db.execute(sql`DELETE FROM issue_types`);
   }
-  
+
   const insertedIssueTypes = await db.insert(issueTypes).values([
     {
-      name: "Road Maintenance",
+      name: "Penyelenggaraan Jalan",
       code: "road_maintenance",
       description: "Issues related to road maintenance, potholes, and road conditions",
       isActive: true,
       displayOrder: 1,
     },
     {
-      name: "Drainage",
+      name: "Perparitan",
       code: "drainage",
       description: "Issues related to drainage systems, clogged drains, and flooding",
       isActive: true,
       displayOrder: 2,
     },
     {
-      name: "Public Safety",
+      name: "Keselamatan Awam",
       code: "public_safety",
       description: "Issues related to public safety, security, and emergency situations",
       isActive: true,
       displayOrder: 3,
     },
     {
-      name: "Sanitation",
+      name: "Pembersihan",
       code: "sanitation",
       description: "Issues related to waste management, cleanliness, and sanitation",
       isActive: true,
       displayOrder: 4,
     },
     {
-      name: "Other",
+      name: "Lain-Lain",
       code: "other",
       description: "Other types of issues not covered by the above categories",
       isActive: true,
@@ -152,7 +152,7 @@ seedFunctions['issue-types'] = seedIssueTypes; // Also support kebab-case
 
 async function seedProfiles(existingData?: SeedResult): Promise<SeedResult> {
   console.log("👥 Seeding profiles...");
-  
+
   // Check if we should clear existing data
   if (shouldClearData()) {
     await db.execute(sql`DELETE FROM issue_assignments`);
@@ -163,13 +163,13 @@ async function seedProfiles(existingData?: SeedResult): Promise<SeedResult> {
     await db.execute(sql`DELETE FROM households`);
     await db.execute(sql`DELETE FROM profiles`);
   }
-  
+
   // Get existing profiles
   const existingProfiles = await db.select().from(profiles);
   console.log(`   Found ${existingProfiles.length} existing profile(s)`);
-  
+
   // Create seed profiles if we don't have enough
-  let insertedProfiles: Array<{ id: number; [key: string]: any }> = [];
+  let insertedProfiles: Array<{ id: number;[key: string]: any }> = [];
   if (existingProfiles.length < 5) {
     const seedProfiles = [
       {
@@ -205,17 +205,17 @@ async function seedProfiles(existingData?: SeedResult): Promise<SeedResult> {
         address: "654 Jalan Inanam, N.18 Inanam",
       },
     ];
-    
+
     // Only create profiles that don't already exist (check by email)
     const existingEmails = new Set(existingProfiles.map(p => p.email?.toLowerCase()).filter(Boolean));
     const profilesToCreate = seedProfiles.filter(p => !existingEmails.has(p.email.toLowerCase()));
-    
+
     if (profilesToCreate.length > 0) {
-      insertedProfiles = (await db.insert(profiles).values(profilesToCreate).returning()) as Array<{ id: number; [key: string]: any }>;
+      insertedProfiles = (await db.insert(profiles).values(profilesToCreate).returning()) as Array<{ id: number;[key: string]: any }>;
       console.log(`✅ Created ${insertedProfiles.length} profile(s)`);
     }
   }
-  
+
   const allProfiles = [...existingProfiles, ...insertedProfiles];
   console.log(`✅ Total profiles: ${allProfiles.length}`);
   return { profiles: allProfiles };
@@ -225,7 +225,7 @@ seedFunctions['profiles'] = seedProfiles;
 
 async function seedIssues(existingData?: SeedResult): Promise<SeedResult> {
   console.log("📋 Seeding issues...");
-  
+
   // Check if we should clear existing data
   if (shouldClearData()) {
     await db.execute(sql`DELETE FROM issue_assignments`);
@@ -234,7 +234,7 @@ async function seedIssues(existingData?: SeedResult): Promise<SeedResult> {
     await db.execute(sql`DELETE FROM notifications`);
     await db.execute(sql`DELETE FROM issues`);
   }
-  
+
   // Ensure dependencies exist
   const existingIssueTypes = await db.select().from(issueTypes);
   if (existingIssueTypes.length === 0) {
@@ -243,7 +243,7 @@ async function seedIssues(existingData?: SeedResult): Promise<SeedResult> {
     const refreshedIssueTypes = await db.select().from(issueTypes);
     existingIssueTypes.push(...refreshedIssueTypes);
   }
-  
+
   const existingProfiles = await db.select().from(profiles);
   if (existingProfiles.length === 0) {
     console.log("   ⚠️  No profiles found. Seeding profiles first...");
@@ -251,158 +251,138 @@ async function seedIssues(existingData?: SeedResult): Promise<SeedResult> {
     const refreshedProfiles = await db.select().from(profiles);
     existingProfiles.push(...refreshedProfiles);
   }
-  
+
   // Helper function to find issue type by code
   const getIssueTypeId = (code: string) => {
     return existingIssueTypes.find((it: { code: string | null; id: number }) => it.code === code)?.id || null;
   };
-  
-  // Generate issues with locations around Inanam and Manggatal, Sabah
+
+  // Generate issues with random locations in Inanam (Postcode 88450)
   const generateIssues = () => {
     const issueTemplates = [
-      // Road Maintenance
-      { category: "road_maintenance", code: "road_maintenance", titles: [
-        "Pothole on {location}",
-        "Cracked road surface at {location}",
-        "Damaged road markings on {location}",
-        "Uneven road surface near {location}",
-        "Road erosion at {location}",
-        "Missing road sign at {location}",
-        "Damaged speed bump on {location}",
-        "Road shoulder collapse at {location}",
-      ], descriptions: [
-        "There is a significant pothole that needs immediate attention. Vehicles are being damaged.",
-        "The road surface has developed cracks and is deteriorating rapidly.",
-        "Road markings have faded and need repainting for safety.",
-        "The road surface is uneven, causing discomfort to drivers and potential vehicle damage.",
-        "Road erosion has occurred due to heavy rain, creating a hazard.",
-        "A road sign is missing, causing confusion for drivers.",
-        "The speed bump is damaged and needs repair.",
-        "The road shoulder has collapsed, narrowing the road.",
-      ]},
-      // Drainage
-      { category: "drainage", code: "drainage", titles: [
-        "Blocked drain at {location}",
-        "Flooding issue at {location}",
-        "Damaged drainage cover at {location}",
-        "Overflowing drain near {location}",
-        "Clogged drainage system at {location}",
-        "Broken drain pipe at {location}",
-        "Water accumulation at {location}",
-        "Drainage system overflow at {location}",
-      ], descriptions: [
-        "The drainage system is blocked and water is accumulating on the road.",
-        "Heavy rain causes flooding in this area due to poor drainage.",
-        "A drainage cover is broken, creating a safety hazard.",
-        "The drain is overflowing and water is spilling onto the road.",
-        "The drainage system is completely clogged and needs cleaning.",
-        "A drain pipe has broken and needs replacement.",
-        "Water is accumulating due to poor drainage design.",
-        "The drainage system cannot handle the water volume during rain.",
-      ]},
-      // Public Safety
-      { category: "public_safety", code: "public_safety", titles: [
-        "Broken street light at {location}",
-        "Missing guardrail at {location}",
-        "Unsafe pedestrian crossing at {location}",
-        "Damaged safety barrier at {location}",
-        "Dark area at {location} - needs lighting",
-        "Hazardous tree branch at {location}",
-        "Unsafe playground equipment at {location}",
-        "Missing safety signage at {location}",
-      ], descriptions: [
-        "A street light is broken, making the area dark and unsafe at night.",
-        "A guardrail is missing, creating a safety hazard for vehicles.",
-        "The pedestrian crossing lacks proper safety measures.",
-        "A safety barrier is damaged and needs immediate repair.",
-        "This area is too dark at night and needs additional lighting.",
-        "A large tree branch is hanging dangerously and may fall.",
-        "Playground equipment is damaged and poses a safety risk.",
-        "Safety signage is missing, creating confusion and potential hazards.",
-      ]},
-      // Sanitation
-      { category: "sanitation", code: "sanitation", titles: [
-        "Overflowing garbage bin at {location}",
-        "Illegal dumping at {location}",
-        "Uncollected garbage at {location}",
-        "Damaged garbage collection point at {location}",
-        "Foul smell from waste at {location}",
-        "Garbage scattered at {location}",
-        "Full garbage container at {location}",
-        "Waste management issue at {location}",
-      ], descriptions: [
-        "The garbage bin is overflowing and garbage is spilling out.",
-        "Someone has illegally dumped waste in this area.",
-        "Garbage has not been collected for several days.",
-        "The garbage collection point is damaged and needs repair.",
-        "There is a strong foul smell coming from accumulated waste.",
-        "Garbage has been scattered around, creating an eyesore.",
-        "The garbage container is full and needs immediate collection.",
-        "There is a waste management issue that needs attention.",
-      ]},
-      // Other
-      { category: "other", code: "other", titles: [
-        "Damaged public facility at {location}",
-        "Vandalism at {location}",
-        "Noise complaint at {location}",
-        "Public amenity issue at {location}",
-        "Community facility problem at {location}",
-        "Infrastructure damage at {location}",
-        "Public space issue at {location}",
-        "General concern at {location}",
-      ], descriptions: [
-        "A public facility has been damaged and needs repair.",
-        "Vandalism has occurred and needs to be addressed.",
-        "There is excessive noise disturbing residents.",
-        "A public amenity is not functioning properly.",
-        "There is an issue with a community facility.",
-        "Infrastructure has been damaged and requires attention.",
-        "There is a problem with a public space.",
-        "A general concern has been raised by residents.",
-      ]},
+      // Road Maintenance (Penyelenggaraan Jalan)
+      {
+        category: "road_maintenance", code: "road_maintenance", titles: [
+          "Lubang jalan di {location}",
+          "Permukaan jalan retak di {location}",
+          "Garisan jalan pudar di {location}",
+          "Jalan tidak rata berhampiran {location}",
+          "Hakisan jalan di {location}",
+          "Papan tanda jalan hilang di {location}",
+          "Bonggol jalan rosak di {location}",
+          "Bahu jalan runtuh di {location}",
+        ], descriptions: [
+          "Terdapat lubang besar yang memerlukan perhatian segera. Kenderaan mungkin mengalami kerosakan.",
+          "Permukaan jalan telah retak dan semakin teruk.",
+          "Garisan jalan telah pudar dan perlu dicat semula untuk keselamatan.",
+          "Permukaan jalan tidak rata, menyebabkan ketidakselesaan kepada pemandu dan kerosakan kenderaan.",
+          "Hakisan jalan berlaku akibat hujan lebat, membahayakan pengguna.",
+          "Papan tanda jalan hilang, menyebabkan kekeliruan kepada pemandu.",
+          "Bonggol jalan rosak dan perlu dibaiki.",
+          "Bahu jalan telah runtuh, menyempitkan laluan jalan.",
+        ]
+      },
+      // Drainage (Perparitan)
+      {
+        category: "drainage", code: "drainage", titles: [
+          "Longkang tersumbat di {location}",
+          "Masalah banjir di {location}",
+          "Penutup longkang pecah di {location}",
+          "Air longkang melimpah berhampiran {location}",
+          "Sistem perparitan tersumbat di {location}",
+          "Paip longkang pecah di {location}",
+          "Air bertakung di {location}",
+          "Limpahan sistem perparitan di {location}",
+        ], descriptions: [
+          "Sistem perparitan tersumbat dan air bertakung di jalan raya.",
+          "Hujan lebat menyebabkan banjir di kawasan ini akibat sistem perparitan yang lemah.",
+          "Penutup longkang pecah, membahayakan pejalan kaki.",
+          "Longkang melimpah dan air tumpah ke jalan raya.",
+          "Sistem perparitan tersumbat sepenuhnya dan perlu dibersihkan.",
+          "Paip longkang telah pecah dan perlu diganti.",
+          "Air bertakung disebabkan reka bentuk perparitan yang lemah.",
+          "Sistem perparitan tidak dapat menampung jumlah air semasa hujan.",
+        ]
+      },
+      // Public Safety (Keselamatan Awam)
+      {
+        category: "public_safety", code: "public_safety", titles: [
+          "Lampu jalan rosak di {location}",
+          "Susur keselamatan hilang di {location}",
+          "Lintasan pejalan kaki tidak selamat di {location}",
+          "Penghalang keselamatan rosak di {location}",
+          "Kawasan gelap di {location} - perlukan lampu",
+          "Dahan pokok berbahaya di {location}",
+          "Peralatan taman permainan tidak selamat di {location}",
+          "Papan tanda keselamatan hilang di {location}",
+        ], descriptions: [
+          "Lampu jalan rosak, menjadikan kawasan gelap dan tidak selamat pada waktu malam.",
+          "Susur keselamatan hilang, membahayakan kenderaan.",
+          "Lintasan pejalan kaki kekurangan ciri keselamatan yang sewajarnya.",
+          "Penghalang keselamatan rosak dan perlu dibaiki segera.",
+          "Kawasan ini terlalu gelap pada waktu malam dan memerlukan pencahayaan tambahan.",
+          "Dahan pokok besar tergantung secara berbahaya dan mungkin jatuh.",
+          "Peralatan taman permainan rosak dan membahayakan keselamatan kanak-kanak.",
+          "Papan tanda keselamatan hilang, menyebabkan kekeliruan dan potensi bahaya.",
+        ]
+      },
+      // Sanitation (Kebersihan & Sanitasi)
+      {
+        category: "sanitation", code: "sanitation", titles: [
+          "Tong sampah melimpah di {location}",
+          "Pembuangan sampah haram di {location}",
+          "Sampah tidak dipungut di {location}",
+          "Tempat pengumpulan sampah rosak di {location}",
+          "Bau busuk dari sampah di {location}",
+          "Sampah bertaburan di {location}",
+          "Bekas sampah penuh di {location}",
+          "Masalah pengurusan sisa di {location}",
+        ], descriptions: [
+          "Tong sampah melimpah dan sampah tumpah keluar.",
+          "Seseorang telah membuang sampah secara haram di kawasan ini.",
+          "Sampah tidak dipungut selama beberapa hari.",
+          "Tempat pengumpulan sampah rosak dan perlu dibaiki.",
+          "Terdapat bau busuk yang kuat dari timbunan sampah.",
+          "Sampah telah bertaburan di sekitar, menyakitkan mata memandang.",
+          "Bekas sampah penuh dan perlu dipungut segera.",
+          "Terdapat masalah pengurusan sisa yang memerlukan perhatian.",
+        ]
+      },
+      // Other (Lain-lain)
+      {
+        category: "other", code: "other", titles: [
+          "Kemudahan awam rosak di {location}",
+          "Vandalisme di {location}",
+          "Aduan bunyi bising di {location}",
+          "Masalah kemudahan awam di {location}",
+          "Masalah fasiliti komuniti di {location}",
+          "Kerosakan infrastruktur di {location}",
+          "Masalah ruang awam di {location}",
+          "Aduan umum di {location}",
+        ], descriptions: [
+          "Kemudahan awam telah rosak dan perlu dibaiki.",
+          "Vandalisme telah berlaku dan perlu ditangani.",
+          "Terdapat bunyi bising yang melampau mengganggu penduduk.",
+          "Kemudahan awam tidak berfungsi dengan baik.",
+          "Terdapat masalah dengan fasiliti komuniti.",
+          "Infrastruktur telah rosak dan memerlukan perhatian.",
+          "Terdapat masalah dengan ruang awam.",
+          "Satu aduan umum telah dikemukakan oleh penduduk.",
+        ]
+      },
     ];
-    
-    const locations = [
-      // Inanam area locations
-      { name: "Jalan Inanam", lat: 6.0333, lng: 116.1167 },
-      { name: "Jalan Inanam 2", lat: 6.0340, lng: 116.1170 },
-      { name: "Taman Inanam", lat: 6.0350, lng: 116.1180 },
-      { name: "Kampung Inanam", lat: 6.0320, lng: 116.1150 },
-      { name: "Taman Inanam Baru", lat: 6.0360, lng: 116.1190 },
-      { name: "Jalan Inanam Lama", lat: 6.0310, lng: 116.1140 },
-      { name: "Lorong Inanam 1", lat: 6.0335, lng: 116.1165 },
-      { name: "Lorong Inanam 2", lat: 6.0338, lng: 116.1172 },
-      { name: "Taman Inanam Indah", lat: 6.0370, lng: 116.1200 },
-      { name: "Jalan Inanam Utara", lat: 6.0380, lng: 116.1210 },
-      { name: "Jalan Inanam Selatan", lat: 6.0300, lng: 116.1130 },
-      { name: "Taman Inanam Permai", lat: 6.0345, lng: 116.1175 },
-      { name: "Kampung Inanam Baru", lat: 6.0325, lng: 116.1155 },
-      { name: "Jalan Inanam Tengah", lat: 6.0330, lng: 116.1160 },
-      { name: "Lorong Inanam 3", lat: 6.0342, lng: 116.1168 },
-      // Manggatal area locations
-      { name: "Jalan Manggatal", lat: 6.0500, lng: 116.1500 },
-      { name: "Taman Manggatal", lat: 6.0510, lng: 116.1510 },
-      { name: "Kampung Manggatal", lat: 6.0490, lng: 116.1490 },
-      { name: "Jalan Manggatal Baru", lat: 6.0520, lng: 116.1520 },
-      { name: "Lorong Manggatal 1", lat: 6.0505, lng: 116.1505 },
-      { name: "Lorong Manggatal 2", lat: 6.0508, lng: 116.1512 },
-      { name: "Taman Manggatal Indah", lat: 6.0530, lng: 116.1530 },
-      { name: "Jalan Manggatal Utara", lat: 6.0540, lng: 116.1540 },
-      { name: "Jalan Manggatal Selatan", lat: 6.0480, lng: 116.1480 },
-      { name: "Taman Manggatal Permai", lat: 6.0515, lng: 116.1515 },
-      { name: "Kampung Manggatal Baru", lat: 6.0495, lng: 116.1495 },
-      { name: "Jalan Manggatal Tengah", lat: 6.0502, lng: 116.1502 },
-      { name: "Lorong Manggatal 3", lat: 6.0512, lng: 116.1508 },
-      { name: "Taman Manggatal Jaya", lat: 6.0525, lng: 116.1525 },
-      { name: "Jalan Manggatal Lama", lat: 6.0485, lng: 116.1485 },
-      // Areas between Inanam and Manggatal
-      { name: "Jalan Inanam-Manggatal", lat: 6.0415, lng: 116.1335 },
-      { name: "Taman Inanam-Manggatal", lat: 6.0420, lng: 116.1340 },
-      { name: "Kampung Telipok", lat: 6.0400, lng: 116.1300 },
-      { name: "Jalan Telipok", lat: 6.0405, lng: 116.1305 },
-      { name: "Taman Telipok", lat: 6.0410, lng: 116.1310 },
+
+    // List of street names in/around Inanam (Postcode 88450)
+    const streetNames = [
+      "Jalan Tuaran", "Jalan Kiansom", "Jalan Inanam", "Lorong Inanam Plaza",
+      "Lorong Inanam Kapital", "Jalan Undan Inanam", "Lorong Perindustrian",
+      "Jalan Bantayan Minintod", "Jalan Kionsom", "Lorong Kurma",
+      "Lorong Manggis", "Lorong Durian", "Jalan Nountun",
+      "Lorong Cempedak", "Jalan Poring", "Lorong Terap",
+      "Jalan Bambangan", "Lorong Rambutan", "Lorong Langsat",
+      "Jalan Sungai Inanam", "Jalan Pasar Inanam"
     ];
-    
+
     const statuses: Array<"pending" | "in_progress" | "resolved" | "closed"> = ["pending", "in_progress", "resolved", "closed"];
     const issues: Array<{
       reporterId: number;
@@ -417,59 +397,67 @@ async function seedIssues(existingData?: SeedResult): Promise<SeedResult> {
       createdAt?: Date;
       resolvedAt?: Date;
     }> = [];
-    
+
     // Ensure we have at least one profile
     if (existingProfiles.length === 0) {
       throw new Error("No profiles available. Cannot generate issues without reporters.");
     }
-    
+
+    // Inanam bounding box (Approximate for 88450)
+    // Center roughly 5.9900, 116.1400
+    // Min Lat: 5.9500, Max Lat: 6.0300
+    // Min Lng: 116.1000, Max Lng: 116.1800
+    const minLat = 5.9500;
+    const maxLat = 6.0300;
+    const minLng = 116.1000;
+    const maxLng = 116.1800;
+
     // Generate 100+ issues
     for (let i = 0; i < 100; i++) {
       const template = issueTemplates[i % issueTemplates.length];
-      const location = locations[i % locations.length];
+      const streetName = streetNames[Math.floor(Math.random() * streetNames.length)];
+      const locationName = streetName; // For title replacement
+
       const reporter = existingProfiles[i % existingProfiles.length];
       const status = statuses[i % statuses.length];
       const titleIndex = Math.floor(i / issueTemplates.length) % template.titles.length;
       const descIndex = Math.floor(i / issueTemplates.length) % template.descriptions.length;
-      
-      // Add small random variation to coordinates (±0.01 degrees ≈ ±1km)
-      const latVariation = (Math.random() - 0.5) * 0.02;
-      const lngVariation = (Math.random() - 0.5) * 0.02;
-      
-      const lat = location.lat + latVariation;
-      const lng = location.lng + lngVariation;
-      
+
+      // Random coordinates within 88450 Inanam bounds
+      const lat = minLat + Math.random() * (maxLat - minLat);
+      const lng = minLng + Math.random() * (maxLng - minLng);
+
       // Generate dates - spread over the last 90 days
       const daysAgo = Math.floor(Math.random() * 90);
       const createdAt = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
-      
+
       let resolvedAt: Date | undefined;
       if (status === "resolved" || status === "closed") {
         const daysToResolve = Math.floor(Math.random() * daysAgo);
         resolvedAt = new Date(Date.now() - daysToResolve * 24 * 60 * 60 * 1000);
       }
-      
+
       issues.push({
         reporterId: reporter.id,
-        title: template.titles[titleIndex].replace("{location}", location.name),
+        title: template.titles[titleIndex].replace("{location}", locationName),
         description: template.descriptions[descIndex],
         category: template.category as "road_maintenance" | "drainage" | "public_safety" | "sanitation" | "other",
         issueTypeId: getIssueTypeId(template.code),
         status: status,
-        address: `${location.name}, N.18 Inanam`,
+        address: `${streetName}, 88450 Inanam, Sabah`,
         lat: parseFloat(lat.toFixed(6)),
         lng: parseFloat(lng.toFixed(6)),
         createdAt: createdAt,
         resolvedAt: resolvedAt,
       });
     }
-    
+
     return issues;
   };
-  
+
   const issuesToInsert = generateIssues();
   const insertedIssues = await db.insert(issues).values(issuesToInsert).returning();
-  
+
   console.log(`✅ Seeded ${insertedIssues.length} issues`);
   return { issues: insertedIssues };
 }
@@ -478,22 +466,22 @@ seedFunctions['issues'] = seedIssues;
 
 async function seedAppSettings(existingData?: SeedResult): Promise<SeedResult> {
   console.log("⚙️  Seeding app settings...");
-  
+
   // Check if we should clear existing data
   if (shouldClearData()) {
     await db.execute(sql`DELETE FROM app_settings`);
   }
-  
+
   // Get staff for updatedBy field
   const existingStaff = await db.select().from(staff);
   const settingsUpdatedBy = existingStaff.length > 0 ? existingStaff[0].id : null;
-  
+
   if (!settingsUpdatedBy) {
     console.log("   ⚠️  No staff found. App settings will be created without updated_by field.");
   }
-  
+
   const defaultLoginImageUrl = "https://lh3.googleusercontent.com/aida-public/AB6AXuDmv2CVtuNASMwZdMSvemNUs8M8rpPOUmfvweQGpyAeoi8ItTn569RZolM1Y1n9js1J7O4y7UbaCdnWdtS8rJyU_7SVoXf6f3yNc8Eg88c10upP-BjUC0TthPe2m3a-7wXiV_uUg5V7pUxTVdwYe_wnXOsdB15QYP6J-SMJLVepYX-j2kYCLoc-ilIv6uTqKe47siL52mxK_jOr1qnfC7Jd2fAsGRpWw0tqo1Uu4VlM4LygeNDgS0gKAyfJHsoFwiyMaH2Aj48qBc0";
-  
+
   // Default page content (in Markdown format for MarkdownContent component)
   const defaultHowItWorksContent = `## How It Works
 
@@ -612,13 +600,13 @@ You can also reach out to specific staff members or departments through the plat
 ### Feedback
 
 We value your feedback! If you have suggestions, comments, or concerns about our services, please don't hesitate to reach out. Your input helps us improve and serve the community better.`;
-  
+
   // Delete existing settings for these keys (in case they were created by migrations)
   await db.execute(sql`
     DELETE FROM app_settings 
     WHERE key IN ('admin_header_title', 'app_name', 'staff_login_image_url', 'admin_login_image_url', 'community_login_image_url', 'page_how_it_works_content', 'page_view_reports_content', 'page_about_us_content', 'page_contact_content')
   `);
-  
+
   const settingsToInsert = [
     {
       key: "admin_header_title",
@@ -675,9 +663,9 @@ We value your feedback! If you have suggestions, comments, or concerns about our
       updatedBy: settingsUpdatedBy,
     },
   ];
-  
+
   const insertedSettings = await db.insert(appSettings).values(settingsToInsert).returning();
-  
+
   console.log(`✅ Seeded ${insertedSettings.length} app settings`);
   return { appSettings: insertedSettings };
 }
@@ -687,7 +675,7 @@ seedFunctions['app-settings'] = seedAppSettings; // Also support kebab-case
 
 async function seed() {
   const tableToSeed = getTableToSeed();
-  
+
   // If a specific table is requested, seed only that table
   if (tableToSeed) {
     const seedFunction = seedFunctions[tableToSeed.toLowerCase()];
@@ -699,7 +687,7 @@ async function seed() {
       });
       process.exit(1);
     }
-    
+
     console.log(`🌱 Seeding table: ${tableToSeed}`);
     try {
       await seedFunction();
@@ -723,7 +711,7 @@ async function seed() {
         AND table_name = 'profiles'
       ) as exists
     `);
-    
+
     if (!tablesExist.rows[0]?.exists) {
       console.error("❌ Error: Database tables don't exist!");
       console.error("   Please run migrations first: npm run drizzle:migrate");
@@ -760,7 +748,7 @@ async function seed() {
 
     // Seed data
     const seedResults: SeedResult = {};
-    
+
     // 4.6. Insert Issue Types (must be before issues)
     const issueTypesResult = await seedIssueTypes();
     Object.assign(seedResults, issueTypesResult);
@@ -770,9 +758,9 @@ async function seed() {
     console.log("👥 Fetching existing profiles from database...");
     const existingProfiles = await db.select().from(profiles);
     console.log(`   Found ${existingProfiles.length} existing profile(s)`);
-    
+
     // Create additional seed profiles if we don't have enough (need at least 5 for variety)
-    let insertedProfiles: Array<{ id: number; [key: string]: any }> = [];
+    let insertedProfiles: Array<{ id: number;[key: string]: any }> = [];
     if (existingProfiles.length < 5) {
       console.log("👥 Creating additional seed profiles...");
       const seedProfiles = [
@@ -809,23 +797,23 @@ async function seed() {
           address: "654 Jalan Inanam, N.18 Inanam",
         },
       ];
-      
+
       // Only create profiles that don't already exist (check by email)
       const existingEmails = new Set(existingProfiles.map(p => p.email?.toLowerCase()).filter(Boolean));
       const profilesToCreate = seedProfiles.filter(p => !existingEmails.has(p.email.toLowerCase()));
-      
+
       if (profilesToCreate.length > 0) {
-        insertedProfiles = (await db.insert(profiles).values(profilesToCreate).returning()) as Array<{ id: number; [key: string]: any }>;
+        insertedProfiles = (await db.insert(profiles).values(profilesToCreate).returning()) as Array<{ id: number;[key: string]: any }>;
         console.log(`✅ Created ${insertedProfiles.length} additional seed profile(s)`);
       }
     }
-    
+
     // Combine existing and newly created profiles
     const allProfiles = [...existingProfiles, ...insertedProfiles];
     console.log(`✅ Total profiles available: ${allProfiles.length}`);
-    
+
     // Use allProfiles for the rest of the seeding
-    const insertedProfilesForUse = allProfiles as Array<{ id: number; [key: string]: any }>;
+    const insertedProfilesForUse = allProfiles as Array<{ id: number;[key: string]: any }>;
 
     // 2. Insert DUNs (must be before zones)
     console.log("🏛️  Inserting DUNs...");
@@ -843,7 +831,7 @@ async function seed() {
     console.log("🔐 Creating Administrator user in Supabase Auth...");
     const adminEmail = "administrator@n18inanam.gov.my";
     const adminPassword = "123456";
-    
+
     if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) {
       try {
         const supabaseAdmin = createClient(
@@ -974,119 +962,129 @@ async function seed() {
 
     // 5. Insert Issues
     console.log("📋 Inserting issues...");
-    
+
     // Helper function to find issue type by code
     const getIssueTypeId = (code: string) => {
       return insertedIssueTypes.find((it: { code: string | null; id: number }) => it.code === code)?.id || null;
     };
-    
+
     // Generate issues with locations around Inanam and Manggatal, Sabah
     // Inanam center: ~6.0333°N, 116.1167°E
     // Manggatal center: ~6.0500°N, 116.1500°E
     const generateIssues = () => {
       const issueTemplates = [
         // Road Maintenance
-        { category: "road_maintenance", code: "road_maintenance", titles: [
-          "Pothole on {location}",
-          "Cracked road surface at {location}",
-          "Damaged road markings on {location}",
-          "Uneven road surface near {location}",
-          "Road erosion at {location}",
-          "Missing road sign at {location}",
-          "Damaged speed bump on {location}",
-          "Road shoulder collapse at {location}",
-        ], descriptions: [
-          "There is a significant pothole that needs immediate attention. Vehicles are being damaged.",
-          "The road surface has developed cracks and is deteriorating rapidly.",
-          "Road markings have faded and need repainting for safety.",
-          "The road surface is uneven, causing discomfort to drivers and potential vehicle damage.",
-          "Road erosion has occurred due to heavy rain, creating a hazard.",
-          "A road sign is missing, causing confusion for drivers.",
-          "The speed bump is damaged and needs repair.",
-          "The road shoulder has collapsed, narrowing the road.",
-        ]},
+        {
+          category: "road_maintenance", code: "road_maintenance", titles: [
+            "Pothole on {location}",
+            "Cracked road surface at {location}",
+            "Damaged road markings on {location}",
+            "Uneven road surface near {location}",
+            "Road erosion at {location}",
+            "Missing road sign at {location}",
+            "Damaged speed bump on {location}",
+            "Road shoulder collapse at {location}",
+          ], descriptions: [
+            "There is a significant pothole that needs immediate attention. Vehicles are being damaged.",
+            "The road surface has developed cracks and is deteriorating rapidly.",
+            "Road markings have faded and need repainting for safety.",
+            "The road surface is uneven, causing discomfort to drivers and potential vehicle damage.",
+            "Road erosion has occurred due to heavy rain, creating a hazard.",
+            "A road sign is missing, causing confusion for drivers.",
+            "The speed bump is damaged and needs repair.",
+            "The road shoulder has collapsed, narrowing the road.",
+          ]
+        },
         // Drainage
-        { category: "drainage", code: "drainage", titles: [
-          "Blocked drain at {location}",
-          "Flooding issue at {location}",
-          "Damaged drainage cover at {location}",
-          "Overflowing drain near {location}",
-          "Clogged drainage system at {location}",
-          "Broken drain pipe at {location}",
-          "Water accumulation at {location}",
-          "Drainage system overflow at {location}",
-        ], descriptions: [
-          "The drainage system is blocked and water is accumulating on the road.",
-          "Heavy rain causes flooding in this area due to poor drainage.",
-          "A drainage cover is broken, creating a safety hazard.",
-          "The drain is overflowing and water is spilling onto the road.",
-          "The drainage system is completely clogged and needs cleaning.",
-          "A drain pipe has broken and needs replacement.",
-          "Water is accumulating due to poor drainage design.",
-          "The drainage system cannot handle the water volume during rain.",
-        ]},
+        {
+          category: "drainage", code: "drainage", titles: [
+            "Blocked drain at {location}",
+            "Flooding issue at {location}",
+            "Damaged drainage cover at {location}",
+            "Overflowing drain near {location}",
+            "Clogged drainage system at {location}",
+            "Broken drain pipe at {location}",
+            "Water accumulation at {location}",
+            "Drainage system overflow at {location}",
+          ], descriptions: [
+            "The drainage system is blocked and water is accumulating on the road.",
+            "Heavy rain causes flooding in this area due to poor drainage.",
+            "A drainage cover is broken, creating a safety hazard.",
+            "The drain is overflowing and water is spilling onto the road.",
+            "The drainage system is completely clogged and needs cleaning.",
+            "A drain pipe has broken and needs replacement.",
+            "Water is accumulating due to poor drainage design.",
+            "The drainage system cannot handle the water volume during rain.",
+          ]
+        },
         // Public Safety
-        { category: "public_safety", code: "public_safety", titles: [
-          "Broken street light at {location}",
-          "Missing guardrail at {location}",
-          "Unsafe pedestrian crossing at {location}",
-          "Damaged safety barrier at {location}",
-          "Dark area at {location} - needs lighting",
-          "Hazardous tree branch at {location}",
-          "Unsafe playground equipment at {location}",
-          "Missing safety signage at {location}",
-        ], descriptions: [
-          "A street light is broken, making the area dark and unsafe at night.",
-          "A guardrail is missing, creating a safety hazard for vehicles.",
-          "The pedestrian crossing lacks proper safety measures.",
-          "A safety barrier is damaged and needs immediate repair.",
-          "This area is too dark at night and needs additional lighting.",
-          "A large tree branch is hanging dangerously and may fall.",
-          "Playground equipment is damaged and poses a safety risk.",
-          "Safety signage is missing, creating confusion and potential hazards.",
-        ]},
+        {
+          category: "public_safety", code: "public_safety", titles: [
+            "Broken street light at {location}",
+            "Missing guardrail at {location}",
+            "Unsafe pedestrian crossing at {location}",
+            "Damaged safety barrier at {location}",
+            "Dark area at {location} - needs lighting",
+            "Hazardous tree branch at {location}",
+            "Unsafe playground equipment at {location}",
+            "Missing safety signage at {location}",
+          ], descriptions: [
+            "A street light is broken, making the area dark and unsafe at night.",
+            "A guardrail is missing, creating a safety hazard for vehicles.",
+            "The pedestrian crossing lacks proper safety measures.",
+            "A safety barrier is damaged and needs immediate repair.",
+            "This area is too dark at night and needs additional lighting.",
+            "A large tree branch is hanging dangerously and may fall.",
+            "Playground equipment is damaged and poses a safety risk.",
+            "Safety signage is missing, creating confusion and potential hazards.",
+          ]
+        },
         // Sanitation
-        { category: "sanitation", code: "sanitation", titles: [
-          "Overflowing garbage bin at {location}",
-          "Illegal dumping at {location}",
-          "Uncollected garbage at {location}",
-          "Damaged garbage collection point at {location}",
-          "Foul smell from waste at {location}",
-          "Garbage scattered at {location}",
-          "Full garbage container at {location}",
-          "Waste management issue at {location}",
-        ], descriptions: [
-          "The garbage bin is overflowing and garbage is spilling out.",
-          "Someone has illegally dumped waste in this area.",
-          "Garbage has not been collected for several days.",
-          "The garbage collection point is damaged and needs repair.",
-          "There is a strong foul smell coming from accumulated waste.",
-          "Garbage has been scattered around, creating an eyesore.",
-          "The garbage container is full and needs immediate collection.",
-          "There is a waste management issue that needs attention.",
-        ]},
+        {
+          category: "sanitation", code: "sanitation", titles: [
+            "Overflowing garbage bin at {location}",
+            "Illegal dumping at {location}",
+            "Uncollected garbage at {location}",
+            "Damaged garbage collection point at {location}",
+            "Foul smell from waste at {location}",
+            "Garbage scattered at {location}",
+            "Full garbage container at {location}",
+            "Waste management issue at {location}",
+          ], descriptions: [
+            "The garbage bin is overflowing and garbage is spilling out.",
+            "Someone has illegally dumped waste in this area.",
+            "Garbage has not been collected for several days.",
+            "The garbage collection point is damaged and needs repair.",
+            "There is a strong foul smell coming from accumulated waste.",
+            "Garbage has been scattered around, creating an eyesore.",
+            "The garbage container is full and needs immediate collection.",
+            "There is a waste management issue that needs attention.",
+          ]
+        },
         // Other
-        { category: "other", code: "other", titles: [
-          "Damaged public facility at {location}",
-          "Vandalism at {location}",
-          "Noise complaint at {location}",
-          "Public amenity issue at {location}",
-          "Community facility problem at {location}",
-          "Infrastructure damage at {location}",
-          "Public space issue at {location}",
-          "General concern at {location}",
-        ], descriptions: [
-          "A public facility has been damaged and needs repair.",
-          "Vandalism has occurred and needs to be addressed.",
-          "There is excessive noise disturbing residents.",
-          "A public amenity is not functioning properly.",
-          "There is an issue with a community facility.",
-          "Infrastructure has been damaged and requires attention.",
-          "There is a problem with a public space.",
-          "A general concern has been raised by residents.",
-        ]},
+        {
+          category: "other", code: "other", titles: [
+            "Damaged public facility at {location}",
+            "Vandalism at {location}",
+            "Noise complaint at {location}",
+            "Public amenity issue at {location}",
+            "Community facility problem at {location}",
+            "Infrastructure damage at {location}",
+            "Public space issue at {location}",
+            "General concern at {location}",
+          ], descriptions: [
+            "A public facility has been damaged and needs repair.",
+            "Vandalism has occurred and needs to be addressed.",
+            "There is excessive noise disturbing residents.",
+            "A public amenity is not functioning properly.",
+            "There is an issue with a community facility.",
+            "Infrastructure has been damaged and requires attention.",
+            "There is a problem with a public space.",
+            "A general concern has been raised by residents.",
+          ]
+        },
       ];
-      
+
       const locations = [
         // Inanam area locations
         { name: "Jalan Inanam", lat: 6.0333, lng: 116.1167 },
@@ -1127,7 +1125,7 @@ async function seed() {
         { name: "Jalan Telipok", lat: 6.0405, lng: 116.1305 },
         { name: "Taman Telipok", lat: 6.0410, lng: 116.1310 },
       ];
-      
+
       const statuses: Array<"pending" | "in_progress" | "resolved" | "closed"> = ["pending", "in_progress", "resolved", "closed"];
       const issues: Array<{
         reporterId: number;
@@ -1142,12 +1140,12 @@ async function seed() {
         createdAt?: Date;
         resolvedAt?: Date;
       }> = [];
-      
+
       // Ensure we have at least one profile
       if (insertedProfilesForUse.length === 0) {
         throw new Error("No profiles available. Cannot generate issues without reporters.");
       }
-      
+
       // Generate 100+ issues
       for (let i = 0; i < 100; i++) {
         const template = issueTemplates[i % issueTemplates.length];
@@ -1156,24 +1154,24 @@ async function seed() {
         const status = statuses[i % statuses.length];
         const titleIndex = Math.floor(i / issueTemplates.length) % template.titles.length;
         const descIndex = Math.floor(i / issueTemplates.length) % template.descriptions.length;
-        
+
         // Add small random variation to coordinates (±0.01 degrees ≈ ±1km)
         const latVariation = (Math.random() - 0.5) * 0.02;
         const lngVariation = (Math.random() - 0.5) * 0.02;
-        
+
         const lat = location.lat + latVariation;
         const lng = location.lng + lngVariation;
-        
+
         // Generate dates - spread over the last 90 days
         const daysAgo = Math.floor(Math.random() * 90);
         const createdAt = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
-        
+
         let resolvedAt: Date | undefined;
         if (status === "resolved" || status === "closed") {
           const daysToResolve = Math.floor(Math.random() * daysAgo);
           resolvedAt = new Date(Date.now() - daysToResolve * 24 * 60 * 60 * 1000);
         }
-        
+
         issues.push({
           reporterId: reporter.id,
           title: template.titles[titleIndex].replace("{location}", location.name),
@@ -1188,10 +1186,10 @@ async function seed() {
           resolvedAt: resolvedAt,
         });
       }
-      
+
       return issues;
     };
-    
+
     const issuesToInsert = generateIssues();
     const insertedIssues = await db.insert(issues).values(issuesToInsert).returning();
 
@@ -1548,28 +1546,28 @@ async function seed() {
 
     // 12c. Insert Role Assignments (ADUN appoints people to roles in zones/villages)
     console.log("👔 Inserting role assignments...");
-    
+
     let insertedRoleAssignmentsCount = 0;
-    
+
     // Get roles (they should exist from migration)
     const existingRoles = await db.select().from(roles);
-    
+
     // Find Branch Chief and Village Chief roles (English names)
     const branchChiefRole = existingRoles.find(r => r.name === "Branch Chief");
     const villageChiefRole = existingRoles.find(r => r.name === "Village Chief");
-    
+
     if (branchChiefRole && villageChiefRole && insertedVillages.length > 0) {
       // ADUN appoints staff to roles in different zones/villages
       // Branch Chief handles aids and household registration (can manage multiple villages)
       // Village Chief handles divorce, conflict, and community issues (one per village)
-      
+
       const roleAssignmentsData = [];
-      
+
       // Get villages for each zone
       const zoneAVillages = insertedVillages.filter(v => v.zoneId === insertedZones[0].id);
       const zoneBVillages = insertedVillages.filter(v => v.zoneId === insertedZones[1].id);
       const zoneCVillages = insertedVillages.filter(v => v.zoneId === insertedZones[2].id);
-      
+
       // Assign Village Chief to first village in Zone A (one per village)
       if (insertedStaff.length > 4 && zoneAVillages.length > 0) {
         roleAssignmentsData.push({
@@ -1582,7 +1580,7 @@ async function seed() {
           notes: "Appointed by ADUN as Village Chief for this village",
         });
       }
-      
+
       // Assign Branch Chief to Zone A (can manage multiple villages, but we'll assign to specific villages)
       if (insertedStaff.length > 3 && zoneAVillages.length > 0) {
         // Assign Branch Chief to first village in Zone A
@@ -1608,7 +1606,7 @@ async function seed() {
           });
         }
       }
-      
+
       // Assign Village Chief to first village in Zone B
       if (zoneLeaders.length > 1 && zoneBVillages.length > 0) {
         roleAssignmentsData.push({
@@ -1621,7 +1619,7 @@ async function seed() {
           notes: "Appointed by ADUN as Village Chief for this village",
         });
       }
-      
+
       // Assign Branch Chief to Zone B
       if (insertedStaff.length > 5 && zoneBVillages.length > 0) {
         roleAssignmentsData.push({
@@ -1634,7 +1632,7 @@ async function seed() {
           notes: "Appointed by ADUN as Branch Chief for this village",
         });
       }
-      
+
       // Assign Village Chief to first village in Zone C
       if (zoneLeaders.length > 2 && zoneCVillages.length > 0) {
         roleAssignmentsData.push({
@@ -1647,7 +1645,7 @@ async function seed() {
           notes: "Appointed by ADUN as Village Chief for this village",
         });
       }
-      
+
       // Assign Branch Chief to Zone C
       if (insertedStaff.length > 2 && zoneCVillages.length > 0) {
         roleAssignmentsData.push({
@@ -1660,7 +1658,7 @@ async function seed() {
           notes: "Appointed by ADUN as Branch Chief for this village",
         });
       }
-      
+
       if (roleAssignmentsData.length > 0) {
         const insertedRoleAssignments = await db.insert(roleAssignments).values(roleAssignmentsData).returning();
         insertedRoleAssignmentsCount = insertedRoleAssignments.length;
@@ -2069,10 +2067,10 @@ async function seed() {
 
     // 12d. Insert AIDS Programs
     console.log("📦 Inserting AIDS programs...");
-    
+
     // Get ADUN staff ID (first staff member)
     const adunStaffId = insertedStaff[0].id;
-    
+
     // Create AIDS programs
     const insertedAidsPrograms = await db.insert(aidsPrograms).values([
       {
@@ -2112,7 +2110,7 @@ async function seed() {
     // Assign programs to zones
     console.log("📍 Assigning programs to zones...");
     const programZonesData = [];
-    
+
     // Program 1 (Food Basket) - assigned to Zone A and Zone B
     if (insertedAidsPrograms[0] && insertedZones.length >= 2) {
       programZonesData.push({
@@ -2126,7 +2124,7 @@ async function seed() {
         villageId: null,
       });
     }
-    
+
     // Program 2 (Cash Aid) - assigned to all zones
     if (insertedAidsPrograms[1] && insertedZones.length >= 3) {
       programZonesData.push({
@@ -2145,7 +2143,7 @@ async function seed() {
         villageId: null,
       });
     }
-    
+
     // Program 3 (Medical Supplies) - assigned to Zone A only
     if (insertedAidsPrograms[2] && insertedZones.length >= 1) {
       programZonesData.push({
@@ -2163,7 +2161,7 @@ async function seed() {
     // Automatically assign programs to zone leaders
     console.log("👔 Assigning programs to zone leaders...");
     const programAssignmentsData = [];
-    
+
     // Program 1 - assign to Zone A and Zone B leaders
     if (insertedAidsPrograms[0] && zoneLeaders.length >= 2) {
       programAssignmentsData.push({
@@ -2185,7 +2183,7 @@ async function seed() {
         notes: "Automatically assigned to zone leader when program was created",
       });
     }
-    
+
     // Program 2 - assign to all zone leaders
     if (insertedAidsPrograms[1] && zoneLeaders.length >= 3) {
       programAssignmentsData.push({
@@ -2216,7 +2214,7 @@ async function seed() {
         notes: "Automatically assigned to zone leader when program was created",
       });
     }
-    
+
     // Program 3 - assign to Zone A leader
     if (insertedAidsPrograms[2] && zoneLeaders.length >= 1) {
       programAssignmentsData.push({
@@ -2238,18 +2236,18 @@ async function seed() {
     // Assign some programs to Branch Chief (simulating zone leader assignments)
     console.log("👥 Assigning programs to Branch Chief...");
     const ketuaCawanganAssignments = [];
-    
+
     // Get Branch Chief role assignments
     const existingRoleAssignments = await db.select().from(roleAssignments);
     // Get roles again (or reuse existingRoles if in scope - but it's not, so fetch again)
     const rolesForAids = await db.select().from(roles);
     const branchChiefRoleForAids = rolesForAids.find(r => r.name === "Branch Chief");
-    
+
     if (branchChiefRoleForAids) {
       const branchChiefInZones = existingRoleAssignments.filter(
         ra => ra.roleId === branchChiefRoleForAids.id && ra.status === "active"
       );
-      
+
       // Assign Program 1 (Food Basket) to Branch Chief in Zone A
       if (insertedAidsPrograms[0] && branchChiefInZones.length > 0) {
         const zoneABranchChief = branchChiefInZones.find(ra => ra.zoneId === insertedZones[0].id);
@@ -2265,7 +2263,7 @@ async function seed() {
           });
         }
       }
-      
+
       // Assign Program 3 (Medical Supplies) to Branch Chief in Zone A
       if (insertedAidsPrograms[2] && branchChiefInZones.length > 0) {
         const zoneABranchChief = branchChiefInZones.find(ra => ra.zoneId === insertedZones[0].id);
@@ -2291,14 +2289,14 @@ async function seed() {
     // Create some distribution records (simulating Branch Chief marking households)
     console.log("✅ Creating distribution records...");
     const distributionRecordsData = [];
-    
+
     // Program 1 - mark some households in Zone A as distributed
     if (insertedAidsPrograms[0] && insertedHouseholds.length >= 2 && ketuaCawanganAssignments.length > 0) {
       const zoneAHouseholds = insertedHouseholds.filter(h => h.zoneId === insertedZones[0].id);
       const branchChiefForZoneA = ketuaCawanganAssignments.find(
         ka => ka.programId === insertedAidsPrograms[0].id && ka.zoneId === insertedZones[0].id
       );
-      
+
       if (zoneAHouseholds.length > 0 && branchChiefForZoneA) {
         // Mark first 2 households as distributed
         distributionRecordsData.push({
@@ -2319,14 +2317,14 @@ async function seed() {
         }
       }
     }
-    
+
     // Program 3 - mark one household in Zone A as distributed
     if (insertedAidsPrograms[2] && insertedHouseholds.length >= 1 && ketuaCawanganAssignments.length > 0) {
       const zoneAHouseholds = insertedHouseholds.filter(h => h.zoneId === insertedZones[0].id);
       const branchChiefForZoneA = ketuaCawanganAssignments.find(
         ka => ka.programId === insertedAidsPrograms[2].id && ka.zoneId === insertedZones[0].id
       );
-      
+
       if (zoneAHouseholds.length > 0 && branchChiefForZoneA) {
         distributionRecordsData.push({
           programId: insertedAidsPrograms[2].id,
@@ -2346,7 +2344,7 @@ async function seed() {
     // 13. Seed Permissions (if they don't exist)
     console.log("🔐 Seeding permissions...");
     const existingPermissions = await db.select().from(permissions);
-    
+
     if (existingPermissions.length === 0) {
       // Insert default permissions
       const defaultPermissions = [
@@ -2420,7 +2418,7 @@ async function seed() {
 
     // 14. Grant example permissions to staff members
     console.log("🔐 Granting permissions to staff...");
-    
+
     // Get permissions
     const allPermissions = await db.select().from(permissions);
     const registerHouseholdPerm = allPermissions.find(p => p.code === "register_household");

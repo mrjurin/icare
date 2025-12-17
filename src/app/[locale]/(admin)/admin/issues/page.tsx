@@ -1,6 +1,7 @@
 import { getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import { getTranslations } from "next-intl/server";
 import { getIssuesWithCoordinates } from "@/lib/actions/issues";
+import { getReferenceDataList } from "@/lib/actions/reference-data";
 import IssueDensityMap from "@/components/issues/IssueDensityMap";
 import Pagination from "@/components/ui/Pagination";
 import IssuesFilters from "./IssuesFilters";
@@ -14,6 +15,8 @@ type DbIssue = {
   created_at: string;
   reporter_id: number | null;
   reporter_name: string | null;
+  issue_types?: { name: string } | null;
+  issue_type_name?: string | null;
 };
 
 export default async function AdminIssuesPage({
@@ -68,10 +71,13 @@ export default async function AdminIssuesPage({
     { label: t("counters.resolvedThisWeek"), value: String(resolvedThisWeekCount || 0) },
   ];
 
+  const { data: issueTypesResult } = await getReferenceDataList("issue_types");
+  const issueTypes = issueTypesResult || [];
+
   // Build main query
   let query = supabase
     .from("issues")
-    .select("id,title,category,status,created_at,reporter_id", { count: "exact" });
+    .select("id,title,category,status,created_at,reporter_id,issue_types(name)", { count: "exact" });
 
   // Apply filters
   if (statusFilter) {
@@ -79,7 +85,11 @@ export default async function AdminIssuesPage({
   }
 
   if (categoryFilter) {
-    query = query.eq("category", categoryFilter);
+    if (!isNaN(Number(categoryFilter))) {
+      query = query.eq("issue_type_id", parseInt(categoryFilter));
+    } else {
+      query = query.eq("category", categoryFilter);
+    }
   }
 
   if (assignedFilter) {
@@ -131,7 +141,8 @@ export default async function AdminIssuesPage({
     .range(from, to);
 
   const { data, count } = await query;
-  const issues = (Array.isArray(data) ? data : []) as Omit<DbIssue, "reporter_name">[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const issues = (Array.isArray(data) ? data : []) as any[];
   const totalItems = count || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
@@ -154,10 +165,11 @@ export default async function AdminIssuesPage({
     }
   }
 
-  // Add reporter names to issues
+  // Add reporter names and flatten issue type
   const rows: DbIssue[] = issues.map((issue) => ({
     ...issue,
     reporter_name: issue.reporter_id ? reporterMap.get(issue.reporter_id) || null : null,
+    issue_type_name: issue.issue_types?.name || null,
   }));
 
   // Fetch issues with coordinates for map visualization (separate query to show density of ALL issues matching filter)
@@ -192,7 +204,7 @@ export default async function AdminIssuesPage({
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white">
-        <IssuesFilters />
+        <IssuesFilters issueTypes={issueTypes} />
         <div className="h-px bg-gray-200" />
       </div>
 

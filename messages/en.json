@@ -405,6 +405,7 @@
       "titlePlaceholder": "Enter issue title",
       "titleRequired": "Title is required",
       "category": "Category",
+      "selectCategory": "Select Category",
       "description": "Description",
       "descriptionPlaceholder": "Enter issue description",
       "descriptionRequired": "Description is required",

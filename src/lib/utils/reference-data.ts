@@ -8,7 +8,7 @@ export function getTableDisplayName(
   if (t) {
     return t(`tables.${table}`);
   }
-  
+
   const names: Record<ReferenceTable, string> = {
     genders: "Gender",
     religions: "Religion",
@@ -21,6 +21,7 @@ export function getTableDisplayName(
     zones: "Zone",
     cawangan: "Cawangan",
     villages: "Village",
+    issue_types: "Issue Type",
   };
   return names[table];
 }

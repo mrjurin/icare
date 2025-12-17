@@ -8,7 +8,13 @@ import IssueFormModalWrapper from "./IssueFormModalWrapper";
 import { useEffect, useState } from "react";
 import DateRangePicker, { type DateRange } from "@/components/ui/DateRangePicker";
 
-export default function IssuesFilters() {
+import type { ReferenceData } from "@/lib/actions/reference-data";
+
+type Props = {
+  issueTypes: ReferenceData[];
+};
+
+export default function IssuesFilters({ issueTypes = [] }: Props) {
   const t = useTranslations("issues.list");
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -149,11 +155,20 @@ export default function IssuesFilters() {
           className="h-10 px-3 text-sm rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
         >
           <option value="">{t("filters.type.label")}</option>
-          <option value="road_maintenance">{t("filters.type.infrastructure")}</option>
-          <option value="drainage">{t("filters.type.utilities")}</option>
-          <option value="sanitation">{t("filters.type.sanitation")}</option>
-          <option value="public_safety">{t("filters.type.publicSafety")}</option>
-          <option value="other">Other</option>
+          {issueTypes.map((type) => (
+            <option key={type.id} value={type.id.toString()}>
+              {type.name}
+            </option>
+          ))}
+          {!issueTypes.length && (
+            <>
+              <option value="road_maintenance">{t("filters.type.infrastructure")}</option>
+              <option value="drainage">{t("filters.type.utilities")}</option>
+              <option value="sanitation">{t("filters.type.sanitation")}</option>
+              <option value="public_safety">{t("filters.type.publicSafety")}</option>
+              <option value="other">Other</option>
+            </>
+          )}
         </select>
         <select
           value={assignedFilter}

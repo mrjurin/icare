@@ -12,6 +12,7 @@ type DbIssue = {
   created_at: string;
   reporter_id: number | null;
   reporter_name: string | null;
+  issue_type_name?: string | null;
 };
 
 type IssuesTableProps = {
@@ -74,7 +75,7 @@ export default function IssuesTable({ issues }: IssuesTableProps) {
               })}
             </td>
             <td className="px-4 py-3">
-              {r.category.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+              {r.issue_type_name || (r.category ? r.category.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "—")}
             </td>
             <td className="px-4 py-3">{r.reporter_name || "—"}</td>
             <td className="px-4 py-3">
