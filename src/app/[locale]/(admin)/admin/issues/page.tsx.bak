@@ -53,79 +53,59 @@ export default async function AdminIssuesPage({
   const { data: issueStatusesResult } = await getReferenceDataList("issue_statuses");
   const issueStatuses = issueStatusesResult || [];
 
-  // Fetch statistics with proper error handling
-  // Total Open Issues: status IN ('pending', 'in_progress') - excludes 'resolved' and 'closed'
-  const { count: totalOpenCount, error: totalOpenError } = await supabase
+  // Fetch counters using issue_statuses table
+  // Get status IDs for "open" statuses (pending, in_progress, resolved)
+  // We'll look for statuses by name or code that match these patterns
+  const openStatusNames = ["pending", "in_progress", "resolved"];
+  const openStatusIds = issueStatuses
+    .filter((s) => {
+      const nameLower = s.name.toLowerCase();
+      const codeLower = s.code?.toLowerCase() || "";
+      return openStatusNames.some((os) => nameLower.includes(os) || codeLower.includes(os));
+    })
+    .map((s) => s.id);
+
+  const pendingStatusIds = issueStatuses
+    .filter((s) => {
+      const nameLower = s.name.toLowerCase();
+      const codeLower = s.code?.toLowerCase() || "";
+      return nameLower.includes("pending") || codeLower.includes("pending");
+    })
+    .map((s) => s.id);
+
+  const resolvedStatusIds = issueStatuses
+    .filter((s) => {
+      const nameLower = s.name.toLowerCase();
+      const codeLower = s.code?.toLowerCase() || "";
+      return nameLower.includes("resolved") || codeLower.includes("resolved");
+    })
+    .map((s) => s.id);
+
+  const { count: totalOpenCount } = await supabase
     .from("issues")
     .select("*", { count: "exact", head: true })
-    .in("status", ["pending", "in_progress"]);
-  
-  if (totalOpenError) {
-    console.error("Error fetching total open issues:", totalOpenError);
-  }
-  
-  // Pending Review: status = 'pending'
-  const { count: pendingCount, error: pendingError } = await supabase
+    .in("issue_status_id", openStatusIds.length > 0 ? openStatusIds : [-1]);
+
+  const { count: pendingCount } = await supabase
     .from("issues")
     .select("*", { count: "exact", head: true })
-    .eq("status", "pending");
-  
-  if (pendingError) {
-    console.error("Error fetching pending issues:", pendingError);
-  }
-  
-  // Resolved This Week: status = 'resolved' AND resolved_at >= start of current week
-  // Calculate start of week (Sunday as first day) in UTC
+    .in("issue_status_id", pendingStatusIds.length > 0 ? pendingStatusIds : [-1]);
+
   const now = new Date();
-  const dayOfWeek = now.getUTCDay(); // 0 = Sunday, 1 = Monday, etc.
-  const startOfWeek = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate() - dayOfWeek, // Go back to Sunday
-    0, 0, 0, 0 // Set to midnight UTC
-  ));
-  
-  const { count: resolvedThisWeekCount, error: resolvedError } = await supabase
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  const { count: resolvedThisWeekCount } = await supabase
     .from("issues")
     .select("*", { count: "exact", head: true })
-    .eq("status", "resolved")
+    .in("issue_status_id", resolvedStatusIds.length > 0 ? resolvedStatusIds : [-1])
     .gte("resolved_at", startOfWeek.toISOString());
-  
-  if (resolvedError) {
-    console.error("Error fetching resolved this week:", resolvedError);
-  }
-  
-  // Closed Issues: status = 'closed'
-  const { count: closedCount, error: closedError } = await supabase
-    .from("issues")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "closed");
-  
-  if (closedError) {
-    console.error("Error fetching closed issues:", closedError);
-  }
 
   const counters = [
-    { 
-      label: t("counters.totalOpenIssues"), 
-      value: String(totalOpenCount ?? 0),
-      color: "bg-blue-50 border-blue-200 text-blue-900"
-    },
-    { 
-      label: t("counters.pendingReview"), 
-      value: String(pendingCount ?? 0),
-      color: "bg-yellow-50 border-yellow-200 text-yellow-900"
-    },
-    { 
-      label: t("counters.resolvedThisWeek"), 
-      value: String(resolvedThisWeekCount ?? 0),
-      color: "bg-green-50 border-green-200 text-green-900"
-    },
-    { 
-      label: t("counters.closedIssues"), 
-      value: String(closedCount ?? 0),
-      color: "bg-gray-50 border-gray-200 text-gray-900"
-    },
+    { label: t("counters.totalOpenIssues"), value: String(totalOpenCount || 0) },
+    { label: t("counters.pendingReview"), value: String(pendingCount || 0) },
+    { label: t("counters.resolvedThisWeek"), value: String(resolvedThisWeekCount || 0) },
   ];
 
   // Build main query with join to issue_statuses
@@ -288,10 +268,10 @@ export default async function AdminIssuesPage({
     <div className="space-y-8">
       <h1 className="text-2xl md:text-3xl font-black tracking-[-0.015em]">{t("title")}</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {counters.map((k, i) => (
-          <div key={i} className={`rounded-xl border p-6 ${k.color}`}>
-            <p className="text-sm opacity-80">{k.label}</p>
+          <div key={i} className="rounded-xl border border-gray-200 bg-white p-6">
+            <p className="text-sm text-gray-600">{k.label}</p>
             <p className="mt-2 text-5xl font-bold">{k.value}</p>
           </div>
         ))}

@@ -4,6 +4,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getIssueActivity } from "@/lib/actions/issues";
 import IssueActions from "./IssueActions";
 import ActivityLog from "@/components/issues/ActivityLog";
+import { getUserWorkspaceType } from "@/lib/utils/access-control";
 
 type Media = { url: string; type?: string | null; size_bytes?: number | null };
 
@@ -21,13 +22,36 @@ function statusBadge(s: string) {
 export default async function AdminIssueDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const idNum = Number(id);
+  
+  // Get user workspace type to determine correct breadcrumb links
+  const workspaceType = await getUserWorkspaceType();
+  const getBreadcrumbLinks = () => {
+    if (workspaceType === "staff") {
+      return {
+        dashboard: "/staff/dashboard",
+        issues: "/staff/issues",
+      };
+    } else if (workspaceType === "community") {
+      return {
+        dashboard: "/community/dashboard",
+        issues: "/community/report",
+      };
+    }
+    // Default to admin
+    return {
+      dashboard: "/admin/dashboard",
+      issues: "/admin/issues",
+    };
+  };
+  const links = getBreadcrumbLinks();
+  
   if (!idNum || Number.isNaN(idNum)) {
     return (
       <div className="space-y-8">
         <div className="flex flex-wrap gap-2 text-sm">
-          <Link href="/" className="text-gray-500 hover:text-primary">Dashboard</Link>
+          <Link href={links.dashboard} className="text-gray-500 hover:text-primary">Dashboard</Link>
           <span className="text-gray-400">/</span>
-          <Link href="/admin/issues" className="text-gray-500 hover:text-primary">All Issues</Link>
+          <Link href={links.issues} className="text-gray-500 hover:text-primary">All Issues</Link>
         </div>
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">
           <p className="text-base text-gray-700 dark:text-gray-300">Issue not found.</p>
@@ -46,9 +70,9 @@ export default async function AdminIssueDetailPage({ params }: { params: Promise
     return (
       <div className="space-y-8">
         <div className="flex flex-wrap gap-2 text-sm">
-          <Link href="/" className="text-gray-500 hover:text-primary">Dashboard</Link>
+          <Link href={links.dashboard} className="text-gray-500 hover:text-primary">Dashboard</Link>
           <span className="text-gray-400">/</span>
-          <Link href="/admin/issues" className="text-gray-500 hover:text-primary">All Issues</Link>
+          <Link href={links.issues} className="text-gray-500 hover:text-primary">All Issues</Link>
         </div>
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">
           <p className="text-base text-gray-700 dark:text-gray-300">Issue not found.</p>
@@ -87,9 +111,9 @@ export default async function AdminIssueDetailPage({ params }: { params: Promise
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap gap-2 text-sm">
-        <Link href="/" className="text-gray-500 hover:text-primary">Dashboard</Link>
+        <Link href={links.dashboard} className="text-gray-500 hover:text-primary">Dashboard</Link>
         <span className="text-gray-400">/</span>
-        <Link href="/issues" className="text-gray-500 hover:text-primary">All Issues</Link>
+        <Link href={links.issues} className="text-gray-500 hover:text-primary">All Issues</Link>
         <span className="text-gray-400">/</span>
         <span className="text-gray-900 dark:text-white font-medium">#{issue.id}</span>
       </div>

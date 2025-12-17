@@ -1,7 +1,7 @@
 import { Plus, Search } from "lucide-react";
 import Link from "next/link";
 import Input from "@/components/ui/Input";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import IssueFormModal from "./IssueFormModal";
 import IssueActionsButton from "@/app/[locale]/(admin)/admin/issues/IssueActionsButton";
 import { getIssuesWithCoordinates } from "@/lib/actions/issues";
@@ -17,44 +17,93 @@ type DbIssue = {
 };
 
 export default async function AdminIssuesPage() {
-  const supabase = await getSupabaseServerClient();
+  const supabase = await getSupabaseReadOnlyClient();
   
-  // Fetch statistics
-  // Total Open Issues: status IN ('pending', 'in_progress', 'resolved')
-  const { count: totalOpenCount } = await supabase
+  // Fetch statistics with proper error handling
+  // Total Open Issues: status IN ('pending', 'in_progress') - excludes 'resolved' and 'closed'
+  const { count: totalOpenCount, error: totalOpenError } = await supabase
     .from("issues")
     .select("*", { count: "exact", head: true })
-    .in("status", ["pending", "in_progress", "resolved"]);
+    .in("status", ["pending", "in_progress"]);
+  
+  if (totalOpenError) {
+    console.error("Error fetching total open issues:", totalOpenError);
+  }
   
   // Pending Review: status = 'pending'
-  const { count: pendingCount } = await supabase
+  const { count: pendingCount, error: pendingError } = await supabase
     .from("issues")
     .select("*", { count: "exact", head: true })
     .eq("status", "pending");
   
-  // Resolved This Week: status = 'resolved' AND resolved_at >= start of current week
-  const now = new Date();
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
-  startOfWeek.setHours(0, 0, 0, 0);
+  if (pendingError) {
+    console.error("Error fetching pending issues:", pendingError);
+  }
   
-  const { count: resolvedThisWeekCount } = await supabase
+  // Resolved This Week: status = 'resolved' AND resolved_at >= start of current week
+  // Calculate start of week (Sunday as first day) in UTC
+  const now = new Date();
+  const dayOfWeek = now.getUTCDay(); // 0 = Sunday, 1 = Monday, etc.
+  const startOfWeek = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate() - dayOfWeek, // Go back to Sunday
+    0, 0, 0, 0 // Set to midnight UTC
+  ));
+  
+  const { count: resolvedThisWeekCount, error: resolvedError } = await supabase
     .from("issues")
     .select("*", { count: "exact", head: true })
     .eq("status", "resolved")
     .gte("resolved_at", startOfWeek.toISOString());
   
+  if (resolvedError) {
+    console.error("Error fetching resolved this week:", resolvedError);
+  }
+  
+  // Closed Issues: status = 'closed'
+  const { count: closedCount, error: closedError } = await supabase
+    .from("issues")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "closed");
+  
+  if (closedError) {
+    console.error("Error fetching closed issues:", closedError);
+  }
+  
   const counters = [
-    { label: "Total Open Issues", value: String(totalOpenCount || 0) },
-    { label: "Pending Review", value: String(pendingCount || 0) },
-    { label: "Resolved This Week", value: String(resolvedThisWeekCount || 0) },
+    { 
+      label: "Total Open Issues", 
+      value: String(totalOpenCount ?? 0),
+      color: "bg-blue-50 border-blue-200 text-blue-900"
+    },
+    { 
+      label: "Pending Review", 
+      value: String(pendingCount ?? 0),
+      color: "bg-yellow-50 border-yellow-200 text-yellow-900"
+    },
+    { 
+      label: "Resolved This Week", 
+      value: String(resolvedThisWeekCount ?? 0),
+      color: "bg-green-50 border-green-200 text-green-900"
+    },
+    { 
+      label: "Closed Issues", 
+      value: String(closedCount ?? 0),
+      color: "bg-gray-50 border-gray-200 text-gray-900"
+    },
   ];
 
-  const { data } = await supabase
+  const { data, error: issuesError } = await supabase
     .from("issues")
     .select("id,title,category,status,created_at,reporter_id")
     .order("created_at", { ascending: false })
     .limit(50);
+  
+  if (issuesError) {
+    console.error("Error fetching issues:", issuesError);
+  }
+  
   const rows: DbIssue[] = Array.isArray(data) ? data : [];
 
   // Fetch issues with coordinates for map visualization
@@ -64,10 +113,10 @@ export default async function AdminIssuesPage() {
     <div className="space-y-8">
       <h1 className="text-2xl md:text-3xl font-black tracking-[-0.015em]">Issues Dashboard</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {counters.map((k, i) => (
-          <div key={i} className="rounded-xl border border-gray-200 bg-white p-6">
-            <p className="text-sm text-gray-600">{k.label}</p>
+          <div key={i} className={`rounded-xl border p-6 ${k.color}`}>
+            <p className="text-sm opacity-80">{k.label}</p>
             <p className="mt-2 text-5xl font-bold">{k.value}</p>
           </div>
         ))}

@@ -318,7 +318,8 @@
       "counters": {
         "totalOpenIssues": "Total Open Issues",
         "pendingReview": "Pending Review",
-        "resolvedThisWeek": "Resolved This Week"
+        "resolvedThisWeek": "Resolved This Week",
+        "closedIssues": "Closed Issues"
       },
       "searchPlaceholder": "Search by keyword, ID, or reporter...",
       "filters": {

@@ -318,7 +318,8 @@
       "counters": {
         "totalOpenIssues": "Jumlah Isu Terbuka",
         "pendingReview": "Menunggu Semakan",
-        "resolvedThisWeek": "Diselesaikan Minggu Ini"
+        "resolvedThisWeek": "Diselesaikan Minggu Ini",
+        "closedIssues": "Isu Tertutup"
       },
       "searchPlaceholder": "Cari mengikut kata kunci, ID, atau pelapor...",
       "filters": {
@@ -342,6 +343,7 @@
           "label": "Ditugaskan: Semua",
           "all": "Semua",
           "unassigned": "Tidak Ditugaskan",
+          "assigned": "Ditugaskan",
           "teamA": "Pasukan A",
           "sanitationDept": "Jabatan Kebersihan"
         },

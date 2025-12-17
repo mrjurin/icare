@@ -192,3 +192,4 @@ export default function IssueTypesTable({ data }: IssueTypesTableProps) {
 
 
 
+

@@ -4,7 +4,8 @@ import { getIssueActivity } from "@/lib/actions/issues";
 import IssueActions from "./IssueActions";
 import ActivityLog from "@/components/issues/ActivityLog";
 import ImagePreview from "./ImagePreview";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
+import { getUserWorkspaceType } from "@/lib/utils/access-control";
 
 type Media = { url: string; type?: string | null; size_bytes?: number | null };
 
@@ -23,14 +24,38 @@ export default async function AdminIssueDetailPage({ params }: { params: Promise
   const { id } = await params;
   const idNum = Number(id);
   const t = await getTranslations("issues.detail");
+  const locale = await getLocale();
+  const basePath = `/${locale}`;
+  
+  // Get user workspace type to determine correct breadcrumb links
+  const workspaceType = await getUserWorkspaceType();
+  const getBreadcrumbLinks = () => {
+    if (workspaceType === "staff") {
+      return {
+        dashboard: `${basePath}/staff/dashboard`,
+        issues: `${basePath}/staff/issues`,
+      };
+    } else if (workspaceType === "community") {
+      return {
+        dashboard: `${basePath}/community/dashboard`,
+        issues: `${basePath}/community/report`,
+      };
+    }
+    // Default to admin
+    return {
+      dashboard: `${basePath}/admin/dashboard`,
+      issues: `${basePath}/admin/issues`,
+    };
+  };
+  const links = getBreadcrumbLinks();
 
   if (!idNum || Number.isNaN(idNum)) {
     return (
       <div className="space-y-8">
         <div className="flex flex-wrap gap-2 text-sm">
-          <Link href="/" className="text-gray-500 hover:text-primary">{t("dashboard")}</Link>
+          <Link href={links.dashboard} className="text-gray-500 hover:text-primary">{t("dashboard")}</Link>
           <span className="text-gray-400">/</span>
-          <Link href="/admin/issues" className="text-gray-500 hover:text-primary">{t("allIssues")}</Link>
+          <Link href={links.issues} className="text-gray-500 hover:text-primary">{t("allIssues")}</Link>
         </div>
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">
           <p className="text-base text-gray-700 dark:text-gray-300">{t("issueNotFound")}</p>
@@ -50,9 +75,9 @@ export default async function AdminIssueDetailPage({ params }: { params: Promise
     return (
       <div className="space-y-8">
         <div className="flex flex-wrap gap-2 text-sm">
-          <Link href="/" className="text-gray-500 hover:text-primary">{t("dashboard")}</Link>
+          <Link href={links.dashboard} className="text-gray-500 hover:text-primary">{t("dashboard")}</Link>
           <span className="text-gray-400">/</span>
-          <Link href="/admin/issues" className="text-gray-500 hover:text-primary">{t("allIssues")}</Link>
+          <Link href={links.issues} className="text-gray-500 hover:text-primary">{t("allIssues")}</Link>
         </div>
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">
           <p className="text-base text-gray-700 dark:text-gray-300">{t("issueNotFound")}</p>
@@ -125,9 +150,9 @@ export default async function AdminIssueDetailPage({ params }: { params: Promise
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap gap-2 text-sm">
-        <Link href="/" className="text-gray-500 hover:text-primary">{t("dashboard")}</Link>
+        <Link href={links.dashboard} className="text-gray-500 hover:text-primary">{t("dashboard")}</Link>
         <span className="text-gray-400">/</span>
-        <Link href="/admin/issues" className="text-gray-500 hover:text-primary">{t("allIssues")}</Link>
+        <Link href={links.issues} className="text-gray-500 hover:text-primary">{t("allIssues")}</Link>
         <span className="text-gray-400">/</span>
         <span className="text-gray-900 dark:text-white font-medium">#{issue.id}</span>
       </div>

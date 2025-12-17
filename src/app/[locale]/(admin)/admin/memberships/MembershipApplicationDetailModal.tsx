@@ -4,6 +4,7 @@ import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "@/i18n/routing";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
+import Image from "next/image";
 import { X, CheckCircle2, XCircle, Calendar, MapPin, Phone, Mail, User, FileText, History, Image as ImageIcon, Info, ClipboardCheck, ShieldCheck, Award, Printer, Link2, Search, Trash2, ExternalLink } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -325,23 +326,38 @@ export default function MembershipApplicationDetailModal({
           {/* Header - Resume Style */}
           <div className="bg-gradient-to-r from-slate-800 to-slate-900 dark:from-slate-900 dark:to-slate-950 text-white px-8 py-6 print:hidden">
             <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <Dialog.Title className="text-3xl font-bold mb-2 tracking-tight">
-                  {application.full_name}
-                </Dialog.Title>
-                <div className="flex flex-wrap items-center gap-4 text-slate-300 text-sm">
-                  <span className="flex items-center gap-1">
-                    <Mail className="w-4 h-4" />
-                    {application.email || "No email"}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Phone className="w-4 h-4" />
-                    {application.phone || "No phone"}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    {application.zone?.name} / {application.cawangan?.name}
-                  </span>
+              <div className="flex-1 flex items-start gap-4">
+                {application.photo_url ? (
+                  <Image
+                    src={application.photo_url}
+                    alt={application.full_name}
+                    width={64}
+                    height={64}
+                    className="rounded-full object-cover border-2 border-slate-600 flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center flex-shrink-0">
+                    <User className="w-8 h-8 text-slate-300" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <Dialog.Title className="text-3xl font-bold mb-2 tracking-tight">
+                    {application.full_name}
+                  </Dialog.Title>
+                  <div className="flex flex-wrap items-center gap-4 text-slate-300 text-sm">
+                    <span className="flex items-center gap-1">
+                      <Mail className="w-4 h-4" />
+                      {application.email || "No email"}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Phone className="w-4 h-4" />
+                      {application.phone || "No phone"}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-4 h-4" />
+                      {application.zone?.name} / {application.cawangan?.name}
+                    </span>
+                  </div>
                 </div>
               </div>
               <Dialog.Close asChild>
