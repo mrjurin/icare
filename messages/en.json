@@ -355,7 +355,9 @@
         "title": "Title",
         "dateSubmitted": "Date Submitted",
         "category": "Category",
-        "status": "Status"
+        "reporter": "Reporter",
+        "status": "Status",
+        "noIssues": "No issues found"
       },
       "status": {
         "pending": "Pending",

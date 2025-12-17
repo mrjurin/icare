@@ -13,30 +13,50 @@ export default function IssuesFilters() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
 
   // Sync with URL changes (e.g., from map clicks)
   useEffect(() => {
     const status = searchParams.get("status") || "";
+    const search = searchParams.get("search") || "";
     setStatusFilter(status);
+    setSearchQuery(search);
   }, [searchParams]);
 
-  const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newStatus = e.target.value;
-    setStatusFilter(newStatus);
-    
+  const updateURL = (status: string, search: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (newStatus) {
-      params.set("status", newStatus);
+    
+    if (status) {
+      params.set("status", status);
     } else {
       params.delete("status");
+    }
+    
+    if (search) {
+      params.set("search", search);
+    } else {
+      params.delete("search");
     }
     
     const queryString = params.toString();
     router.push(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false });
   };
 
+  const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newStatus = e.target.value;
+    setStatusFilter(newStatus);
+    updateURL(newStatus, searchQuery);
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    updateURL(statusFilter, value);
+  };
+
   const handleReset = () => {
     setStatusFilter("");
+    setSearchQuery("");
     router.push(pathname, { scroll: false });
   };
 
@@ -50,7 +70,12 @@ export default function IssuesFilters() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[260px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" aria-hidden />
-          <Input placeholder={t("searchPlaceholder")} className="pl-9 w-full" />
+          <Input 
+            placeholder={t("searchPlaceholder")} 
+            className="pl-9 w-full"
+            value={searchQuery}
+            onChange={handleSearchChange}
+          />
         </div>
         <select
           value={getStatusValue()}

@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getTranslations } from "next-intl/server";
 import { getIssuesWithCoordinates } from "@/lib/actions/issues";
 import IssueDensityMap from "@/components/issues/IssueDensityMap";
-import IssueActionsButtonWrapper from "./IssueActionsButtonWrapper";
 import IssuesFilters from "./IssuesFilters";
+import IssuesTable from "./IssuesTable";
 
 type DbIssue = {
   id: number;
@@ -13,6 +12,7 @@ type DbIssue = {
   status: string;
   created_at: string;
   reporter_id: number | null;
+  reporter_name: string | null;
 };
 
 export default async function AdminIssuesPage({
@@ -68,17 +68,35 @@ export default async function AdminIssuesPage({
   }
 
   const { data } = await query.limit(50);
-  const rows: DbIssue[] = Array.isArray(data) ? data : [];
+  const issues: DbIssue[] = Array.isArray(data) ? data : [];
+
+  // Fetch reporter information for all issues
+  const reporterIds = [...new Set(issues.map((i) => i.reporter_id).filter((id): id is number => id !== null))];
+  let reporterMap = new Map<number, string>();
+  
+  if (reporterIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", reporterIds);
+    
+    if (profiles) {
+      profiles.forEach((profile) => {
+        if (profile.id && profile.full_name) {
+          reporterMap.set(profile.id, profile.full_name);
+        }
+      });
+    }
+  }
+
+  // Add reporter names to issues
+  const rows: DbIssue[] = issues.map((issue) => ({
+    ...issue,
+    reporter_name: issue.reporter_id ? reporterMap.get(issue.reporter_id) || null : null,
+  }));
 
   // Fetch issues with coordinates for map visualization
   const issuesWithCoords = await getIssuesWithCoordinates();
-
-  const statusLabels: Record<string, string> = {
-    pending: t("status.pending"),
-    in_progress: t("status.inProgress"),
-    resolved: t("status.resolved"),
-    closed: t("status.closed"),
-  };
 
   return (
     <div className="space-y-8">
@@ -109,48 +127,7 @@ export default async function AdminIssuesPage({
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
-        {rows.length === 0 ? (
-          <div className="p-12 text-center text-gray-500">
-            <p>{t("table.noIssues") || "No issues found"}</p>
-          </div>
-        ) : (
-          <table className="min-w-full text-sm">
-            <thead className="text-left">
-              <tr className="border-b border-gray-200">
-                <th className="px-4 py-3"><input type="checkbox" aria-label={t("table.selectAll")} className="size-4" /></th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.issueId")}</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.title")}</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.dateSubmitted")}</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.category")}</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">{t("table.status")}</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-t border-gray-200">
-                  <td className="px-4 py-3"><input type="checkbox" aria-label={`Select #${r.id}`} className="size-4" /></td>
-                  <td className="px-4 py-3 text-primary font-medium"><Link href={`/admin/issues/${r.id}`}>#{r.id}</Link></td>
-                  <td className="px-4 py-3"><Link href={`/admin/issues/${r.id}`} className="hover:text-primary">{r.title}</Link></td>
-                  <td className="px-4 py-3">
-                    {new Date(r.created_at).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </td>
-                  <td className="px-4 py-3">{r.category.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${r.status==="pending"?"bg-blue-100 text-blue-800":r.status==="in_progress"?"bg-yellow-100 text-yellow-800":r.status==="resolved"?"bg-green-100 text-green-800":"bg-gray-100 text-gray-800"}`}>{statusLabels[r.status] || r.status.replace(/_/g, " ")}</span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <IssueActionsButtonWrapper issueId={r.id} reporterId={r.reporter_id} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <IssuesTable issues={rows} />
       </div>
     </div>
   );
