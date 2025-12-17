@@ -409,6 +409,8 @@
       "description": "Description",
       "descriptionPlaceholder": "Enter issue description",
       "descriptionRequired": "Description is required",
+      "priority": "Priority",
+      "useDefault": "Use Default",
       "address": "Address",
       "addressPlaceholder": "Enter address or landmark",
       "addressRequired": "Address is required",
@@ -864,7 +866,9 @@
       "duns": "DUN",
       "zones": "Zone",
       "cawangan": "Cawangan",
-      "villages": "Village"
+      "villages": "Village",
+      "issue_statuses": "Issue Status",
+      "priorities": "Priority"
     },
     "table": {
       "all": "All {displayName}s",

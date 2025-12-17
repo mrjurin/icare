@@ -16,6 +16,8 @@ const validTables: ReferenceTable[] = [
   "zones",
   "cawangan",
   "villages",
+  "issue_statuses",
+  "priorities",
 ];
 
 export default async function ReferenceDataPage({

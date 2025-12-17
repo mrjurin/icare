@@ -405,6 +405,8 @@
       "description": "Penerangan",
       "descriptionPlaceholder": "Masukkan penerangan isu",
       "descriptionRequired": "Penerangan diperlukan",
+      "priority": "Keutamaan",
+      "useDefault": "Guna Lalai",
       "address": "Alamat",
       "addressPlaceholder": "Masukkan alamat atau mercu tanda",
       "addressRequired": "Alamat diperlukan",
@@ -857,7 +859,9 @@
       "duns": "DUN",
       "zones": "Zon",
       "cawangan": "Cawangan",
-      "villages": "Kampung"
+      "villages": "Kampung",
+      "issue_statuses": "Status Isu",
+      "priorities": "Keutamaan"
     },
     "table": {
       "all": "Semua {displayName}",

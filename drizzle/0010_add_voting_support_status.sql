@@ -21,3 +21,4 @@ ALTER TABLE "household_members" ADD COLUMN "voting_support_status" "voting_suppo
 
 
 
+

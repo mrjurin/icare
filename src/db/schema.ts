@@ -17,6 +17,7 @@ export const issueCategoryEnum = pgEnum("issue_category", [
   "sanitation",
   "other",
 ]);
+export const issuePriorityEnum = pgEnum("issue_priority", ["low", "medium", "high", "critical"]);
 
 // Issue Types table - allows admins to manage issue types dynamically
 export const issueTypes = pgTable(
@@ -36,6 +37,27 @@ export const issueTypes = pgTable(
     index("issue_types_code_idx").on(table.code),
     index("issue_types_is_active_idx").on(table.isActive),
     index("issue_types_display_order_idx").on(table.displayOrder),
+  ]
+);
+
+// Issue Status table - allows admins to manage issue statuses dynamically
+export const issueStatuses = pgTable(
+  "issue_statuses",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull().unique(),
+    code: varchar("code", { length: 20 }),
+    description: text("description"),
+    isActive: boolean("is_active").default(true).notNull(),
+    displayOrder: integer("display_order").default(0).notNull(), // For ordering in dropdowns
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("issue_statuses_name_idx").on(table.name),
+    index("issue_statuses_code_idx").on(table.code),
+    index("issue_statuses_is_active_idx").on(table.isActive),
+    index("issue_statuses_display_order_idx").on(table.displayOrder),
   ]
 );
 
@@ -122,7 +144,9 @@ export const issues = pgTable(
     description: text("description").notNull(),
     category: issueCategoryEnum("category").default("other").notNull(), // Keep for backward compatibility during migration
     issueTypeId: integer("issue_type_id").references(() => issueTypes.id, { onDelete: "set null" }), // New reference to issue_types
-    status: issueStatusEnum("status").default("pending").notNull(),
+    status: issueStatusEnum("status").default("pending").notNull(), // Keep enum for backward compatibility during migration
+    issueStatusId: integer("issue_status_id").references(() => issueStatuses.id, { onDelete: "set null" }), // New reference to issue_statuses
+    priority: issuePriorityEnum("priority").default("medium").notNull(),
     address: text("address").notNull(),
     lat: doublePrecision("lat"),
     lng: doublePrecision("lng"),
@@ -133,6 +157,8 @@ export const issues = pgTable(
   },
   (table) => [
     index("issues_status_idx").on(table.status),
+    index("issues_issue_status_idx").on(table.issueStatusId),
+    index("issues_priority_idx").on(table.priority),
     index("issues_reporter_idx").on(table.reporterId),
     index("issues_created_idx").on(table.createdAt),
     index("issues_issue_type_idx").on(table.issueTypeId),
@@ -249,6 +275,10 @@ export const issuesRelations = relations(issues, ({ one, many }) => ({
     fields: [issues.issueTypeId],
     references: [issueTypes.id],
   }),
+  issueStatus: one(issueStatuses, {
+    fields: [issues.issueStatusId],
+    references: [issueStatuses.id],
+  }),
   locality: one(localities, {
     fields: [issues.localityId],
     references: [localities.id],
@@ -259,6 +289,10 @@ export const issuesRelations = relations(issues, ({ one, many }) => ({
 }));
 
 export const issueTypesRelations = relations(issueTypes, ({ many }) => ({
+  issues: many(issues),
+}));
+
+export const issueStatusesRelations = relations(issueStatuses, ({ many }) => ({
   issues: many(issues),
 }));
 
@@ -1086,6 +1120,24 @@ export const races = pgTable(
   (table) => [
     index("races_name_idx").on(table.name),
     index("races_code_idx").on(table.code),
+  ]
+);
+
+// Priority table
+export const priorities = pgTable(
+  "priorities",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull().unique(),
+    code: varchar("code", { length: 20 }),
+    description: text("description"),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("priorities_name_idx").on(table.name),
+    index("priorities_code_idx").on(table.code),
   ]
 );
 

@@ -22,6 +22,8 @@ export function getTableDisplayName(
     cawangan: "Cawangan",
     villages: "Village",
     issue_types: "Issue Type",
+    issue_statuses: "Issue Status",
+    priorities: "Priority",
   };
   return names[table];
 }

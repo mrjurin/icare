@@ -4,6 +4,7 @@ import { getSupabaseServerClient, getSupabaseReadOnlyClient } from "@/lib/supaba
 import { revalidatePath } from "next/cache";
 import { parseActivity, type ActivityType } from "@/lib/utils/activity";
 import { getCurrentUserAccess } from "@/lib/utils/access-control";
+import { getSetting } from "@/lib/actions/settings";
 
 export type ActionResult = {
   success: boolean;
@@ -30,6 +31,7 @@ export type CreateIssueInput = {
   lng?: number;
   localityId?: number;
   status?: "pending" | "in_progress" | "resolved" | "closed";
+  priority?: "low" | "medium" | "high" | "critical";
   reporterId?: number;
   media?: Array<{ url: string; type?: string; size_bytes?: number }>;
 };
@@ -69,6 +71,24 @@ export const createIssue = withAudit(
     // database constraint will check enum validity, but we default to 'other' if unknown
     const category = input.category || "other";
 
+    // Get default priority from settings if not provided
+    let priority = input.priority;
+    if (!priority) {
+      const defaultPriorityResult = await getSetting("default_issue_priority");
+      if (defaultPriorityResult.success && defaultPriorityResult.data) {
+        // Convert capitalized setting value to lowercase enum value
+        const priorityMap: Record<string, "low" | "medium" | "high" | "critical"> = {
+          Low: "low",
+          Medium: "medium",
+          High: "high",
+          Critical: "critical",
+        };
+        priority = priorityMap[defaultPriorityResult.data] || "medium";
+      } else {
+        priority = "medium";
+      }
+    }
+
     // Determine reporter ID
     let reporterId = input.reporterId;
     if (!reporterId && access.email) {
@@ -96,6 +116,7 @@ export const createIssue = withAudit(
         lng: input.lng,
         locality_id: input.localityId || null,
         status: input.status || "pending",
+        priority: priority,
         reporter_id: reporterId || null,
       })
       .select("id")

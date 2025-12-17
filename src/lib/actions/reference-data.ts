@@ -36,7 +36,9 @@ export type ReferenceTable =
   | "zones"
   | "cawangan"
   | "villages"
-  | "issue_types";
+  | "issue_types"
+  | "issue_statuses"
+  | "priorities";
 
 export type CreateReferenceDataInput = {
   name: string;

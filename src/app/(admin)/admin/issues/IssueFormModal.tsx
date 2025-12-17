@@ -35,6 +35,7 @@ export default function IssueFormModal({ trigger }: Props) {
     lng: undefined,
     localityId: undefined,
     status: "pending",
+    priority: undefined,
   });
 
   // Load localities when modal opens
@@ -201,6 +202,13 @@ export default function IssueFormModal({ trigger }: Props) {
     { value: "closed", label: "Closed" },
   ];
 
+  const priorityOptions = [
+    { value: "low", label: "Low" },
+    { value: "medium", label: "Medium" },
+    { value: "high", label: "High" },
+    { value: "critical", label: "Critical" },
+  ];
+
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
       <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
@@ -279,6 +287,29 @@ export default function IssueFormModal({ trigger }: Props) {
                 className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-1 focus:border-primary focus:ring-primary resize-y min-h-[100px]"
                 placeholder="Enter issue description"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Priority
+              </label>
+              <select
+                value={formData.priority || ""}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    priority: e.target.value ? (e.target.value as CreateIssueInput["priority"]) : undefined,
+                  })
+                }
+                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark text-gray-900 dark:text-white"
+              >
+                <option value="">Use Default</option>
+                {priorityOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>

@@ -9,6 +9,8 @@ import {
   School,
   Landmark,
   AlertTriangle,
+  Flag,
+  CheckCircle2,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { type ReferenceTable } from "@/lib/actions/reference-data";
@@ -26,6 +28,8 @@ const referenceTables: Array<{ table: ReferenceTable; icon: typeof Users }> = [
   { table: "villages", icon: Building2 },
   { table: "localities", icon: Vote },
   { table: "polling_stations", icon: School },
+  { table: "issue_statuses", icon: CheckCircle2 },
+  { table: "priorities", icon: Flag },
 ];
 
 export default function ReferenceDataIndexPage() {

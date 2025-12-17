@@ -30,7 +30,7 @@ export default async function StaffIssuesPage() {
                   <p className="text-gray-600 mt-1">{issue.description}</p>
                   <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
                     <span>Status: {issue.status}</span>
-                    <span>Priority: {issue.priority || "Normal"}</span>
+                    <span>Priority: {issue.priority ? issue.priority.charAt(0).toUpperCase() + issue.priority.slice(1) : "Medium"}</span>
                     <span>Created: {new Date(issue.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>

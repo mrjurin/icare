@@ -8,12 +8,16 @@
  * 
  * Available tables:
  *   - issue_types (or issue-types)
+ *   - issue_statuses (or issue-statuses)
+ *   - priorities
  *   - profiles
  *   - issues (depends on profiles and issue_types - will auto-seed dependencies if missing)
  * 
  * Examples:
  *   npm run db:seed
  *   npm run db:seed -- --table=issue_types
+ *   npm run db:seed -- --table=issue_statuses
+ *   npm run db:seed -- --table=priorities
  *   npm run db:seed -- --table=profiles
  *   npm run db:seed -- --table=issues
  *   npm run db:seed -- --table=issue_types --clear
@@ -64,7 +68,7 @@ const pool = new Pool({
 
 const db = drizzle(pool);
 
-import { profiles, staff, issues, issueMedia, issueFeedback, announcements, notifications, issueAssignments, supportRequests, duns, zones, cawangan, villages, households, householdMembers, householdIncome, aidDistributions, roles, roleAssignments, permissions, staffPermissions, appSettings, aidsPrograms, aidsProgramZones, aidsProgramAssignments, aidsDistributionRecords, issueTypes } from "./schema";
+import { profiles, staff, issues, issueMedia, issueFeedback, announcements, notifications, issueAssignments, supportRequests, duns, zones, cawangan, villages, households, householdMembers, householdIncome, aidDistributions, roles, roleAssignments, permissions, staffPermissions, appSettings, aidsPrograms, aidsProgramZones, aidsProgramAssignments, aidsDistributionRecords, issueTypes, issueStatuses, priorities } from "./schema";
 import { sql } from "drizzle-orm";
 
 // Type for seed function results
@@ -149,6 +153,95 @@ async function seedIssueTypes(existingData?: SeedResult): Promise<SeedResult> {
 // Register seed function
 seedFunctions['issue_types'] = seedIssueTypes;
 seedFunctions['issue-types'] = seedIssueTypes; // Also support kebab-case
+
+async function seedPriorities(existingData?: SeedResult): Promise<SeedResult> {
+  console.log("🚩 Seeding priorities...");
+
+  // Check if we should clear existing data
+  if (shouldClearData()) {
+    await db.execute(sql`DELETE FROM priorities`);
+  }
+
+  const insertedPriorities = await db.insert(priorities).values([
+    {
+      name: "Low",
+      code: "low",
+      description: "Low priority issues that can be addressed in due course",
+      isActive: true,
+    },
+    {
+      name: "Medium",
+      code: "medium",
+      description: "Medium priority issues that require normal attention",
+      isActive: true,
+    },
+    {
+      name: "High",
+      code: "high",
+      description: "High priority issues that require urgent attention",
+      isActive: true,
+    },
+    {
+      name: "Critical",
+      code: "critical",
+      description: "Critical priority issues that require immediate action",
+      isActive: true,
+    },
+  ]).returning();
+
+  console.log(`✅ Seeded ${insertedPriorities.length} priorities`);
+  return { priorities: insertedPriorities };
+}
+
+// Register seed function
+seedFunctions['priorities'] = seedPriorities;
+
+async function seedIssueStatuses(existingData?: SeedResult): Promise<SeedResult> {
+  console.log("📊 Seeding issue statuses...");
+
+  // Check if we should clear existing data
+  if (shouldClearData()) {
+    await db.execute(sql`DELETE FROM issue_statuses`);
+  }
+
+  const insertedIssueStatuses = await db.insert(issueStatuses).values([
+    {
+      name: "Pending",
+      code: "pending",
+      description: "Issue is pending review",
+      isActive: true,
+      displayOrder: 1,
+    },
+    {
+      name: "In Progress",
+      code: "in_progress",
+      description: "Issue is being worked on",
+      isActive: true,
+      displayOrder: 2,
+    },
+    {
+      name: "Resolved",
+      code: "resolved",
+      description: "Issue has been resolved",
+      isActive: true,
+      displayOrder: 3,
+    },
+    {
+      name: "Closed",
+      code: "closed",
+      description: "Issue has been closed",
+      isActive: true,
+      displayOrder: 4,
+    },
+  ]).returning();
+
+  console.log(`✅ Seeded ${insertedIssueStatuses.length} issue statuses`);
+  return { issueStatuses: insertedIssueStatuses };
+}
+
+// Register seed function
+seedFunctions['issue_statuses'] = seedIssueStatuses;
+seedFunctions['issue-statuses'] = seedIssueStatuses; // Also support kebab-case
 
 async function seedProfiles(existingData?: SeedResult): Promise<SeedResult> {
   console.log("👥 Seeding profiles...");
