@@ -1,7 +1,8 @@
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import { getTranslations } from "next-intl/server";
 import { getIssuesWithCoordinates } from "@/lib/actions/issues";
 import IssueDensityMap from "@/components/issues/IssueDensityMap";
+import Pagination from "@/components/ui/Pagination";
 import IssuesFilters from "./IssuesFilters";
 import IssuesTable from "./IssuesTable";
 
@@ -22,24 +23,34 @@ export default async function AdminIssuesPage({
 }) {
   const t = await getTranslations("issues.list");
   const params = await searchParams;
+
+  // Parse filters
   const statusFilter = typeof params.status === "string" ? params.status : undefined;
+  const categoryFilter = typeof params.category === "string" ? params.category : undefined;
+  const assignedFilter = typeof params.assigned === "string" ? params.assigned : undefined;
+  const searchQuery = typeof params.search === "string" ? params.search : undefined;
+  const fromDate = typeof params.from === "string" ? params.from : undefined;
+  const toDate = typeof params.to === "string" ? params.to : undefined;
 
-  const supabase = await getSupabaseServerClient();
+  // Parse pagination
+  const page = typeof params.page === "string" ? parseInt(params.page) : 1;
+  const itemsPerPage = 10;
+  const from = (page - 1) * itemsPerPage;
+  const to = from + itemsPerPage - 1;
 
-  // Fetch statistics
-  // Total Open Issues: status IN ('pending', 'in_progress', 'resolved')
+  const supabase = await getSupabaseReadOnlyClient();
+
+  // Fetch counters (keep existing logic for top counters)
   const { count: totalOpenCount } = await supabase
     .from("issues")
     .select("*", { count: "exact", head: true })
     .in("status", ["pending", "in_progress", "resolved"]);
 
-  // Pending Review: status = 'pending'
   const { count: pendingCount } = await supabase
     .from("issues")
     .select("*", { count: "exact", head: true })
     .eq("status", "pending");
 
-  // Resolved This Week: status = 'resolved' AND resolved_at >= start of current week
   const now = new Date();
   const startOfWeek = new Date(now);
   startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
@@ -57,20 +68,74 @@ export default async function AdminIssuesPage({
     { label: t("counters.resolvedThisWeek"), value: String(resolvedThisWeekCount || 0) },
   ];
 
-  // Build query with optional status filter
+  // Build main query
   let query = supabase
     .from("issues")
-    .select("id,title,category,status,created_at,reporter_id")
-    .order("created_at", { ascending: false });
+    .select("id,title,category,status,created_at,reporter_id", { count: "exact" });
 
+  // Apply filters
   if (statusFilter) {
     query = query.eq("status", statusFilter);
   }
 
-  const { data } = await query.limit(50);
-  const issues = (Array.isArray(data) ? data : []) as Omit<DbIssue, "reporter_name">[];
+  if (categoryFilter) {
+    query = query.eq("category", categoryFilter);
+  }
 
-  // Fetch reporter information for all issues
+  if (assignedFilter) {
+    // Get IDs of issues that have assignments
+    const { data: assignments } = await supabase
+      .from("issue_assignments")
+      .select("issue_id");
+
+    const assignedIssueIds = assignments?.map((a) => a.issue_id) || [];
+
+    if (assignedFilter === "assigned") {
+      if (assignedIssueIds.length > 0) {
+        query = query.in("id", assignedIssueIds);
+      } else {
+        // No assignments exist, so "assigned" filter returns nothing
+        query = query.eq("id", -1); // Impossible ID
+      }
+    } else if (assignedFilter === "unassigned") {
+      if (assignedIssueIds.length > 0) {
+        query = query.not("id", "in", `(${assignedIssueIds.join(",")})`);
+      }
+      // If no assignments exist, all issues are unassigned, so no filter needed
+    }
+  }
+
+  if (fromDate) {
+    query = query.gte("created_at", new Date(fromDate).toISOString());
+  }
+
+  if (toDate) {
+    const end = new Date(toDate);
+    end.setHours(23, 59, 59, 999);
+    query = query.lte("created_at", end.toISOString());
+  }
+
+  if (searchQuery) {
+    // Search by title or ID
+    // If query is a number, try to match ID
+    if (!isNaN(Number(searchQuery))) {
+      query = query.or(`title.ilike.%${searchQuery}%,id.eq.${searchQuery}`);
+    } else {
+      query = query.ilike("title", `%${searchQuery}%`);
+    }
+  }
+
+  // Apply sorting and pagination
+  query = query
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  const { data, count } = await query;
+  const issues = (Array.isArray(data) ? data : []) as Omit<DbIssue, "reporter_name">[];
+  const totalItems = count || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  // Fetch reporter information for visible issues
   const reporterIds = [...new Set(issues.map((i) => i.reporter_id).filter((id): id is number => id !== null))];
   let reporterMap = new Map<number, string>();
 
@@ -95,7 +160,12 @@ export default async function AdminIssuesPage({
     reporter_name: issue.reporter_id ? reporterMap.get(issue.reporter_id) || null : null,
   }));
 
-  // Fetch issues with coordinates for map visualization
+  // Fetch issues with coordinates for map visualization (separate query to show density of ALL issues matching filter)
+  // We apply the same filters EXCEPT pagination to the map
+  // Note: getIssuesWithCoordinates helper might need update to accept filters, 
+  // but for now we'll rely on the default behavior (all issues) or implement a filtered version here if needed.
+  // The current UI implies "Density Map" which usually means global density. 
+  // Let's keep using the helper for global density for now to avoid complexity or empty maps on specific text searches.
   const issuesWithCoords = await getIssuesWithCoordinates();
 
   return (
@@ -128,6 +198,12 @@ export default async function AdminIssuesPage({
 
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
         <IssuesTable issues={rows} />
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+        />
       </div>
     </div>
   );

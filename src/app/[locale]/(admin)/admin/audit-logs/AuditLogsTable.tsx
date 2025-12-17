@@ -67,6 +67,9 @@ export default function AuditLogsTable({
   const [startDate, setStartDate] = useState(initialFilters.startDate || "");
   const [endDate, setEndDate] = useState(initialFilters.endDate || "");
 
+
+  console.log(auditLogs);
+
   const updateFilters = () => {
     const params = new URLSearchParams();
 
@@ -332,7 +335,8 @@ export default function AuditLogsTable({
                 colSpan={8}
               />
             ) : (
-              auditLogs.map((log) => {
+              auditLogs.map((log, index) => {
+                console.log(log);
                 let details: Record<string, unknown> | null = null;
                 try {
                   if (log.details) {
@@ -344,7 +348,7 @@ export default function AuditLogsTable({
 
                 return (
                   <tr
-                    key={log.id}
+                    key={log.id ?? `log-${index}`}
                     className="hover:bg-gray-50 dark:hover:bg-gray-800/50"
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">

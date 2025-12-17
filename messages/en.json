@@ -343,7 +343,8 @@
           "all": "All",
           "unassigned": "Unassigned",
           "teamA": "Team A",
-          "sanitationDept": "Sanitation Dept."
+          "sanitationDept": "Sanitation Dept.",
+          "assigned": "Assigned"
         },
         "dateRange": "Select date range",
         "resetFilters": "Reset Filters"

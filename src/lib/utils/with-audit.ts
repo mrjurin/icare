@@ -1,4 +1,4 @@
-"use server";
+// "use server"; removed to avoid treating sync utilities as Server Actions
 
 import {
   logAudit,
@@ -83,6 +83,10 @@ export function withAudit<T extends unknown[], R>(
         action: actionDescription,
         details: metadata,
         success: true,
+        // Check if previousData is returned in metadata for diff computation
+        previousData: (metadata.previousData as Record<string, unknown>) || undefined,
+        // Proioritize explicit newData from metadata, fallback to result data
+        newData: (metadata.newData as Record<string, unknown>) || (result as any)?.data || (result as Record<string, unknown>) || undefined,
       });
     } catch (error) {
       success = false;

@@ -139,4 +139,27 @@ export type AuditOptions = {
   logOnError?: boolean;
   /** Custom action description */
   actionDescription?: string;
+  /** Previous state of the entity for diff computation */
+  previousData?: Record<string, unknown> | null;
+  /** New state of the entity for diff computation */
+  newData?: Record<string, unknown> | null;
+};
+
+/**
+ * Standardized structure for data changes
+ */
+export type AuditDiff = {
+  changes: Array<{
+    field: string;
+    oldValue: unknown;
+    newValue: unknown;
+  }>;
+  added?: Array<{
+    field: string;
+    value: unknown;
+  }>;
+  removed?: Array<{
+    field: string;
+    value: unknown;
+  }>;
 };

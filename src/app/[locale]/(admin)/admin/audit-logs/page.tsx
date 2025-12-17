@@ -38,13 +38,14 @@ export default async function AdminAuditLogsPage({
 
   const paginatedData = logsResult.success ? logsResult.data : null;
   const auditLogs = paginatedData?.data || [];
+
   const pagination = paginatedData
     ? {
-        currentPage: paginatedData.page,
-        totalPages: paginatedData.totalPages,
-        totalItems: paginatedData.total,
-        itemsPerPage: paginatedData.limit,
-      }
+      currentPage: paginatedData.page,
+      totalPages: paginatedData.totalPages,
+      totalItems: paginatedData.total,
+      itemsPerPage: 50, // default limit
+    }
     : null;
 
   const filterOptions = filterOptionsResult.success && filterOptionsResult.data ? filterOptionsResult.data : null;

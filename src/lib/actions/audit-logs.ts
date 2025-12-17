@@ -80,9 +80,8 @@ export async function getAuditLogs(
   let query = supabase
     .from("audit_logs")
     .select(
-      `
-      *,
-      user:staff!audit_logs_user_id_fkey(id, name, email)
+      `*,
+      user:staff!audit_logs_user_id_staff_id_fk(id, name, email)
     `,
       { count: "exact" }
     )

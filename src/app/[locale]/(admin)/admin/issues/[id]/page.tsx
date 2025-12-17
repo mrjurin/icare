@@ -23,7 +23,7 @@ export default async function AdminIssueDetailPage({ params }: { params: Promise
   const { id } = await params;
   const idNum = Number(id);
   const t = await getTranslations("issues.detail");
-  
+
   if (!idNum || Number.isNaN(idNum)) {
     return (
       <div className="space-y-8">
@@ -45,7 +45,7 @@ export default async function AdminIssueDetailPage({ params }: { params: Promise
     .select("id,title,description,status,address,category,created_at,lat,lng,reporter_id")
     .eq("id", idNum)
     .single();
-  
+
   if (error || !issue) {
     return (
       <div className="space-y-8">
@@ -76,14 +76,14 @@ export default async function AdminIssueDetailPage({ params }: { params: Promise
     address: string | null;
     icNumber: string | null;
   } | null = null;
-  
+
   if (issue.reporter_id) {
     const { data: reporterData } = await supabase
       .from("profiles")
       .select("full_name,email,phone,address,ic_number")
       .eq("id", issue.reporter_id)
       .single();
-    
+
     if (reporterData) {
       issuer = {
         fullName: reporterData.full_name ?? null,
@@ -140,7 +140,7 @@ export default async function AdminIssueDetailPage({ params }: { params: Promise
           </div>
           <p className="text-gray-600 dark:text-gray-300">{t("issueLabel")} #{issue.id} • {catLabel} • {dateStr}</p>
         </div>
-        
+
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -169,7 +169,7 @@ export default async function AdminIssueDetailPage({ params }: { params: Promise
                     </div>
                   </div>
                 )}
-                
+
                 {/* Images with preview */}
                 {media.filter((m) => m.type !== "video").length > 0 && (
                   <div>

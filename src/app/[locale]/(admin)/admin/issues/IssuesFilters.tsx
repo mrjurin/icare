@@ -6,63 +6,118 @@ import { Plus, Search } from "lucide-react";
 import Input from "@/components/ui/Input";
 import IssueFormModalWrapper from "./IssueFormModalWrapper";
 import { useEffect, useState } from "react";
+import DateRangePicker, { type DateRange } from "@/components/ui/DateRangePicker";
 
 export default function IssuesFilters() {
   const t = useTranslations("issues.list");
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "");
-  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
 
-  // Sync with URL changes (e.g., from map clicks)
+  // Initialize state from URL params
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "");
+  const [typeFilter, setTypeFilter] = useState(searchParams.get("category") || "");
+  const [assignedFilter, setAssignedFilter] = useState(searchParams.get("assigned") || "");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
+  const [dateRange, setDateRange] = useState<DateRange>({
+    start: searchParams.get("from") || undefined,
+    end: searchParams.get("to") || undefined,
+  });
+
+  // Sync with URL changes
   useEffect(() => {
-    const status = searchParams.get("status") || "";
-    const search = searchParams.get("search") || "";
-    setStatusFilter(status);
-    setSearchQuery(search);
+    setStatusFilter(searchParams.get("status") || "");
+    setTypeFilter(searchParams.get("category") || "");
+    setAssignedFilter(searchParams.get("assigned") || "");
+    setSearchQuery(searchParams.get("search") || "");
+    setDateRange({
+      start: searchParams.get("from") || undefined,
+      end: searchParams.get("to") || undefined,
+    });
   }, [searchParams]);
 
-  const updateURL = (status: string, search: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    
-    if (status) {
-      params.set("status", status);
-    } else {
-      params.delete("status");
+  const updateURL = (params: {
+    status?: string;
+    category?: string;
+    assigned?: string;
+    search?: string;
+    from?: string;
+    to?: string;
+  }) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+
+    // Reset to page 1 on filter change
+    newParams.delete("page");
+
+    if (params.status !== undefined) {
+      if (params.status) newParams.set("status", params.status);
+      else newParams.delete("status");
     }
-    
-    if (search) {
-      params.set("search", search);
-    } else {
-      params.delete("search");
+
+    if (params.category !== undefined) {
+      if (params.category) newParams.set("category", params.category);
+      else newParams.delete("category");
     }
-    
-    const queryString = params.toString();
-    router.push(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false });
+
+    if (params.assigned !== undefined) {
+      if (params.assigned) newParams.set("assigned", params.assigned);
+      else newParams.delete("assigned");
+    }
+
+    if (params.search !== undefined) {
+      if (params.search) newParams.set("search", params.search);
+      else newParams.delete("search");
+    }
+
+    if (params.from !== undefined) {
+      if (params.from) newParams.set("from", params.from);
+      else newParams.delete("from");
+    }
+
+    if (params.to !== undefined) {
+      if (params.to) newParams.set("to", params.to);
+      else newParams.delete("to");
+    }
+
+    router.push(`${pathname}?${newParams.toString()}`, { scroll: false });
   };
 
   const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newStatus = e.target.value;
-    setStatusFilter(newStatus);
-    updateURL(newStatus, searchQuery);
+    const value = e.target.value;
+    setStatusFilter(value);
+    updateURL({ status: value });
+  };
+
+  const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setTypeFilter(value);
+    updateURL({ category: value });
+  };
+
+  const handleAssignedChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setAssignedFilter(value);
+    updateURL({ assigned: value });
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
-    updateURL(statusFilter, value);
+    updateURL({ search: value });
+  };
+
+  const handleDateRangeChange = (range: DateRange) => {
+    setDateRange(range);
+    updateURL({ from: range.start ?? "", to: range.end ?? "" });
   };
 
   const handleReset = () => {
     setStatusFilter("");
+    setTypeFilter("");
+    setAssignedFilter("");
     setSearchQuery("");
+    setDateRange({});
     router.push(pathname, { scroll: false });
-  };
-
-  // Get the current status value for the dropdown
-  const getStatusValue = (): string => {
-    return statusFilter || "";
   };
 
   return (
@@ -70,17 +125,17 @@ export default function IssuesFilters() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[260px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" aria-hidden />
-          <Input 
-            placeholder={t("searchPlaceholder")} 
+          <Input
+            placeholder={t("searchPlaceholder")}
             className="pl-9 w-full"
             value={searchQuery}
             onChange={handleSearchChange}
           />
         </div>
         <select
-          value={getStatusValue()}
+          value={statusFilter}
           onChange={handleStatusChange}
-          className="h-10 px-3 text-sm rounded-lg border border-gray-200 bg-white text-gray-900"
+          className="h-10 px-3 text-sm rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
         >
           <option value="">{t("filters.status.label")}</option>
           <option value="pending">{t("filters.status.new")}</option>
@@ -88,31 +143,43 @@ export default function IssuesFilters() {
           <option value="resolved">{t("filters.status.resolved")}</option>
           <option value="closed">{t("filters.status.closed")}</option>
         </select>
-        <select className="h-10 px-3 text-sm rounded-lg border border-gray-200 bg-white text-gray-900">
-          <option>{t("filters.type.label")}</option>
-          <option>{t("filters.type.infrastructure")}</option>
-          <option>{t("filters.type.utilities")}</option>
-          <option>{t("filters.type.sanitation")}</option>
-          <option>{t("filters.type.publicSafety")}</option>
+        <select
+          value={typeFilter}
+          onChange={handleTypeChange}
+          className="h-10 px-3 text-sm rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+        >
+          <option value="">{t("filters.type.label")}</option>
+          <option value="road_maintenance">{t("filters.type.infrastructure")}</option>
+          <option value="drainage">{t("filters.type.utilities")}</option>
+          <option value="sanitation">{t("filters.type.sanitation")}</option>
+          <option value="public_safety">{t("filters.type.publicSafety")}</option>
+          <option value="other">Other</option>
         </select>
-        <select className="h-10 px-3 text-sm rounded-lg border border-gray-200 bg-white text-gray-900">
-          <option>{t("filters.assigned.label")}</option>
-          <option>{t("filters.assigned.unassigned")}</option>
-          <option>{t("filters.assigned.teamA")}</option>
-          <option>{t("filters.assigned.sanitationDept")}</option>
+        <select
+          value={assignedFilter}
+          onChange={handleAssignedChange}
+          className="h-10 px-3 text-sm rounded-lg border border-gray-200 bg-white text-gray-900 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+        >
+          <option value="">{t("filters.assigned.label")}</option>
+          <option value="unassigned">{t("filters.assigned.unassigned")}</option>
+          <option value="assigned">{t("filters.assigned.assigned") || "Assigned"}</option>
         </select>
-        <Input asChild className="w-44">
-          <input placeholder={t("filters.dateRange")} />
-        </Input>
+
+        <DateRangePicker
+          value={dateRange}
+          onChange={handleDateRangeChange}
+          className="w-auto min-w-[240px]"
+        />
+
         <button
           onClick={handleReset}
-          className="h-10 px-3 text-sm rounded-lg border border-gray-200 bg-white"
+          className="h-10 px-3 text-sm rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
         >
           {t("filters.resetFilters")}
         </button>
         <IssueFormModalWrapper
           trigger={
-            <button className="flex items-center justify-center gap-2 rounded-lg h-10 bg-primary px-4 text-white text-sm font-bold">
+            <button className="flex items-center justify-center gap-2 rounded-lg h-10 bg-primary px-4 text-white text-sm font-bold hover:bg-primary/90 transition-colors">
               <Plus className="size-5" />
               <span>{t("newIssue")}</span>
             </button>

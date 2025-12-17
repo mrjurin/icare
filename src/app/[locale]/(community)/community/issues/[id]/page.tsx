@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import { getIssueActivity } from "@/lib/actions/issues";
 import ActivityLog from "@/components/issues/ActivityLog";
 
@@ -31,7 +31,7 @@ export default async function CommunityIssueDetailPage({ params }: { params: Pro
       </div>
     );
   }
-  const supabase = await getSupabaseServerClient();
+  const supabase = await getSupabaseReadOnlyClient();
   const { data: issue, error: issueErr } = await supabase
     .from("issues")
     .select("id,title,description,status,address,category,created_at,lat,lng")

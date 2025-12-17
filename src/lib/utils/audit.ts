@@ -1,4 +1,4 @@
-"use server";
+// "use server"; removed to avoid treating sync utilities as Server Actions
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/utils/access-control";
@@ -63,11 +63,26 @@ export async function logAudit(
     success?: boolean;
     errorMessage?: string | null;
     context?: AuditContext;
+    previousData?: Record<string, unknown> | null;
+    newData?: Record<string, unknown> | null;
   }
 ): Promise<void> {
   try {
     const context = options.context || (await getAuditContext());
     const supabase = await getSupabaseServerClient();
+
+    let details = options.details;
+
+    // Compute diff if previous and new data are available
+    if (options.previousData || options.newData) {
+      const diff = computeDiff(options.previousData, options.newData);
+      if (diff) {
+        details = {
+          ...details,
+          diff,
+        };
+      }
+    }
 
     const auditEntry = {
       event_type: eventType,
@@ -77,7 +92,7 @@ export async function logAudit(
       user_email: context.userEmail ?? null,
       user_role: context.userRole ?? null,
       action: options.action,
-      details: options.details ? JSON.stringify(options.details) : null,
+      details: details ? JSON.stringify(details) : null,
       ip_address: context.ipAddress ?? null,
       user_agent: context.userAgent ?? null,
       success: options.success ?? true,
@@ -94,6 +109,74 @@ export async function logAudit(
     // Silently fail - audit logging should never break the application
     console.error("Error in audit logging:", error);
   }
+}
+
+/**
+ * Compute the difference between two objects
+ */
+export function computeDiff(
+  oldData?: Record<string, unknown> | null,
+  newData?: Record<string, unknown> | null
+): import("./audit-types").AuditDiff | null {
+  if (!oldData && !newData) return null;
+
+  const diff: import("./audit-types").AuditDiff = {
+    changes: [],
+    added: [],
+    removed: [],
+  };
+
+  const oldKeys = Object.keys(oldData || {});
+  const newKeys = Object.keys(newData || {});
+  const allKeys = new Set([...oldKeys, ...newKeys]);
+
+  const ignoredFields = [
+    "updated_at",
+    "updatedAt",
+    "created_at",
+    "createdAt",
+    "password",
+    "token",
+    "secret",
+  ];
+
+  for (const key of allKeys) {
+    if (ignoredFields.includes(key)) continue;
+
+    const oldValue = oldData?.[key];
+    const newValue = newData?.[key];
+
+    // Check for addition
+    if (oldValue === undefined && newValue !== undefined) {
+      diff.added?.push({ field: key, value: newValue });
+      continue;
+    }
+
+    // Check for removal
+    if (oldValue !== undefined && newValue === undefined) {
+      diff.removed?.push({ field: key, value: oldValue });
+      continue;
+    }
+
+    // Check for modification (simple equality check for primitives)
+    if (
+      oldValue !== newValue &&
+      JSON.stringify(oldValue) !== JSON.stringify(newValue)
+    ) {
+      diff.changes.push({ field: key, oldValue, newValue });
+    }
+  }
+
+  // Return null if no changes found
+  if (
+    diff.changes.length === 0 &&
+    diff.added?.length === 0 &&
+    diff.removed?.length === 0
+  ) {
+    return null;
+  }
+
+  return diff;
 }
 
 /**
@@ -185,6 +268,10 @@ export function extractEntityId(
   }
 
   // Try to extract ID from input
+  if (typeof input === "number") {
+    return input;
+  }
+
   if (input && typeof input === "object") {
     const inputObj = input as Record<string, unknown>;
     if (typeof inputObj.id === "number") {

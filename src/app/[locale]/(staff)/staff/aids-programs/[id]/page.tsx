@@ -1,6 +1,6 @@
 import { getAidsProgramById, getProgramAssignments } from "@/lib/actions/aidsPrograms";
 import { getCurrentUserAccess } from "@/lib/utils/access-control";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import HouseholdDistributionList from "./HouseholdDistributionList";
 
@@ -21,7 +21,7 @@ export default async function StaffAidsProgramDetailPage({
     redirect("/staff/login");
   }
 
-  const supabase = await getSupabaseServerClient();
+  const supabase = await getSupabaseReadOnlyClient();
   let zoneIds: number[] = [];
   let hasAccess = false;
 
@@ -33,7 +33,7 @@ export default async function StaffAidsProgramDetailPage({
       .select("zone_id")
       .eq("program_id", programId)
       .eq("zone_id", access.zoneId);
-    
+
     if (zoneAssignments && zoneAssignments.length > 0) {
       hasAccess = true;
       zoneIds = [access.zoneId];
@@ -42,14 +42,14 @@ export default async function StaffAidsProgramDetailPage({
     // Regular staff: check for direct assignments
     const assignmentsResult = await getProgramAssignments(programId);
     const assignments = assignmentsResult.success ? assignmentsResult.data || [] : [];
-    
+
     // Check for any assignment (assigned_staff, ketua_cawangan, or zone_leader)
     // Ensure both values are compared as numbers to handle potential type mismatches
     const userAssignments = assignments.filter(
-      (a) => Number(a.assigned_to) === Number(access.staffId) && 
-      (a.assignment_type === "ketua_cawangan" || 
-       a.assignment_type === "assigned_staff" || 
-       a.assignment_type === "zone_leader")
+      (a) => Number(a.assigned_to) === Number(access.staffId) &&
+        (a.assignment_type === "ketua_cawangan" ||
+          a.assignment_type === "assigned_staff" ||
+          a.assignment_type === "zone_leader")
     );
 
     if (userAssignments.length > 0) {

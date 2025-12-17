@@ -8,6 +8,7 @@ import { getCurrentUserAccess } from "@/lib/utils/access-control";
 export type ActionResult = {
   success: boolean;
   error?: string;
+  metadata?: Record<string, unknown>;
 };
 
 export { type ActivityType } from "@/lib/utils/activity";
@@ -35,77 +36,110 @@ export type CreateIssueInput = {
 /**
  * Create a new issue
  */
-export async function createIssue(input: CreateIssueInput): Promise<ActionResult & { data?: { id: number } }> {
-  const supabase = await getSupabaseServerClient();
+import { withAudit } from "@/lib/utils/with-audit";
 
-  // Validate required fields
-  if (!input.title?.trim()) {
-    return { success: false, error: "Title is required" };
-  }
-  if (!input.description?.trim()) {
-    return { success: false, error: "Description is required" };
-  }
-  if (!input.category) {
-    return { success: false, error: "Category is required" };
-  }
-  if (!input.address?.trim()) {
-    return { success: false, error: "Address is required" };
-  }
+/**
+ * Create a new issue
+ */
+export const createIssue = withAudit(
+  async (input: CreateIssueInput): Promise<ActionResult & { data?: { id: number } }> => {
+    // Check authentication
+    const access = await getCurrentUserAccess();
+    if (!access.isAuthenticated) {
+      return { success: false, error: "Authentication required" };
+    }
 
-  const validCategories = ["road_maintenance", "drainage", "public_safety", "sanitation", "other"];
-  if (!validCategories.includes(input.category)) {
-    return { success: false, error: "Invalid category" };
-  }
+    const supabase = await getSupabaseServerClient();
 
-  const { data: inserted, error } = await supabase
-    .from("issues")
-    .insert({
-      title: input.title.trim(),
-      description: input.description.trim(),
-      category: input.category,
-      address: input.address.trim(),
-      lat: input.lat,
-      lng: input.lng,
-      locality_id: input.localityId || null,
-      status: input.status || "pending",
-      reporter_id: input.reporterId || null,
-    })
-    .select("id")
-    .single();
+    // Validate required fields
+    if (!input.title?.trim()) {
+      return { success: false, error: "Title is required" };
+    }
+    if (!input.description?.trim()) {
+      return { success: false, error: "Description is required" };
+    }
+    if (!input.category) {
+      return { success: false, error: "Category is required" };
+    }
+    if (!input.address?.trim()) {
+      return { success: false, error: "Address is required" };
+    }
 
-  if (error) {
-    return { success: false, error: error.message };
-  }
+    const validCategories = ["road_maintenance", "drainage", "public_safety", "sanitation", "other"];
+    if (!validCategories.includes(input.category)) {
+      return { success: false, error: "Invalid category" };
+    }
 
-  if (inserted?.id) {
-    // Insert media if provided
-    if (input.media && input.media.length > 0) {
-      try {
-        await supabase.from("issue_media").insert(
-          input.media.map((m) => ({
-            issue_id: inserted.id,
-            url: m.url,
-            type: (m.type ?? "image").slice(0, 16),
-            size_bytes: m.size_bytes ?? null,
-          }))
-        );
-      } catch (mediaError) {
-        // Log error but don't fail the issue creation
-        console.error("Failed to insert media:", mediaError);
+    // Determine reporter ID
+    let reporterId = input.reporterId;
+    if (!reporterId && access.email) {
+      // Try to find profile by email
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", access.email)
+        .single();
+
+      if (profile) {
+        reporterId = profile.id;
       }
     }
 
-    revalidatePath("/admin/issues");
-    revalidatePath("/[locale]/(admin)/admin/issues");
-    return { success: true, data: { id: inserted.id } };
-  }
+    const { data: inserted, error } = await supabase
+      .from("issues")
+      .insert({
+        title: input.title.trim(),
+        description: input.description.trim(),
+        category: input.category,
+        address: input.address.trim(),
+        lat: input.lat,
+        lng: input.lng,
+        locality_id: input.localityId || null,
+        status: input.status || "pending",
+        reporter_id: reporterId || null,
+      })
+      .select("id")
+      .single();
 
-  return { success: false, error: "Failed to create issue" };
-}
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    if (inserted?.id) {
+      // Insert media if provided
+      if (input.media && input.media.length > 0) {
+        try {
+          await supabase.from("issue_media").insert(
+            input.media.map((m) => ({
+              issue_id: inserted.id,
+              url: m.url,
+              type: (m.type ?? "image").slice(0, 16),
+              size_bytes: m.size_bytes ?? null,
+            }))
+          );
+        } catch (mediaError) {
+          // Log error but don't fail the issue creation
+          console.error("Failed to insert media:", mediaError);
+        }
+      }
+
+      revalidatePath("/admin/issues");
+      revalidatePath("/[locale]/(admin)/admin/issues");
+      return { success: true, data: { id: inserted.id } };
+    }
+
+    return { success: false, error: "Failed to create issue" };
+  },
+  {
+    entityType: "issue",
+    eventType: "issue.created",
+    actionDescription: "Created a new issue",
+  }
+);
 
 /**
  * Log an activity to the issue_feedback table
- * Activities are stored with a JSON prefix for machine parsing
+ * @deprecated Use withAudit instead
  */
 async function logActivity(
   issueId: number,
@@ -140,149 +174,178 @@ async function logActivity(
 /**
  * Update issue status with activity logging
  */
-export async function updateIssueStatus(
-  issueId: number,
-  newStatus: string,
-  previousStatus?: string
-): Promise<ActionResult> {
-  if (!issueId || Number.isNaN(issueId)) {
-    return { success: false, error: "Invalid issue ID" };
+export const updateIssueStatus = withAudit(
+  async (
+    issueId: number,
+    newStatus: string,
+    previousStatus?: string
+  ): Promise<ActionResult> => {
+    if (!issueId || Number.isNaN(issueId)) {
+      return { success: false, error: "Invalid issue ID" };
+    }
+
+    const validStatuses = ["pending", "in_progress", "resolved", "closed"];
+    if (!validStatuses.includes(newStatus)) {
+      return { success: false, error: "Invalid status value" };
+    }
+
+    const supabase = await getSupabaseServerClient();
+
+    // If previous status not provided, fetch it
+    let oldStatus = previousStatus;
+    if (!oldStatus) {
+      const { data: issue } = await supabase
+        .from("issues")
+        .select("status")
+        .eq("id", issueId)
+        .single();
+      oldStatus = issue?.status;
+    }
+
+    // Don't update if status is the same
+    if (oldStatus === newStatus) {
+      return { success: true };
+    }
+
+    const updates: { status: string; resolved_at?: string } = { status: newStatus };
+    if (newStatus === "resolved") {
+      updates.resolved_at = new Date().toISOString();
+    }
+
+    const { error } = await supabase.from("issues").update(updates).eq("id", issueId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    // Log legacy activity for backward compatibility
+    const oldLabel = STATUS_LABELS[oldStatus || ""] || oldStatus || "Unknown";
+    const newLabel = STATUS_LABELS[newStatus] || newStatus;
+    const actionDesc = `Status changed from ${oldLabel} to ${newLabel}`;
+
+    await logActivity(issueId, "status_change", actionDesc, {
+      from: oldStatus,
+      to: newStatus,
+    });
+
+    revalidatePath(`/issues/${issueId}`);
+    revalidatePath(`/community/issues/${issueId}`);
+
+    // Return metadata for enhanced audit logging (diffs)
+    return {
+      success: true,
+      metadata: {
+        previousData: { status: oldStatus },
+        newData: { status: newStatus },
+        actionDescription: actionDesc,
+      }
+    };
+  },
+  {
+    entityType: "issue",
+    eventType: "issue.status_changed",
   }
-
-  const validStatuses = ["pending", "in_progress", "resolved", "closed"];
-  if (!validStatuses.includes(newStatus)) {
-    return { success: false, error: "Invalid status value" };
-  }
-
-  const supabase = await getSupabaseServerClient();
-
-  // If previous status not provided, fetch it
-  let oldStatus = previousStatus;
-  if (!oldStatus) {
-    const { data: issue } = await supabase
-      .from("issues")
-      .select("status")
-      .eq("id", issueId)
-      .single();
-    oldStatus = issue?.status;
-  }
-
-  // Don't update if status is the same
-  if (oldStatus === newStatus) {
-    return { success: true };
-  }
-
-  const updates: { status: string; resolved_at?: string } = { status: newStatus };
-  if (newStatus === "resolved") {
-    updates.resolved_at = new Date().toISOString();
-  }
-
-  const { error } = await supabase.from("issues").update(updates).eq("id", issueId);
-
-  if (error) {
-    return { success: false, error: error.message };
-  }
-
-  // Log the status change activity
-  const oldLabel = STATUS_LABELS[oldStatus || ""] || oldStatus || "Unknown";
-  const newLabel = STATUS_LABELS[newStatus] || newStatus;
-  await logActivity(issueId, "status_change", `Status changed from ${oldLabel} to ${newLabel}`, {
-    from: oldStatus,
-    to: newStatus,
-  });
-
-  revalidatePath(`/issues/${issueId}`);
-  revalidatePath(`/community/issues/${issueId}`);
-  return { success: true };
-}
+);
 
 /**
  * Assign issue to a user with activity logging
  */
-export async function assignIssue(
-  issueId: number,
-  assigneeId: number,
-  assigneeName?: string
-): Promise<ActionResult> {
-  if (!issueId || Number.isNaN(issueId)) {
-    return { success: false, error: "Invalid issue ID" };
+export const assignIssue = withAudit(
+  async (
+    issueId: number,
+    assigneeId: number,
+    assigneeName?: string
+  ): Promise<ActionResult> => {
+    if (!issueId || Number.isNaN(issueId)) {
+      return { success: false, error: "Invalid issue ID" };
+    }
+    if (!assigneeId || Number.isNaN(assigneeId)) {
+      return { success: false, error: "Please select an assignee" };
+    }
+
+    const supabase = await getSupabaseServerClient();
+
+    // Get assignee name if not provided (from staff table)
+    let name = assigneeName;
+    if (!name) {
+      const { data: staff } = await supabase
+        .from("staff")
+        .select("name")
+        .eq("id", assigneeId)
+        .single();
+      name = staff?.name || `Staff #${assigneeId}`;
+    }
+
+    const { error } = await supabase.from("issue_assignments").insert({
+      issue_id: issueId,
+      staff_id: assigneeId,
+      status: "assigned",
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    // Log legacy activity
+    await logActivity(issueId, "assignment", `Assigned to ${name}`, {
+      assignee_id: assigneeId,
+      assignee_name: name,
+    });
+
+    revalidatePath(`/issues/${issueId}`);
+    revalidatePath(`/community/issues/${issueId}`);
+    return { success: true };
+  },
+  {
+    entityType: "issue",
+    eventType: "issue.assigned",
   }
-  if (!assigneeId || Number.isNaN(assigneeId)) {
-    return { success: false, error: "Please select an assignee" };
-  }
-
-  const supabase = await getSupabaseServerClient();
-
-  // Get assignee name if not provided (from staff table)
-  let name = assigneeName;
-  if (!name) {
-    const { data: staff } = await supabase
-      .from("staff")
-      .select("name")
-      .eq("id", assigneeId)
-      .single();
-    name = staff?.name || `Staff #${assigneeId}`;
-  }
-
-  const { error } = await supabase.from("issue_assignments").insert({
-    issue_id: issueId,
-    staff_id: assigneeId,
-    status: "assigned",
-  });
-
-  if (error) {
-    return { success: false, error: error.message };
-  }
-
-  // Log the assignment activity
-  await logActivity(issueId, "assignment", `Assigned to ${name}`, {
-    assignee_id: assigneeId,
-    assignee_name: name,
-  });
-
-  revalidatePath(`/issues/${issueId}`);
-  revalidatePath(`/community/issues/${issueId}`);
-  return { success: true };
-}
+);
 
 /**
  * Add a comment to an issue with activity logging
  */
-export async function addComment(
-  issueId: number,
-  comment: string,
-  isInternal: boolean = false
-): Promise<ActionResult> {
-  if (!issueId || Number.isNaN(issueId)) {
-    return { success: false, error: "Invalid issue ID" };
+export const addComment = withAudit(
+  async (
+    issueId: number,
+    comment: string,
+    isInternal: boolean = false
+  ): Promise<ActionResult> => {
+    if (!issueId || Number.isNaN(issueId)) {
+      return { success: false, error: "Invalid issue ID" };
+    }
+
+    const trimmed = comment.trim();
+    if (!trimmed) {
+      return { success: false, error: "Comment cannot be empty" };
+    }
+    if (trimmed.length > 2000) {
+      return { success: false, error: "Comment is too long (max 2000 characters)" };
+    }
+
+    const supabase = await getSupabaseServerClient();
+
+    // For regular comments, insert directly without the ACTIVITY prefix
+    const { error } = await supabase.from("issue_feedback").insert({
+      issue_id: issueId,
+      profile_id: null,
+      rating: 0,
+      comments: trimmed,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath(`/issues/${issueId}`);
+    revalidatePath(`/community/issues/${issueId}`);
+    return { success: true };
+  },
+  {
+    entityType: "issue",
+    eventType: "issue.comment_added",
   }
-
-  const trimmed = comment.trim();
-  if (!trimmed) {
-    return { success: false, error: "Comment cannot be empty" };
-  }
-  if (trimmed.length > 2000) {
-    return { success: false, error: "Comment is too long (max 2000 characters)" };
-  }
-
-  const supabase = await getSupabaseServerClient();
-
-  // For regular comments, insert directly without the ACTIVITY prefix
-  const { error } = await supabase.from("issue_feedback").insert({
-    issue_id: issueId,
-    profile_id: null,
-    rating: 0,
-    comments: trimmed,
-  });
-
-  if (error) {
-    return { success: false, error: error.message };
-  }
-
-  revalidatePath(`/issues/${issueId}`);
-  revalidatePath(`/community/issues/${issueId}`);
-  return { success: true };
-}
+);
 
 /**
  * Get formatted activity list for an issue
@@ -371,59 +434,65 @@ export async function getIssueActivity(issueId: number) {
  * - Admins cannot delete issues created by community users (reporterId is not null)
  * - Community users cannot delete any submitted issues
  */
-export async function deleteIssue(issueId: number): Promise<ActionResult> {
-  if (!issueId || Number.isNaN(issueId)) {
-    return { success: false, error: "Invalid issue ID" };
-  }
+export const deleteIssue = withAudit(
+  async (issueId: number): Promise<ActionResult> => {
+    if (!issueId || Number.isNaN(issueId)) {
+      return { success: false, error: "Invalid issue ID" };
+    }
 
-  const supabase = await getSupabaseServerClient();
-  const access = await getCurrentUserAccess();
+    const supabase = await getSupabaseServerClient();
+    const access = await getCurrentUserAccess();
 
-  if (!access.isAuthenticated) {
-    return { success: false, error: "Authentication required" };
-  }
+    if (!access.isAuthenticated) {
+      return { success: false, error: "Authentication required" };
+    }
 
-  // Fetch the issue to check its reporterId
-  const { data: issue, error: fetchError } = await supabase
-    .from("issues")
-    .select("reporter_id")
-    .eq("id", issueId)
-    .single();
+    // Fetch the issue to check its reporterId
+    const { data: issue, error: fetchError } = await supabase
+      .from("issues")
+      .select("reporter_id")
+      .eq("id", issueId)
+      .single();
 
-  if (fetchError || !issue) {
-    return { success: false, error: "Issue not found" };
-  }
+    if (fetchError || !issue) {
+      return { success: false, error: "Issue not found" };
+    }
 
-  // Authorization checks
-  if (access.staffId) {
-    // User is admin/staff
-    // Admins cannot delete issues created by community users
-    if (issue.reporter_id !== null) {
+    // Authorization checks
+    if (access.staffId) {
+      // User is admin/staff
+      // Admins cannot delete issues created by community users
+      if (issue.reporter_id !== null) {
+        return {
+          success: false,
+          error: "Access denied: Admins cannot delete issues created by community users",
+        };
+      }
+    } else {
+      // User is a community user
+      // Community users cannot delete submitted issues
       return {
         success: false,
-        error: "Access denied: Admins cannot delete issues created by community users",
+        error: "Access denied: Community users cannot delete submitted issues",
       };
     }
-  } else {
-    // User is a community user
-    // Community users cannot delete submitted issues
-    return {
-      success: false,
-      error: "Access denied: Community users cannot delete submitted issues",
-    };
+
+    // Delete the issue (cascade will handle related records)
+    const { error: deleteError } = await supabase.from("issues").delete().eq("id", issueId);
+
+    if (deleteError) {
+      return { success: false, error: deleteError.message };
+    }
+
+    revalidatePath("/admin/issues");
+    revalidatePath("/[locale]/(admin)/admin/issues");
+    return { success: true };
+  },
+  {
+    entityType: "issue",
+    eventType: "issue.deleted",
   }
-
-  // Delete the issue (cascade will handle related records)
-  const { error: deleteError } = await supabase.from("issues").delete().eq("id", issueId);
-
-  if (deleteError) {
-    return { success: false, error: deleteError.message };
-  }
-
-  revalidatePath("/admin/issues");
-  revalidatePath("/[locale]/(admin)/admin/issues");
-  return { success: true };
-}
+);
 
 /**
  * Get all issues with coordinates for map visualization
