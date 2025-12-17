@@ -21,5 +21,5 @@ export default async function Home() {
   const totalResult = await getActiveAnnouncementsPaginated({ page: 1, limit: 1 });
   const totalCount = totalResult.success && totalResult.data ? totalResult.data.total : 0;
 
-  return <HomeClient appName={appName} announcements={announcements} totalAnnouncements={totalCount} />;
+  return <HomeClient appName={appName} announcements={announcements} totalAnnouncements={totalCount} dunName={dunName} />;
 }

@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "N.18 Inanam Community Platform",
+    "appName": "{dunName} Community Platform",
     "loading": "Loading...",
     "save": "Save",
     "cancel": "Cancel",
@@ -57,7 +57,7 @@
   },
   "home": {
     "hero": {
-      "title": "Building a Better N.18 Inanam, Together",
+      "title": "Building a Better {dunName}, Together",
       "titleHighlight": "Together",
       "reportIssue": "Report an Issue",
       "viewReports": "View Reports",
@@ -76,7 +76,7 @@
       },
       "step3": {
         "title": "Track Progress & Resolution",
-        "description": "Follow the status of your report from submission to final resolution. Get real-time updates and see how your report contributes to making N.18 Inanam better."
+        "description": "Follow the status of your report from submission to final resolution. Get real-time updates and see how your report contributes to making {dunName} better."
       }
     },
     "statistics": {
@@ -106,17 +106,17 @@
       },
       "collectiveProblemSolving": {
         "title": "Collective Problem-Solving",
-        "description": "Be part of a community that actively contributes to making N.18 Inanam better. Together, we can achieve more than we ever could alone."
+        "description": "Be part of a community that actively contributes to making {dunName} better. Together, we can achieve more than we ever could alone."
       }
     },
     "cta": {
       "title": "Ready to Make an Impact?",
-      "description": "Join your neighbors in building a stronger community. Report an issue or register to stay informed about what's happening in N.18 Inanam.",
+      "description": "Join your neighbors in building a stronger community. Report an issue or register to stay informed about what's happening in {dunName}.",
       "reportIssue": "Report an Issue Now",
       "createAccount": "Create an Account"
     },
     "footer": {
-      "description": "The official platform for residents to report local issues and drive community-led solutions in N.18 Inanam.",
+      "description": "The official platform for residents to report local issues and drive community-led solutions in {dunName}.",
       "quickLinks": "Quick Links",
       "getStarted": "Get Started",
       "howItWorks": "How It Works",
@@ -133,10 +133,10 @@
   },
   "about": {
     "title": "About Us",
-    "subtitle": "N.18 Inanam Community Platform",
+    "subtitle": "{dunName} Community Platform",
     "mission": {
       "title": "Our Mission",
-      "description": "We believe in empowering communities to take action. Our platform connects residents with local authorities, making it easy to report issues, track progress, and work together to build a better N.18 Inanam."
+      "description": "We believe in empowering communities to take action. Our platform connects residents with local authorities, making it easy to report issues, track progress, and work together to build a better {dunName}."
     },
     "whatWeDo": {
       "title": "What We Do",
@@ -152,7 +152,7 @@
       "actionOriented": "Action-Oriented: We focus on results and real-world impact.",
       "collaboration": "Collaboration: We bring together residents, authorities, and stakeholders."
     },
-    "joinUs": "Join us in building a stronger, more connected N.18 Inanam community."
+    "joinUs": "Join us in building a stronger, more connected {dunName} community."
   },
   "contact": {
     "title": "Contact Us",
@@ -174,7 +174,7 @@
     },
     "visitUs": {
       "title": "Visit Us",
-      "address": "N.18 Inanam Community Platform\nInanam, Sabah, Malaysia"
+      "address": "{dunName} Community Platform\nInanam, Sabah, Malaysia"
     },
     "feedback": "We value your feedback and are committed to improving our services."
   },
@@ -1506,9 +1506,9 @@
   },
   "communityLogin": {
     "welcomeBack": "Welcome Back!",
-    "welcomeDescription": "Join your neighbors in making N.18 Inanam a better place.",
+    "welcomeDescription": "Join your neighbors in making {dunName} a better place.",
     "title": "Community Login",
-    "subtitle": "Sign in to report issues and connect with your neighbors in N.18 Inanam.",
+    "subtitle": "Sign in to report issues and connect with your neighbors in {dunName}.",
     "loginSuccessful": "Login successful! Redirecting...",
     "emailAddress": "Email Address",
     "emailPlaceholder": "you@example.com",

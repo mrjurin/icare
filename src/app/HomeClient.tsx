@@ -24,9 +24,10 @@ interface HomeClientProps {
   appName: string;
   announcements: Announcement[];
   totalAnnouncements?: number;
+  dunName: string;
 }
 
-export default function HomeClient({ appName, announcements, totalAnnouncements }: HomeClientProps) {
+export default function HomeClient({ appName, announcements, totalAnnouncements, dunName }: HomeClientProps) {
   const t = useTranslations('home');
   
   return (
@@ -46,7 +47,7 @@ export default function HomeClient({ appName, announcements, totalAnnouncements 
                 
                 <div className="relative z-10 flex flex-col items-center text-center max-w-3xl mx-auto gap-6">
                   <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-tight tracking-[-0.033em] text-gray-900 dark:text-white">
-                    {t('hero.title').replace(t('hero.titleHighlight'), '')} <span className="text-primary bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">{t('hero.titleHighlight')}</span>
+                    {t('hero.title', { dunName }).replace(t('hero.titleHighlight'), '')} <span className="text-primary bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">{t('hero.titleHighlight')}</span>
                   </h1>
                   <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl leading-relaxed">
                     {t('hero.description')}
@@ -107,7 +108,7 @@ export default function HomeClient({ appName, announcements, totalAnnouncements 
                     step: "3",
                     icon: CheckCircle2,
                     title: t('howItWorks.step3.title'),
-                    description: t('howItWorks.step3.description'),
+                    description: t('howItWorks.step3.description', { dunName }),
                     color: "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400",
                     borderColor: "border-purple-200 dark:border-purple-800"
                   }
@@ -206,7 +207,7 @@ export default function HomeClient({ appName, announcements, totalAnnouncements 
                   {
                     icon: TrendingUp,
                     title: t('features.collectiveProblemSolving.title'),
-                    description: t('features.collectiveProblemSolving.description'),
+                    description: t('features.collectiveProblemSolving.description', { dunName }),
                     color: "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400",
                     borderColor: "border-purple-200 dark:border-purple-800"
                   }
@@ -240,7 +241,7 @@ export default function HomeClient({ appName, announcements, totalAnnouncements 
                     {t('cta.title')}
                   </h2>
                   <p className="text-lg md:text-xl text-white/90 leading-relaxed">
-                    {t('cta.description')}
+                    {t('cta.description', { dunName })}
                   </p>
                   <div className="flex flex-wrap gap-4 justify-center mt-6">
                     <Button asChild variant="outline" className="!bg-white !text-primary !border-0 h-12 md:h-14 px-6 md:px-8 text-base md:text-lg font-bold hover:!bg-gray-100 transition-all hover:scale-105 shadow-xl hover:shadow-2xl">
@@ -277,7 +278,7 @@ export default function HomeClient({ appName, announcements, totalAnnouncements 
                   <span className="text-xl font-bold">{appName}</span>
                 </Link>
                 <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md">
-                  The official platform for residents to report local issues and drive community-led solutions in N.18 Inanam.
+                  {t('footer.description', { dunName })}
                 </p>
               </div>
               

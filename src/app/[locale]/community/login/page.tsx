@@ -7,7 +7,7 @@ import Link from "next/link";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Eye, EyeOff, AlertCircle, Loader2, Mail, Lock, CheckCircle2 } from "lucide-react";
-import { getSetting } from "@/lib/actions/settings";
+import { getSetting, getDunName } from "@/lib/actions/settings";
 
 export default function CommunityLoginPage() {
   const t = useTranslations("communityLogin");
@@ -21,25 +21,32 @@ export default function CommunityLoginPage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loginImageUrl, setLoginImageUrl] = useState<string | null>(null);
+  const [dunName, setDunName] = useState<string>("N.18 Inanam");
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // Load login image setting
+  // Load login image setting and DUN name
   useEffect(() => {
-    const loadLoginImage = async () => {
+    const loadSettings = async () => {
       try {
-        const result = await getSetting("community_login_image_url");
-        if (result.success && result.data) {
-          setLoginImageUrl(result.data);
+        const [imageResult, dunNameResult] = await Promise.all([
+          getSetting("community_login_image_url"),
+          getDunName(),
+        ]);
+        if (imageResult.success && imageResult.data) {
+          setLoginImageUrl(imageResult.data);
+        }
+        if (dunNameResult) {
+          setDunName(dunNameResult);
         }
       } catch (err) {
-        console.error("Failed to load login image:", err);
+        console.error("Failed to load settings:", err);
       }
     };
-    loadLoginImage();
+    loadSettings();
   }, []);
 
   // Validate email on blur
@@ -138,7 +145,7 @@ export default function CommunityLoginPage() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
               <div className="absolute bottom-8 left-8 right-8 text-white">
                 <h2 className="text-2xl font-bold mb-2">{t("welcomeBack")}</h2>
-                <p className="text-sm text-gray-200">{t("welcomeDescription")}</p>
+                <p className="text-sm text-gray-200">{t("welcomeDescription", { dunName })}</p>
               </div>
             </div>
           </div>
@@ -152,7 +159,7 @@ export default function CommunityLoginPage() {
                   {t("title")}
                 </h1>
                 <p className="text-[#617589] dark:text-gray-400 text-base">
-                  {t("subtitle")}
+                  {t("subtitle", { dunName })}
                 </p>
               </div>
 

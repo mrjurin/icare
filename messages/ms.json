@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Platform Komuniti N.18 Inanam",
+    "appName": "Platform Komuniti {dunName}",
     "loading": "Memuatkan...",
     "save": "Simpan",
     "cancel": "Batal",
@@ -57,7 +57,7 @@
   },
   "home": {
     "hero": {
-      "title": "Membina N.18 Inanam yang Lebih Baik, Bersama",
+      "title": "Membina {dunName} yang Lebih Baik, Bersama",
       "titleHighlight": "Bersama",
       "reportIssue": "Laporkan Isu",
       "viewReports": "Lihat Laporan",
@@ -76,7 +76,7 @@
       },
       "step3": {
         "title": "Pantau Kemajuan & Penyelesaian",
-        "description": "Ikuti status laporan anda dari penghantaran hingga penyelesaian akhir. Dapatkan kemas kini masa nyata dan lihat bagaimana laporan anda menyumbang kepada menjadikan N.18 Inanam lebih baik."
+        "description": "Ikuti status laporan anda dari penghantaran hingga penyelesaian akhir. Dapatkan kemas kini masa nyata dan lihat bagaimana laporan anda menyumbang kepada menjadikan {dunName} lebih baik."
       }
     },
     "statistics": {
@@ -106,17 +106,17 @@
       },
       "collectiveProblemSolving": {
         "title": "Penyelesaian Masalah Bersama",
-        "description": "Jadilah sebahagian daripada komuniti yang secara aktif menyumbang kepada menjadikan N.18 Inanam lebih baik. Bersama-sama, kita boleh mencapai lebih daripada yang kita boleh lakukan sendiri."
+        "description": "Jadilah sebahagian daripada komuniti yang secara aktif menyumbang kepada menjadikan {dunName} lebih baik. Bersama-sama, kita boleh mencapai lebih daripada yang kita boleh lakukan sendiri."
       }
     },
     "cta": {
       "title": "Bersedia untuk Membuat Impak?",
-      "description": "Sertai jiran anda dalam membina komuniti yang lebih kuat. Laporkan isu atau daftar untuk kekal dimaklumkan tentang apa yang berlaku di N.18 Inanam.",
+      "description": "Sertai jiran anda dalam membina komuniti yang lebih kuat. Laporkan isu atau daftar untuk kekal dimaklumkan tentang apa yang berlaku di {dunName}.",
       "reportIssue": "Laporkan Isu Sekarang",
       "createAccount": "Cipta Akaun"
     },
     "footer": {
-      "description": "Platform rasmi untuk penduduk melaporkan isu tempatan dan memacu penyelesaian yang dipimpin komuniti di N.18 Inanam.",
+      "description": "Platform rasmi untuk penduduk melaporkan isu tempatan dan memacu penyelesaian yang dipimpin komuniti di {dunName}.",
       "quickLinks": "Pautan Pantas",
       "getStarted": "Mula",
       "howItWorks": "Cara Ia Berfungsi",
@@ -133,10 +133,10 @@
   },
   "about": {
     "title": "Tentang Kami",
-    "subtitle": "Platform Komuniti N.18 Inanam",
+    "subtitle": "Platform Komuniti {dunName}",
     "mission": {
       "title": "Misi Kami",
-      "description": "Kami percaya dalam memperkasakan komuniti untuk bertindak. Platform kami menghubungkan penduduk dengan pihak berkuasa tempatan, memudahkan untuk melaporkan isu, menjejaki kemajuan, dan bekerjasama untuk membina N.18 Inanam yang lebih baik."
+      "description": "Kami percaya dalam memperkasakan komuniti untuk bertindak. Platform kami menghubungkan penduduk dengan pihak berkuasa tempatan, memudahkan untuk melaporkan isu, menjejaki kemajuan, dan bekerjasama untuk membina {dunName} yang lebih baik."
     },
     "whatWeDo": {
       "title": "Apa Yang Kami Lakukan",
@@ -152,7 +152,7 @@
       "actionOriented": "Berorientasikan Tindakan: Kami fokus pada hasil dan impak dunia sebenar.",
       "collaboration": "Kolaborasi: Kami menyatukan penduduk, pihak berkuasa, dan pemegang kepentingan."
     },
-    "joinUs": "Sertai kami dalam membina komuniti N.18 Inanam yang lebih kuat dan lebih terhubung."
+    "joinUs": "Sertai kami dalam membina komuniti {dunName} yang lebih kuat dan lebih terhubung."
   },
   "contact": {
     "title": "Hubungi Kami",
@@ -174,7 +174,7 @@
     },
     "visitUs": {
       "title": "Lawati Kami",
-      "address": "Platform Komuniti N.18 Inanam\nInanam, Sabah, Malaysia"
+      "address": "Platform Komuniti {dunName}\nInanam, Sabah, Malaysia"
     },
     "feedback": "Kami menghargai maklum balas anda dan komited untuk meningkatkan perkhidmatan kami."
   },
@@ -1497,9 +1497,9 @@
   },
   "communityLogin": {
     "welcomeBack": "Selamat Kembali!",
-    "welcomeDescription": "Sertai jiran anda dalam menjadikan N.18 Inanam tempat yang lebih baik.",
+    "welcomeDescription": "Sertai jiran anda dalam menjadikan {dunName} tempat yang lebih baik.",
     "title": "Log Masuk Komuniti",
-    "subtitle": "Log masuk untuk melaporkan isu dan berhubung dengan jiran anda di N.18 Inanam.",
+    "subtitle": "Log masuk untuk melaporkan isu dan berhubung dengan jiran anda di {dunName}.",
     "loginSuccessful": "Log masuk berjaya! Mengalihkan...",
     "emailAddress": "Alamat E-mel",
     "emailPlaceholder": "anda@contoh.com",

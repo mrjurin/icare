@@ -1,12 +1,15 @@
-import { getSetting } from "@/lib/actions/settings";
+import { getSetting, getDunName } from "@/lib/actions/settings";
 import { getActiveAnnouncements, getActiveAnnouncementsPaginated } from "@/lib/actions/announcements";
 import HomeClient from "./HomeClient";
 
 export default async function Home() {
-  const appNameResult = await getSetting("app_name");
+  const [appNameResult, dunName] = await Promise.all([
+    getSetting("app_name"),
+    getDunName(),
+  ]);
   const appName = appNameResult.success && appNameResult.data 
     ? appNameResult.data 
-    : "N.18 Inanam Platform";
+    : `${dunName} Platform`;
 
   // Fetch active announcements (limit to 3 for landing page - most recent)
   const announcementsResult = await getActiveAnnouncements(3);
@@ -18,5 +21,5 @@ export default async function Home() {
   const totalResult = await getActiveAnnouncementsPaginated({ page: 1, limit: 1 });
   const totalCount = totalResult.success && totalResult.data ? totalResult.data.total : 0;
 
-  return <HomeClient appName={appName} announcements={announcements} totalAnnouncements={totalCount} />;
+  return <HomeClient appName={appName} announcements={announcements} totalAnnouncements={totalCount} dunName={dunName} />;
 }
