@@ -23,34 +23,34 @@ export default async function AdminIssuesPage({
   const t = await getTranslations("issues.list");
   const params = await searchParams;
   const statusFilter = typeof params.status === "string" ? params.status : undefined;
-  
+
   const supabase = await getSupabaseServerClient();
-  
+
   // Fetch statistics
   // Total Open Issues: status IN ('pending', 'in_progress', 'resolved')
   const { count: totalOpenCount } = await supabase
     .from("issues")
     .select("*", { count: "exact", head: true })
     .in("status", ["pending", "in_progress", "resolved"]);
-  
+
   // Pending Review: status = 'pending'
   const { count: pendingCount } = await supabase
     .from("issues")
     .select("*", { count: "exact", head: true })
     .eq("status", "pending");
-  
+
   // Resolved This Week: status = 'resolved' AND resolved_at >= start of current week
   const now = new Date();
   const startOfWeek = new Date(now);
   startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
   startOfWeek.setHours(0, 0, 0, 0);
-  
+
   const { count: resolvedThisWeekCount } = await supabase
     .from("issues")
     .select("*", { count: "exact", head: true })
     .eq("status", "resolved")
     .gte("resolved_at", startOfWeek.toISOString());
-  
+
   const counters = [
     { label: t("counters.totalOpenIssues"), value: String(totalOpenCount || 0) },
     { label: t("counters.pendingReview"), value: String(pendingCount || 0) },
@@ -68,18 +68,18 @@ export default async function AdminIssuesPage({
   }
 
   const { data } = await query.limit(50);
-  const issues: DbIssue[] = Array.isArray(data) ? data : [];
+  const issues = (Array.isArray(data) ? data : []) as Omit<DbIssue, "reporter_name">[];
 
   // Fetch reporter information for all issues
   const reporterIds = [...new Set(issues.map((i) => i.reporter_id).filter((id): id is number => id !== null))];
   let reporterMap = new Map<number, string>();
-  
+
   if (reporterIds.length > 0) {
     const { data: profiles } = await supabase
       .from("profiles")
       .select("id, full_name")
       .in("id", reporterIds);
-    
+
     if (profiles) {
       profiles.forEach((profile) => {
         if (profile.id && profile.full_name) {
