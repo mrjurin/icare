@@ -2,6 +2,9 @@ import { Public_Sans } from "next/font/google";
 import "./globals.css";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
+import { LoadingOverlayProvider } from '@/contexts/LoadingOverlayContext';
+import LoadingOverlay from '@/components/ui/LoadingOverlay';
+import NavigationLoadingDetector from '@/components/NavigationLoadingDetector';
 
 const publicSans = Public_Sans({
   subsets: ["latin"],
@@ -20,7 +23,11 @@ export default async function RootLayout({
     <html className="light" lang="ms" suppressHydrationWarning>
       <body className={publicSans.className}>
         <NextIntlClientProvider messages={messages}>
-          {children}
+          <LoadingOverlayProvider>
+            <NavigationLoadingDetector />
+            {children}
+            <LoadingOverlay />
+          </LoadingOverlayProvider>
         </NextIntlClientProvider>
       </body>
     </html>

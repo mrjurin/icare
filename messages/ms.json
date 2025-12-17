@@ -2,6 +2,8 @@
   "common": {
     "appName": "Platform Komuniti {dunName}",
     "loading": "Memuatkan...",
+    "loadingPage": "Memuatkan halaman...",
+    "switchingLanguage": "Menukar bahasa...",
     "save": "Simpan",
     "cancel": "Batal",
     "delete": "Padam",
@@ -1092,6 +1094,13 @@
       "created": "Dicipta",
       "actions": "Tindakan",
       "noPrograms": "Tiada program ditemui. Cipta program pengagihan bantuan pertama anda untuk bermula.",
+      "searchPlaceholder": "Cari program...",
+      "zone": "Zon",
+      "year": "Tahun",
+      "allStatuses": "Semua",
+      "allZones": "Semua Zon",
+      "allYears": "Semua Tahun",
+      "resetFilters": "Set Semula",
       "statuses": {
         "draft": "Draf",
         "active": "Aktif",

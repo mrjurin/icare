@@ -1,11 +1,12 @@
 "use client";
 
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { usePathname } from '@/i18n/routing';
 import { useRouter } from 'next/navigation';
 import { useTransition, useState, useEffect, useRef } from 'react';
 import { Globe } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import { useLoadingOverlay } from '@/hooks/useLoadingOverlay';
 
 export default function LanguageSwitcher() {
   const locale = useLocale();
@@ -14,12 +15,28 @@ export default function LanguageSwitcher() {
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { setLoading } = useLoadingOverlay();
+  const t = useTranslations('common');
+
+  // Hide loading when transition completes
+  useEffect(() => {
+    if (!isPending) {
+      // Transition completed, hide loading after a short delay
+      const timeout = setTimeout(() => {
+        setLoading(false);
+      }, 200);
+      return () => clearTimeout(timeout);
+    }
+  }, [isPending, setLoading]);
 
   const switchLocale = (newLocale: string) => {
     if (newLocale === locale) {
       setIsOpen(false);
       return; // Don't switch if already on this locale
     }
+    
+    // Show loading overlay immediately
+    setLoading(true, t('switchingLanguage'));
     
     startTransition(() => {
       // Get the actual browser pathname to handle any locale segments

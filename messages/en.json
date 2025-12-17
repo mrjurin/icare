@@ -2,6 +2,8 @@
   "common": {
     "appName": "{dunName} Community Platform",
     "loading": "Loading...",
+    "loadingPage": "Loading page...",
+    "switchingLanguage": "Switching language...",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
