@@ -750,6 +750,7 @@ export async function getIssueResolutionReport(): Promise<ActionResult<IssueReso
       average_resolution_time_days: 0,
       issues_by_category: [],
       issues_by_zone: [],
+      issues_by_priority: [],
     } };
   }
 
@@ -819,7 +820,7 @@ export async function getIssueResolutionReport(): Promise<ActionResult<IssueReso
     } else {
       // Fallback to category enum, formatted nicely
       const category = issue.category || "other";
-      categoryName = category.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+      categoryName = category.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase());
     }
     
     const current = categoryMap.get(categoryName) || { total: 0, resolved: 0 };
