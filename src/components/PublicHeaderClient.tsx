@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useRouter } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import Button from "@/components/ui/Button";
-import { Menu, X, User, LogOut, LayoutDashboard } from "lucide-react";
+import { Menu, X, User, LogOut, LayoutDashboard, LogIn, UserPlus } from "lucide-react";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import Image from "next/image";
 import { createBrowserClient } from "@supabase/ssr";
@@ -210,9 +210,6 @@ export default function PublicHeaderClient({ appName }: PublicHeaderClientProps)
           </nav>
           <div className="flex gap-3 items-center">
             <LanguageSwitcher />
-            <Button asChild className="rounded-lg h-10 px-5 bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors">
-              <Link href="/report-issue">{t('reportIssue')}</Link>
-            </Button>
             {!loading && (
               user ? (
                 <div className="relative" ref={userMenuRef}>
@@ -274,9 +271,20 @@ export default function PublicHeaderClient({ appName }: PublicHeaderClientProps)
                   )}
                 </div>
               ) : (
-                <Button asChild variant="outline" className="h-10 px-5">
-                  <Link href="/login">{t('loginRegister')}</Link>
-                </Button>
+                <div className="flex gap-2">
+                  <Button asChild variant="outline" className="h-10 px-5">
+                    <Link href="/community/login" className="flex items-center gap-2">
+                      <LogIn className="size-4" />
+                      {t('login')}
+                    </Link>
+                  </Button>
+                  <Button asChild className="h-10 px-5 bg-primary text-white hover:bg-primary/90">
+                    <Link href="/community/register" className="flex items-center gap-2">
+                      <UserPlus className="size-4" />
+                      {t('register')}
+                    </Link>
+                  </Button>
+                </div>
               )
             )}
           </div>
@@ -328,9 +336,6 @@ export default function PublicHeaderClient({ appName }: PublicHeaderClientProps)
               <div className="flex justify-center">
                 <LanguageSwitcher />
               </div>
-              <Button asChild className="w-full rounded-lg h-12 bg-primary text-white font-bold">
-                <Link href="/report-issue" onClick={() => setMobileMenuOpen(false)}>{t('reportIssue')}</Link>
-              </Button>
               {!loading && (
                 user ? (
                   <>
@@ -380,9 +385,20 @@ export default function PublicHeaderClient({ appName }: PublicHeaderClientProps)
                     </button>
                   </>
                 ) : (
-                  <Button asChild variant="outline" className="w-full h-12">
-                    <Link href="/login" onClick={() => setMobileMenuOpen(false)}>{t('loginRegister')}</Link>
-                  </Button>
+                  <div className="flex flex-col gap-3">
+                    <Button asChild variant="outline" className="w-full h-12">
+                      <Link href="/community/login" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-2">
+                        <LogIn className="size-4" />
+                        {t('login')}
+                      </Link>
+                    </Button>
+                    <Button asChild className="w-full h-12 bg-primary text-white hover:bg-primary/90">
+                      <Link href="/community/register" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-2">
+                        <UserPlus className="size-4" />
+                        {t('register')}
+                      </Link>
+                    </Button>
+                  </div>
                 )
               )}
             </div>
