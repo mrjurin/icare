@@ -1662,6 +1662,7 @@
     "manageDescription": "Urus perkhidmatan dan sumber komuniti {dunName}.",
     "showPassword": "Tunjukkan kata laluan",
     "hidePassword": "Sembunyikan kata laluan",
+    "backToLoginSelection": "Kembali ke Pilihan Log Masuk",
     "errors": {
       "invalidCredentials": "E-mel atau kata laluan tidak sah. Sila semak kelayakan anda dan cuba lagi.",
       "accountNotSetup": "Akaun ini wujud dalam sistem tetapi belum disediakan dalam pengesahan. Sila hubungi pentadbir anda atau pastikan pengguna telah dicipta dalam Supabase Auth. Jika anda telah menjalankan seeder, pastikan SUPABASE_SERVICE_ROLE_KEY ditetapkan dalam fail .env anda.",
@@ -1697,6 +1698,7 @@
     "portalDescription": "Akses isu yang ditugaskan dan alat pengurusan zon anda.",
     "showPassword": "Tunjukkan kata laluan",
     "hidePassword": "Sembunyikan kata laluan",
+    "backToLoginSelection": "Kembali ke Pilihan Log Masuk",
     "errors": {
       "invalidEmailOrPassword": "E-mel atau kata laluan tidak sah. Sila semak kelayakan anda dan cuba lagi.",
       "invalidIcOrPassword": "Nombor IC atau kata laluan tidak sah. Sila semak kelayakan anda dan cuba lagi.",
@@ -1731,6 +1733,7 @@
     "registerHere": "Daftar di sini",
     "showPassword": "Tunjukkan kata laluan",
     "hidePassword": "Sembunyikan kata laluan",
+    "backToLoginSelection": "Kembali ke Pilihan Log Masuk",
     "errors": {
       "invalidCredentials": "E-mel atau kata laluan tidak sah. Sila semak kelayakan anda dan cuba lagi.",
       "emailNotConfirmed": "Sila sahkan alamat e-mel anda sebelum log masuk.",

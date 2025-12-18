@@ -3,9 +3,10 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { useTranslations } from "next-intl";
+import { Link as I18nLink } from '@/i18n/routing';
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import { Eye, EyeOff, AlertCircle, Loader2, Mail, Lock, CheckCircle2, Shield } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, Loader2, Mail, Lock, CheckCircle2, Shield, ArrowLeft, Home } from "lucide-react";
 import { getSetting, getDunName } from "@/lib/actions/settings";
 import Link from "next/link";
 
@@ -271,6 +272,23 @@ export default function AdminLoginPage() {
 
           {/* Right side - Form */}
           <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 sm:p-12 md:p-16">
+            {/* Back to Login Selection and Home */}
+            <div className="mb-4 flex items-center gap-3">
+              <I18nLink 
+                href="/login" 
+                className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors text-sm font-medium"
+              >
+                <ArrowLeft className="size-4" />
+                {t("backToLoginSelection")}
+              </I18nLink>
+              <I18nLink 
+                href="/" 
+                className="inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+                title="Go to Home"
+              >
+                <Home className="size-4" />
+              </I18nLink>
+            </div>
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
               {/* Header */}
               <div className="flex flex-col gap-2">

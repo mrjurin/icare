@@ -1672,6 +1672,7 @@
     "manageDescription": "Manage {dunName} community services and resources.",
     "showPassword": "Show password",
     "hidePassword": "Hide password",
+    "backToLoginSelection": "Back to Login Selection",
     "errors": {
       "invalidCredentials": "Invalid email or password. Please check your credentials and try again.",
       "accountNotSetup": "This account exists in the system but hasn't been set up in authentication. Please contact your administrator or ensure the user was created in Supabase Auth. If you ran the seeder, make sure SUPABASE_SERVICE_ROLE_KEY was set in your .env file.",
@@ -1707,6 +1708,7 @@
     "portalDescription": "Access your assigned issues and zone management tools.",
     "showPassword": "Show password",
     "hidePassword": "Hide password",
+    "backToLoginSelection": "Back to Login Selection",
     "errors": {
       "invalidEmailOrPassword": "Invalid email or password. Please check your credentials and try again.",
       "invalidIcOrPassword": "Invalid IC number or password. Please check your credentials and try again.",
@@ -1741,6 +1743,7 @@
     "registerHere": "Register here",
     "showPassword": "Show password",
     "hidePassword": "Hide password",
+    "backToLoginSelection": "Back to Login Selection",
     "errors": {
       "invalidCredentials": "Invalid email or password. Please check your credentials and try again.",
       "emailNotConfirmed": "Please verify your email address before signing in.",
