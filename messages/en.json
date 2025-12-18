@@ -1216,7 +1216,16 @@
       "assignments": "Assignments",
       "zoneLeader": "Zone Leader",
       "branchChief": "Branch Chief",
-      "assignedStaff": "Assigned Staff"
+      "assignedStaff": "Assigned Staff",
+      "viewRecipients": "View Recipients",
+      "recipients": "Recipients",
+      "totalRecipients": "Total Recipients",
+      "remaining": "Remaining",
+      "searchRecipients": "Search by name or address...",
+      "loading": "Loading recipients...",
+      "noRecipientsFound": "No recipients found",
+      "noRecipients": "No recipients in this zone",
+      "markedAt": "Marked"
     },
     "assign": {
       "title": "Assign to Branch Chief",

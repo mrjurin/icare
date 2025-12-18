@@ -1211,7 +1211,16 @@
       "assignments": "Tugasan",
       "zoneLeader": "Ketua Zon",
       "branchChief": "Ketua Cawangan",
-      "assignedStaff": "Kakitangan yang Ditugaskan"
+      "assignedStaff": "Kakitangan yang Ditugaskan",
+      "viewRecipients": "Lihat Penerima",
+      "recipients": "Penerima",
+      "totalRecipients": "Jumlah Penerima",
+      "remaining": "Baki",
+      "searchRecipients": "Cari mengikut nama atau alamat...",
+      "loading": "Memuatkan penerima...",
+      "noRecipientsFound": "Tiada penerima ditemui",
+      "noRecipients": "Tiada penerima dalam zon ini",
+      "markedAt": "Ditandakan"
     },
     "assign": {
       "title": "Tugaskan kepada Ketua Cawangan",

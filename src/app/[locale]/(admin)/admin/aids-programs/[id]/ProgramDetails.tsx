@@ -2,6 +2,9 @@
 
 import { AidsProgram, AidsProgramZone, AidsProgramAssignment, ZoneProgressStats } from "@/lib/actions/aidsPrograms";
 import { useTranslations } from "next-intl";
+import { Users } from "lucide-react";
+import RecipientsModal from "./RecipientsModal";
+import Button from "@/components/ui/Button";
 
 type ProgramDetailsProps = {
   program: AidsProgram;
@@ -101,16 +104,38 @@ export default function ProgramDetails({ program, zones, assignments, zoneProgre
                       {zp.distributed_households}/{zp.total_households}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <div
-                        className="bg-green-500 h-2 rounded-full transition-all"
-                        style={{ width: `${zoneProgressPercent}%` }}
-                      />
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div
+                          className="bg-green-500 h-2 rounded-full transition-all"
+                          style={{ width: `${zoneProgressPercent}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-600 dark:text-gray-400 min-w-[3rem] text-right">
+                        {zoneProgressPercent}%
+                      </span>
                     </div>
-                    <span className="text-xs text-gray-600 dark:text-gray-400 min-w-[3rem] text-right">
-                      {zoneProgressPercent}%
-                    </span>
+                    {zp.zone_id && (
+                      <div className="flex justify-end">
+                        <RecipientsModal
+                          programId={program.id}
+                          zoneId={zp.zone_id}
+                          zoneName={zp.zone_name || undefined}
+                          villageName={zp.village_name || undefined}
+                          trigger={
+                            <Button
+                              variant="outline"
+                              className="h-8 px-3 text-xs"
+                              type="button"
+                            >
+                              <Users className="size-3.5" />
+                              <span className="ml-1">{t("viewRecipients") || "View Recipients"}</span>
+                            </Button>
+                          }
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               );
