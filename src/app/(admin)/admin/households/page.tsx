@@ -1,11 +1,12 @@
-import { Plus, Search, Users, Home, DollarSign, AlertCircle } from "lucide-react";
+import { Plus, Users, Home, DollarSign, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { getHouseholdList, getHouseholdsWithoutRecentAid } from "@/lib/actions/households";
 import { getZones } from "@/lib/actions/zones";
+import { getAllAidsProgramsForFilter } from "@/lib/actions/aidsPrograms";
 import HouseholdFormModal from "./HouseholdFormModal";
 import HouseholdTable from "./HouseholdTable";
+import HouseholdFilters from "./HouseholdFilters";
 
 export default async function AdminHouseholdsPage({
   searchParams,
@@ -15,13 +16,35 @@ export default async function AdminHouseholdsPage({
   const sp = await searchParams;
   const search = typeof sp.search === "string" ? sp.search : undefined;
   const area = typeof sp.area === "string" ? sp.area : undefined;
+  const aidProgramId = typeof sp.aidProgram === "string" ? parseInt(sp.aidProgram, 10) : undefined;
+  const year = typeof sp.year === "string" ? parseInt(sp.year, 10) : undefined;
 
-  const result = await getHouseholdList({ search, area });
+  const result = await getHouseholdList({ 
+    search, 
+    area, 
+    aidProgramId: isNaN(aidProgramId || 0) ? undefined : aidProgramId,
+    year: isNaN(year || 0) ? undefined : year,
+  });
   const households = result.success ? result.data || [] : [];
 
   // Get zones for filter dropdown
   const zonesResult = await getZones();
   const zones = zonesResult.success ? zonesResult.data || [] : [];
+
+  // Get aid programs for filter dropdown
+  const aidsProgramsResult = await getAllAidsProgramsForFilter();
+  const aidsPrograms = aidsProgramsResult.success ? aidsProgramsResult.data || [] : [];
+
+  // Extract unique years from aid programs
+  const years = new Set<number>();
+  aidsPrograms.forEach((program) => {
+    const dateToCheck = program.start_date || program.created_at;
+    if (dateToCheck) {
+      const programYear = new Date(dateToCheck).getFullYear();
+      years.add(programYear);
+    }
+  });
+  const sortedYears = Array.from(years).sort((a, b) => b - a); // Most recent first
 
   // Get households without recent aid
   const householdsWithoutAidResult = await getHouseholdsWithoutRecentAid(30, area);
@@ -104,42 +127,16 @@ export default async function AdminHouseholdsPage({
       )}
 
       {/* Filters */}
-      <div className="rounded-xl border border-gray-200 bg-white">
-        <div className="p-3 md:p-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <form method="get" action="/admin/households" className="flex flex-wrap items-center gap-3 flex-1">
-              <div className="relative flex-1 min-w-[260px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" aria-hidden />
-                <Input
-                  name="search"
-                  placeholder="Search by name, address, or area..."
-                  defaultValue={search}
-                  className="pl-9 w-full"
-                />
-              </div>
-              <select
-                name="area"
-                className="h-10 px-3 text-sm rounded-lg border border-gray-200 bg-white text-gray-900"
-                defaultValue={area || ""}
-              >
-                <option value="">All Zones</option>
-                {zones.map((zone) => (
-                  <option key={zone.id} value={zone.name}>
-                    {zone.name}
-                  </option>
-                ))}
-              </select>
-              {(search || area) && (
-                <Link href="/admin/households">
-                  <Button type="button" variant="outline">Reset Filters</Button>
-                </Link>
-              )}
-              <button type="submit" className="sr-only">Search</button>
-            </form>
-          </div>
-        </div>
-        <div className="h-px bg-gray-200" />
-      </div>
+      <HouseholdFilters
+        zones={zones}
+        aidsPrograms={aidsPrograms}
+        years={sortedYears}
+        searchPlaceholder="Search by name, address, or area..."
+        allZonesLabel="All Zones"
+        allAidProgramsLabel="All Aid Programs"
+        allYearsLabel="All Years"
+        resetFiltersLabel="Reset Filters"
+      />
 
       {/* Households Table */}
       <HouseholdTable households={households} />

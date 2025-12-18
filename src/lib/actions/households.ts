@@ -67,6 +67,20 @@ export type AidDistribution = {
   created_at: string;
 };
 
+export type ProgramAidDistribution = {
+  id: number;
+  program_id: number;
+  household_id: number;
+  marked_by: number;
+  marked_at: string;
+  notes: string | null;
+  created_at: string;
+  // Joined data
+  program_name?: string;
+  program_aid_type?: string;
+  marked_by_name?: string;
+};
+
 export type ActionResult<T = void> = {
   success: boolean;
   error?: string;
@@ -150,6 +164,8 @@ export type CreateAidDistributionInput = {
 export async function getHouseholdList(options?: {
   search?: string;
   area?: string;
+  aidProgramId?: number;
+  year?: number;
 }): Promise<ActionResult<Household[]>> {
   // Use read-only client for Server Components
   let supabase;
@@ -161,6 +177,61 @@ export async function getHouseholdList(options?: {
 
   // Get accessible zone IDs based on user role
   const accessibleZoneIds = await getAccessibleZoneIds();
+
+  // If filtering by aid program or year, we need to get household IDs from distribution records first
+  let filteredHouseholdIds: number[] | null = null;
+  if (options?.aidProgramId || options?.year) {
+    // First, get distribution records
+    let distributionQuery = supabase
+      .from("aids_distribution_records")
+      .select("household_id, program_id, marked_at");
+
+    if (options?.aidProgramId) {
+      distributionQuery = distributionQuery.eq("program_id", options.aidProgramId);
+    }
+
+    const { data: distributions, error: distError } = await distributionQuery;
+
+    if (distError) {
+      return { success: false, error: distError.message };
+    }
+
+    if (!distributions || distributions.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    // If year filter is specified, we need to check program dates
+    if (options?.year) {
+      // Get unique program IDs from distributions
+      const programIds = [...new Set(distributions.map((d: any) => d.program_id))];
+      
+      // Fetch programs to check their dates
+      const { data: programs } = await supabase
+        .from("aids_programs")
+        .select("id, start_date, created_at")
+        .in("id", programIds);
+
+      const programsMap = new Map((programs || []).map((p: any) => [p.id, p]));
+
+      // Filter distributions by year
+      const filtered = distributions.filter((dist: any) => {
+        const program = programsMap.get(dist.program_id);
+        // Extract year from start_date, created_at, or marked_at
+        const dateToCheck = program?.start_date || program?.created_at || dist.marked_at;
+        if (!dateToCheck) return false;
+        const date = new Date(dateToCheck);
+        return date.getFullYear() === options.year;
+      });
+      filteredHouseholdIds = [...new Set(filtered.map((d: any) => d.household_id))];
+    } else {
+      filteredHouseholdIds = [...new Set(distributions.map((d: any) => d.household_id))];
+    }
+
+    // If no households match the filter, return empty
+    if (!filteredHouseholdIds || filteredHouseholdIds.length === 0) {
+      return { success: true, data: [] };
+    }
+  }
 
   let query = supabase
     .from("households")
@@ -175,6 +246,11 @@ export async function getHouseholdList(options?: {
       return { success: true, data: [] };
     }
     query = query.in("zone_id", accessibleZoneIds);
+  }
+
+  // Apply aid program/year filter
+  if (filteredHouseholdIds) {
+    query = query.in("id", filteredHouseholdIds);
   }
 
   if (options?.area) {
@@ -238,6 +314,7 @@ export async function getHouseholdById(id: number): Promise<ActionResult<Househo
   members: HouseholdMember[];
   income: HouseholdIncome[];
   latestAidDistributions: AidDistribution[];
+  programAidDistributions: ProgramAidDistribution[];
 }>> {
   if (!id || Number.isNaN(id)) {
     return { success: false, error: "Invalid household ID" };
@@ -293,6 +370,52 @@ export async function getHouseholdById(id: number): Promise<ActionResult<Househo
     .order("distribution_date", { ascending: false })
     .limit(10);
 
+  // Get program-based aid distribution records
+  const { data: programDistributions } = await supabase
+    .from("aids_distribution_records")
+    .select("*")
+    .eq("household_id", id)
+    .order("marked_at", { ascending: false });
+
+  // Fetch program and staff info separately if we have distributions
+  let transformedProgramDistributions: ProgramAidDistribution[] = [];
+  if (programDistributions && programDistributions.length > 0) {
+    const programIds = [...new Set(programDistributions.map((r: any) => r.program_id))];
+    const staffIds = [...new Set(programDistributions.map((r: any) => r.marked_by).filter((id: any) => id))];
+
+    // Fetch programs
+    const { data: programs } = await supabase
+      .from("aids_programs")
+      .select("id, name, aid_type")
+      .in("id", programIds);
+
+    // Fetch staff
+    let staff: any[] | null = null;
+    if (staffIds.length > 0) {
+      const { data: staffData } = await supabase
+        .from("staff")
+        .select("id, name")
+        .in("id", staffIds);
+      staff = staffData;
+    }
+
+    const programsMap = new Map((programs || []).map((p: any) => [p.id, p]));
+    const staffMap = new Map((staff || []).map((s: any) => [s.id, s]));
+
+    transformedProgramDistributions = programDistributions.map((record: any) => ({
+      id: record.id,
+      program_id: record.program_id,
+      household_id: record.household_id,
+      marked_by: record.marked_by,
+      marked_at: record.marked_at,
+      notes: record.notes,
+      created_at: record.created_at,
+      program_name: programsMap.get(record.program_id)?.name,
+      program_aid_type: programsMap.get(record.program_id)?.aid_type,
+      marked_by_name: staffMap.get(record.marked_by)?.name,
+    }));
+  }
+
   const stats = await calculateHouseholdStats(id);
 
   // Get latest income
@@ -307,6 +430,7 @@ export async function getHouseholdById(id: number): Promise<ActionResult<Househo
       members: (members || []) as HouseholdMember[],
       income: (income || []) as HouseholdIncome[],
       latestAidDistributions: (aidDistributions || []) as AidDistribution[],
+      programAidDistributions: transformedProgramDistributions,
     },
   };
 }

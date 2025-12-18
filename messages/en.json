@@ -648,6 +648,8 @@
     "filters": {
       "searchPlaceholder": "Search by name, address, or area...",
       "allZones": "All Zones",
+      "allAidPrograms": "All Aid Programs",
+      "allYears": "All Years",
       "resetFilters": "Reset Filters"
     },
     "table": {
@@ -805,6 +807,8 @@
           "makeSure": "Make sure to distribute to all {count} members at home"
         },
         "noDistributions": "No aid distributions recorded yet.",
+        "regularDistributions": "Regular Distributions",
+        "programDistributions": "Program Distributions",
         "table": {
           "date": "Date",
           "aidType": "Aid Type",
@@ -813,7 +817,9 @@
           "status": "Status",
           "notes": "Notes",
           "complete": "Complete",
-          "partial": "Partial"
+          "partial": "Partial",
+          "program": "Program",
+          "markedBy": "Marked By"
         },
         "modal": {
           "title": "Record Aid Distribution",

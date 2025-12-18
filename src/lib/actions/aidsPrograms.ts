@@ -343,6 +343,71 @@ export async function getAidsPrograms(options?: {
 }
 
 /**
+ * Get all AIDS programs for filter dropdowns (simplified, no pagination)
+ * Returns all programs accessible to the user
+ */
+export async function getAllAidsProgramsForFilter(): Promise<ActionResult<Array<{ id: number; name: string; start_date: string | null; created_at: string }>>> {
+  const supabase = await getSupabaseServerClient();
+  const access = await getCurrentUserAccess();
+
+  if (!access.isAuthenticated) {
+    return { success: false, error: "Authentication required" };
+  }
+
+  let query = supabase
+    .from("aids_programs")
+    .select("id, name, start_date, created_at")
+    .order("created_at", { ascending: false });
+
+  // Apply access control filters
+  let accessFilterProgramIds: number[] | null = null;
+  if (access.isZoneLeader && access.zoneId) {
+    // Get program assignments for this zone
+    const { data: assignments } = await supabase
+      .from("aids_program_assignments")
+      .select("program_id")
+      .eq("zone_id", access.zoneId)
+      .in("assignment_type", ["assigned_staff", "ketua_cawangan"]);
+
+    if (assignments && assignments.length > 0) {
+      accessFilterProgramIds = [...new Set(assignments.map((a: any) => a.program_id))];
+    } else {
+      // No programs assigned, return empty
+      return { success: true, data: [] };
+    }
+  } else if (access.staffId && !access.isSuperAdmin && !access.isAdun) {
+    // Staff members see programs they're assigned to
+    const { data: assignments } = await supabase
+      .from("aids_program_assignments")
+      .select("program_id")
+      .eq("assigned_to", access.staffId)
+      .in("assignment_type", ["assigned_staff", "ketua_cawangan"]);
+
+    if (assignments && assignments.length > 0) {
+      accessFilterProgramIds = [...new Set(assignments.map((a: any) => a.program_id))];
+    } else {
+      // No programs assigned, return empty
+      return { success: true, data: [] };
+    }
+  }
+
+  if (accessFilterProgramIds !== null) {
+    if (accessFilterProgramIds.length === 0) {
+      return { success: true, data: [] };
+    }
+    query = query.in("id", accessFilterProgramIds);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, data: (data || []) as Array<{ id: number; name: string; start_date: string | null; created_at: string }> };
+}
+
+/**
  * Get a single AIDS program by ID
  */
 export async function getAidsProgramById(id: number): Promise<ActionResult<AidsProgram>> {

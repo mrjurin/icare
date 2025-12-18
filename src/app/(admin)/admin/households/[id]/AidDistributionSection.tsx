@@ -7,15 +7,17 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { createAidDistribution, type AidDistribution } from "@/lib/actions/households";
+import { createAidDistribution, type AidDistribution, type ProgramAidDistribution } from "@/lib/actions/households";
 import { getActiveStaff, type Staff } from "@/lib/actions/staff";
 import { useEffect } from "react";
+import Link from "next/link";
 
 type Props = {
   householdId: number;
   membersAtHome: number;
   totalDependents: number;
   distributions: AidDistribution[];
+  programDistributions: ProgramAidDistribution[];
 };
 
 export default function AidDistributionSection({
@@ -23,6 +25,7 @@ export default function AidDistributionSection({
   membersAtHome,
   totalDependents,
   distributions,
+  programDistributions = [],
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -132,63 +135,119 @@ export default function AidDistributionSection({
         </div>
       </div>
 
-      {distributions.length === 0 ? (
+      {distributions.length === 0 && programDistributions.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
           <Package className="size-12 mx-auto mb-3 text-gray-400" />
           <p>No aid distributions recorded yet.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="text-left border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Date</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Aid Type</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Quantity</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">
-                  Distributed To
-                </th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Status</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {distributions.map((distribution) => {
-                const isComplete = distribution.distributed_to >= membersAtHome;
-                return (
-                  <tr key={distribution.id} className="border-t border-gray-200">
-                    <td className="px-4 py-3">
-                      {new Date(distribution.distribution_date).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3 font-medium">{distribution.aid_type}</td>
-                    <td className="px-4 py-3">{distribution.quantity}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{distribution.distributed_to}</span>
-                        <span className="text-gray-500">/ {membersAtHome}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {isComplete ? (
-                        <div className="flex items-center gap-1.5 text-green-700">
-                          <CheckCircle className="size-4" />
-                          <span className="text-xs font-medium">Complete</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 text-orange-700">
-                          <AlertCircle className="size-4" />
-                          <span className="text-xs font-medium">Partial</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {distribution.notes || "—"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="space-y-6">
+          {/* Regular Aid Distributions */}
+          {distributions.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Regular Distributions</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="text-left border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Date</th>
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Aid Type</th>
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Quantity</th>
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">
+                        Distributed To
+                      </th>
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Status</th>
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {distributions.map((distribution) => {
+                      const isComplete = distribution.distributed_to >= membersAtHome;
+                      return (
+                        <tr key={distribution.id} className="border-t border-gray-200">
+                          <td className="px-4 py-3">
+                            {new Date(distribution.distribution_date).toLocaleDateString()}
+                          </td>
+                          <td className="px-4 py-3 font-medium">{distribution.aid_type}</td>
+                          <td className="px-4 py-3">{distribution.quantity}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{distribution.distributed_to}</span>
+                              <span className="text-gray-500">/ {membersAtHome}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            {isComplete ? (
+                              <div className="flex items-center gap-1.5 text-green-700">
+                                <CheckCircle className="size-4" />
+                                <span className="text-xs font-medium">Complete</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5 text-orange-700">
+                                <AlertCircle className="size-4" />
+                                <span className="text-xs font-medium">Partial</span>
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">
+                            {distribution.notes || "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Program-Based Aid Distributions */}
+          {programDistributions.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Program Distributions</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="text-left border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Date</th>
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Program</th>
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Aid Type</th>
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Marked By</th>
+                      <th className="px-4 py-3 text-xs font-semibold uppercase text-gray-600">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {programDistributions.map((distribution) => (
+                      <tr key={distribution.id} className="border-t border-gray-200">
+                        <td className="px-4 py-3">
+                          {new Date(distribution.marked_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-3 font-medium">
+                          {distribution.program_name ? (
+                            <Link
+                              href={`/admin/aids-programs/${distribution.program_id}`}
+                              className="text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              {distribution.program_name}
+                            </Link>
+                          ) : (
+                            <span className="text-gray-500">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">{distribution.program_aid_type || "—"}</td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {distribution.marked_by_name || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {distribution.notes || "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

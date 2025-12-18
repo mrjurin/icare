@@ -206,6 +206,7 @@ export default async function HouseholdDetailPage({
         membersAtHome={household.members_at_home || 0}
         totalDependents={household.total_dependents || 0}
         distributions={household.latestAidDistributions}
+        programDistributions={household.programAidDistributions}
       />
     </div>
   );
