@@ -5,6 +5,8 @@ import type { PaginationProps } from "@/components/ui/Pagination";
 import { Bell, Calendar, ChevronRight, FileText, AlertCircle, Megaphone } from "lucide-react";
 import { getActiveAnnouncements } from "@/lib/actions/announcements";
 import type { Announcement } from "@/lib/actions/announcements";
+import { getTranslations } from "next-intl/server";
+import StatusFilterTabs from "./StatusFilterTabs";
 
 type DbIssue = {
   id: number;
@@ -14,15 +16,15 @@ type DbIssue = {
   created_at: string;
 };
 
-function statusBadge(s: string) {
-  const map: Record<string, { cls: string; label: string }> = {
-    pending: { cls: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400", label: "Pending" },
-    in_progress: { cls: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400", label: "In Progress" },
-    resolved: { cls: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400", label: "Resolved" },
-    closed: { cls: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400", label: "Closed" },
+function statusBadge(s: string, t: any) {
+  const map: Record<string, { cls: string; labelKey: string }> = {
+    pending: { cls: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400", labelKey: "status.pending" },
+    in_progress: { cls: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400", labelKey: "status.inProgress" },
+    resolved: { cls: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400", labelKey: "status.resolved" },
+    closed: { cls: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400", labelKey: "status.closed" },
   };
   const m = map[s] ?? map.pending;
-  return <span className={`inline-flex items-center rounded-full h-7 px-3 text-xs font-medium ${m.cls}`}>{m.label}</span>;
+  return <span className={`inline-flex items-center rounded-full h-7 px-3 text-xs font-medium ${m.cls}`}>{t(m.labelKey)}</span>;
 }
 
 export default async function CommunityDashboardPage({ 
@@ -35,6 +37,7 @@ export default async function CommunityDashboardPage({
   const supabase = await getSupabaseReadOnlyClient();
   const { locale } = await params;
   const sp = await searchParams;
+  const t = await getTranslations("communityDashboard");
   
   // Get authenticated user from session (this is the real authenticated user)
   const user = await getAuthenticatedUserReadOnly();
@@ -137,20 +140,20 @@ export default async function CommunityDashboardPage({
   return (
     <div className="space-y-6 md:space-y-8">
       {/* Announcements Section */}
-      <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 p-6 shadow-sm">
-        <div className="flex items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-primary/20 p-2">
-              <Bell className="size-5 text-primary" />
+      <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 p-4 sm:p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="rounded-lg bg-primary/20 p-1.5 sm:p-2">
+              <Bell className="size-4 sm:size-5 text-primary" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Recent Announcements</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">{t("recentAnnouncements")}</h3>
           </div>
           <Link 
             href={`/${locale}/announcements`}
-            className="text-primary text-sm font-semibold hover:text-primary/80 transition-colors flex items-center gap-1"
+            className="text-primary text-xs sm:text-sm font-semibold hover:text-primary/80 transition-colors flex items-center gap-1 self-start sm:self-auto"
           >
-            View All
-            <ChevronRight className="size-4" />
+            {t("viewAll")}
+            <ChevronRight className="size-3 sm:size-4" />
           </Link>
         </div>
         {announcements.length > 0 ? (
@@ -195,10 +198,10 @@ export default async function CommunityDashboardPage({
               return (
                 <div 
                   key={announcement.id}
-                  className="rounded-lg bg-white/60 dark:bg-gray-900/40 backdrop-blur-sm p-5 border border-white/20 hover:shadow-md transition-shadow"
+                  className="rounded-lg bg-white/60 dark:bg-gray-900/40 backdrop-blur-sm p-4 sm:p-5 border border-white/20 hover:shadow-md transition-shadow"
                 >
-                  <div className="flex items-start gap-3">
-                    <div className={`rounded-lg ${getCategoryBgColor(announcement.category)} p-2 mt-0.5 flex-shrink-0`}>
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className={`rounded-lg ${getCategoryBgColor(announcement.category)} p-1.5 sm:p-2 mt-0.5 flex-shrink-0`}>
                       {getCategoryIcon(announcement.category)}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -207,18 +210,18 @@ export default async function CommunityDashboardPage({
                           {announcement.category.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
                         </span>
                       )}
-                      <h4 className="font-semibold text-gray-900 dark:text-white mb-1">{announcement.title}</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 line-clamp-3">{truncatedContent}</p>
-                      <div className="flex items-center justify-between gap-4">
+                      <h4 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-1">{announcement.title}</h4>
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-2 sm:mb-3 line-clamp-2 sm:line-clamp-3">{truncatedContent}</p>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
                         <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                           <Calendar className="size-3" />
                           <span>{formatDate(announcement.published_at)}</span>
                         </div>
                         <Link 
                           href={`/${locale}/announcements#announcement-${announcement.id}`}
-                          className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+                          className="text-xs sm:text-sm font-semibold text-primary hover:text-primary/80 transition-colors self-start sm:self-auto"
                         >
-                          Read more
+                          {t("readMore")}
                         </Link>
                       </div>
                     </div>
@@ -232,77 +235,34 @@ export default async function CommunityDashboardPage({
             <div className="inline-flex items-center justify-center size-12 rounded-full bg-gray-100 dark:bg-gray-800 mb-3">
               <Megaphone className="size-6 text-gray-400" />
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">No announcements at the moment.</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{t("noAnnouncements")}</p>
           </div>
         )}
       </div>
 
       {/* Issues Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h2 className="text-3xl md:text-4xl font-black tracking-[-0.033em] text-gray-900 dark:text-white">My Reported Issues</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            {totalCount ? `Total: ${totalCount} issue${totalCount !== 1 ? 's' : ''}` : 'No issues reported yet'}
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-[-0.033em] text-gray-900 dark:text-white">{t("myReportedIssues")}</h2>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
+            {totalCount ? t("totalIssues", { count: totalCount }) : t("noIssuesReported")}
           </p>
         </div>
       </div>
 
       {/* Status Filter Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-700">
-        <nav className="flex gap-1 -mb-px">
-          <Link 
-            href={buildFilterUrl()} 
-            className={`px-4 py-3 text-sm font-semibold transition-colors border-b-2 ${
-              !filter 
-                ? "text-primary border-primary" 
-                : "text-gray-500 dark:text-gray-400 border-transparent hover:text-primary hover:border-primary/50"
-            }`}
-          >
-            All
-          </Link>
-          <Link 
-            href={buildFilterUrl("pending")} 
-            className={`px-4 py-3 text-sm font-semibold transition-colors border-b-2 ${
-              filter === "pending" 
-                ? "text-primary border-primary" 
-                : "text-gray-500 dark:text-gray-400 border-transparent hover:text-primary hover:border-primary/50"
-            }`}
-          >
-            Pending
-          </Link>
-          <Link 
-            href={buildFilterUrl("in_progress")} 
-            className={`px-4 py-3 text-sm font-semibold transition-colors border-b-2 ${
-              filter === "in_progress" 
-                ? "text-primary border-primary" 
-                : "text-gray-500 dark:text-gray-400 border-transparent hover:text-primary hover:border-primary/50"
-            }`}
-          >
-            In Progress
-          </Link>
-          <Link 
-            href={buildFilterUrl("resolved")} 
-            className={`px-4 py-3 text-sm font-semibold transition-colors border-b-2 ${
-              filter === "resolved" 
-                ? "text-primary border-primary" 
-                : "text-gray-500 dark:text-gray-400 border-transparent hover:text-primary hover:border-primary/50"
-            }`}
-          >
-            Resolved
-          </Link>
-        </nav>
-      </div>
+      <StatusFilterTabs currentFilter={filter} locale={locale} />
 
       {/* Issues Table */}
       <DataTable pagination={pagination}>
-        <table className="w-full text-sm">
+        <table className="w-full text-sm" style={{ minWidth: '800px' }}>
           <thead className="bg-gray-50 dark:bg-gray-900/50">
             <tr>
-              <th className="px-6 py-4 text-left font-semibold text-gray-900 dark:text-white">Issue</th>
-              <th className="px-6 py-4 text-left font-semibold text-gray-900 dark:text-white hidden md:table-cell">Category</th>
-              <th className="px-6 py-4 text-left font-semibold text-gray-900 dark:text-white hidden lg:table-cell">Date Submitted</th>
-              <th className="px-6 py-4 text-left font-semibold text-gray-900 dark:text-white">Status</th>
-              <th className="px-6 py-4 text-right font-semibold text-gray-900 dark:text-white">Actions</th>
+              <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left font-semibold text-gray-900 dark:text-white text-xs sm:text-sm whitespace-nowrap">{t("table.issue")}</th>
+              <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left font-semibold text-gray-900 dark:text-white text-xs sm:text-sm whitespace-nowrap">{t("table.category")}</th>
+              <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left font-semibold text-gray-900 dark:text-white text-xs sm:text-sm whitespace-nowrap">{t("table.dateSubmitted")}</th>
+              <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left font-semibold text-gray-900 dark:text-white text-xs sm:text-sm whitespace-nowrap">{t("table.status")}</th>
+              <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-right font-semibold text-gray-900 dark:text-white text-xs sm:text-sm whitespace-nowrap">{t("table.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
@@ -312,38 +272,35 @@ export default async function CommunityDashboardPage({
                   key={it.id} 
                   className="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors group"
                 >
-                  <td className="px-6 py-4">
+                  <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4">
                     <Link 
                       href={`/${locale}/community/issues/${it.id}`} 
-                      className="text-primary font-semibold hover:text-primary/80 transition-colors inline-flex items-center gap-2"
+                      className="text-primary font-semibold hover:text-primary/80 transition-colors inline-flex items-center gap-1.5 sm:gap-2"
                     >
-                      <span className="truncate max-w-[200px] sm:max-w-none">{it.title}</span>
-                      <span className="text-gray-400 dark:text-gray-500 text-xs">#{it.id}</span>
+                      <span className="truncate max-w-[200px] sm:max-w-[300px]">{it.title}</span>
+                      <span className="text-gray-400 dark:text-gray-500 text-xs flex-shrink-0">#{it.id}</span>
                     </Link>
-                    <div className="md:hidden mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      {it.category.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())} • {new Date(it.created_at).toLocaleDateString()}
-                    </div>
                   </td>
-                  <td className="px-6 py-4 text-gray-600 dark:text-gray-400 hidden md:table-cell">
+                  <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-gray-600 dark:text-gray-400 text-xs sm:text-sm whitespace-nowrap">
                     {it.category.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
                   </td>
-                  <td className="px-6 py-4 text-gray-600 dark:text-gray-400 hidden lg:table-cell">
+                  <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-gray-600 dark:text-gray-400 text-xs sm:text-sm whitespace-nowrap">
                     {new Date(it.created_at).toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "short",
                       day: "numeric",
                     })}
                   </td>
-                  <td className="px-6 py-4">
-                    {statusBadge(it.status)}
+                  <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap">
+                    {statusBadge(it.status, t)}
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-right whitespace-nowrap">
                     <Link 
                       href={`/${locale}/community/issues/${it.id}`} 
-                      className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+                      className="inline-flex items-center gap-1 text-xs sm:text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
                     >
-                      View
-                      <ChevronRight className="size-4" />
+                      {t("table.view")}
+                      <ChevronRight className="size-3 sm:size-4" />
                     </Link>
                   </td>
                 </tr>
@@ -351,11 +308,11 @@ export default async function CommunityDashboardPage({
             ) : (
               <DataTableEmpty
                 colSpan={5}
-                icon={<AlertCircle className="size-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />}
+                icon={<AlertCircle className="size-10 sm:size-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />}
                 message={
                   filter 
-                    ? `No ${filter.replace('_', ' ')} issues found. Submit a new report to see it here.`
-                    : "No issues yet. Submit a new report to see it here."
+                    ? t("empty.noFilteredIssues", { filter: t(`status.${filter === 'in_progress' ? 'inProgress' : filter}`) })
+                    : t("empty.noIssues")
                 }
               />
             )}

@@ -1,14 +1,14 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useState, useEffect, useMemo } from "react";
 import { Menu, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useLocale } from "next-intl";
 import { createBrowserClient } from "@supabase/ssr";
 import styles from "./layout.module.css";
 import Button from "@/components/ui/Button";
 import NotificationIcon from "@/components/NotificationIcon";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { getDunName } from "@/lib/actions/settings";
 
 export default function CommunityLayoutClient({ children }: { children: ReactNode }) {
@@ -18,7 +18,13 @@ export default function CommunityLayoutClient({ children }: { children: ReactNod
   const [dunName, setDunName] = useState<string>("N.18 Inanam");
   const pathname = usePathname();
   const router = useRouter();
-  const locale = useLocale();
+  
+  // Extract locale from pathname (e.g., /en/community/... or /ms/community/...)
+  const locale = useMemo(() => {
+    const segments = pathname.split('/').filter(Boolean);
+    const firstSegment = segments[0];
+    return firstSegment === 'en' || firstSegment === 'ms' ? firstSegment : 'en';
+  }, [pathname]);
 
   // Fetch user profile from session
   useEffect(() => {
@@ -141,6 +147,7 @@ export default function CommunityLayoutClient({ children }: { children: ReactNod
         </div>
         <div className={styles.topbarActions}>
           <NotificationIcon href={`/${locale}/community/notifications`} />
+          <LanguageSwitcher />
           <Button asChild className={styles.reportBtn}>
             <Link href={`/${locale}/community/report`}>Report a New Issue</Link>
           </Button>
@@ -221,7 +228,8 @@ export default function CommunityLayoutClient({ children }: { children: ReactNod
             <div className={styles.sideNav}>
               <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/dashboard` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/dashboard`} onClick={closeSidebar}>Dashboard</Link>
               <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/report` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/report`} onClick={closeSidebar}>Report a New Issue</Link>
-              <Link className={styles.sideLink} href="#" onClick={closeSidebar}>Community Updates</Link>
+              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/notifications` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/notifications`} onClick={closeSidebar}>Notifications</Link>
+              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/announcements` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/announcements`} onClick={closeSidebar}>Community Updates</Link>
               <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/profile` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/profile`} onClick={closeSidebar}>My Profile</Link>
             </div>
             <div className={styles.sideMeta}>

@@ -1,6 +1,8 @@
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { getWorkspaceAccess } from "@/lib/utils/access-control";
+import { getMessages } from "next-intl/server";
+import { NextIntlClientProvider } from "next-intl";
 import CommunityLayoutClient from "./CommunityLayoutClient";
 
 export default async function CommunityLayout({ children }: { children: ReactNode }) {
@@ -19,5 +21,12 @@ export default async function CommunityLayout({ children }: { children: ReactNod
     }
   }
 
-  return <CommunityLayoutClient>{children}</CommunityLayoutClient>;
+  // Get messages for intl provider
+  const messages = await getMessages();
+
+  return (
+    <NextIntlClientProvider messages={messages}>
+      <CommunityLayoutClient>{children}</CommunityLayoutClient>
+    </NextIntlClientProvider>
+  );
 }

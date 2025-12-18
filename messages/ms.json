@@ -3,6 +3,7 @@
     "appName": "Platform Komuniti {dunName}",
     "loading": "Memuatkan...",
     "loadingPage": "Memuatkan halaman...",
+    "loadingIssues": "Memuatkan isu...",
     "switchingLanguage": "Menukar bahasa...",
     "save": "Simpan",
     "cancel": "Batal",
@@ -1641,6 +1642,68 @@
       "backToLogin": "Kembali ke Log Masuk",
       "showPassword": "Tunjukkan kata laluan",
       "hidePassword": "Sembunyikan kata laluan"
+    }
+  },
+  "faq": {
+    "title": "Soalan Lazim",
+    "description": "Cari jawapan kepada soalan lazim tentang melaporkan isu dan menguruskan akaun anda.",
+    "searchPlaceholder": "Bagaimana kami boleh membantu?",
+    "filters": {
+      "all": "Semua",
+      "reportingIssues": "Melaporkan Isu",
+      "accountManagement": "Pengurusan Akaun",
+      "generalInformation": "Maklumat Am"
+    },
+    "questions": {
+      "reportIssue": {
+        "question": "Bagaimana saya melaporkan isu baharu seperti lubang di jalan atau lampu jalan yang rosak?",
+        "answer": "Untuk melaporkan isu baharu, klik pada 'Report a New Issue' di bar sisi. Isi borang dengan butiran tentang isu tersebut, termasuk lokasinya, keterangan, dan foto jika boleh. Setelah dihantar, anda akan menerima pengesahan dan nombor penjejakan."
+      },
+      "trackStatus": {
+        "question": "Bagaimana saya boleh menjejaki status isu yang telah saya laporkan?",
+        "answer": "Anda boleh menjejaki status mana-mana isu yang telah anda laporkan dengan menavigasi ke 'Dashboard' dari bar sisi. Di sana anda akan menemui senarai semua penghantaran anda dan status semasa mereka, seperti 'Pending', 'In Progress', atau 'Resolved'."
+      },
+      "resetPassword": {
+        "question": "Bagaimana saya menetapkan semula kata laluan saya?",
+        "answer": "Jika anda terlupa kata laluan anda, pergi ke halaman Log Masuk dan pilih pautan 'Forgot Password?'. Masukkan alamat e-mel berdaftar anda, dan kami akan menghantar pautan untuk menetapkan semula kata laluan anda."
+      },
+      "platformPurpose": {
+        "question": "Apakah tujuan platform ini?",
+        "answer": "Platform ini membolehkan penduduk {dunName} melaporkan isu komuniti tempatan, menjejaki penyelesaian mereka, dan kekal dimaklumkan tentang perkembangan komuniti. Matlamat kami adalah untuk memupuk persekitaran yang responsif dan kolaboratif."
+      }
+    },
+    "cantFindAnswer": {
+      "title": "Tidak dapat mencari jawapan?",
+      "description": "Pasukan kami di sini untuk membantu. Hubungi kami untuk sebarang soalan yang anda tidak dapat mencari jawapannya.",
+      "contactSupport": "Hubungi Sokongan"
+    }
+  },
+  "communityDashboard": {
+    "recentAnnouncements": "Pengumuman Terkini",
+    "viewAll": "Lihat Semua",
+    "readMore": "Baca selanjutnya",
+    "noAnnouncements": "Tiada pengumuman buat masa ini.",
+    "myReportedIssues": "Isu yang Saya Laporkan",
+    "totalIssues": "Jumlah: {count, plural, =1 {# isu} other {# isu}}",
+    "noIssuesReported": "Tiada isu dilaporkan lagi",
+    "status": {
+      "all": "Semua",
+      "pending": "Menunggu",
+      "inProgress": "Sedang Diproses",
+      "resolved": "Diselesaikan",
+      "closed": "Tertutup"
+    },
+    "table": {
+      "issue": "Isu",
+      "category": "Kategori",
+      "dateSubmitted": "Tarikh Dihantar",
+      "status": "Status",
+      "actions": "Tindakan",
+      "view": "Lihat"
+    },
+    "empty": {
+      "noIssues": "Tiada isu lagi. Hantar laporan baharu untuk melihatnya di sini.",
+      "noFilteredIssues": "Tiada isu {filter} ditemui. Hantar laporan baharu untuk melihatnya di sini."
     }
   }
 }

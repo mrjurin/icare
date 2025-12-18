@@ -3,6 +3,7 @@ import Image from "next/image";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getIssueActivity } from "@/lib/actions/issues";
 import ActivityLog from "@/components/issues/ActivityLog";
+import ImagePreview from "./ImagePreview";
 
 function statusBadge(s: string) {
   const map: Record<string, { cls: string; label: string }> = {
@@ -104,14 +105,17 @@ export default async function CommunityIssueDetailPage({ params }: { params: Pro
             {media.length === 0 ? (
               <p className="text-sm text-gray-600 dark:text-gray-300">No media submitted.</p>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {media.map((m, idx) => (
-                  m.type === "video" ? (
-                    <video key={idx} className="rounded-lg aspect-square object-cover w-full h-auto" src={m.url ?? ""} controls />
-                  ) : (
-                    <Image key={idx} className="rounded-lg aspect-square object-cover" alt={issue.title} src={m.url ?? ""} width={300} height={300} />
-                  )
-                ))}
+              <div className="space-y-4">
+                <ImagePreview media={media} issueTitle={issue.title} />
+                {media.some((m) => m.type === "video") && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {media
+                      .filter((m) => m.type === "video")
+                      .map((m, idx) => (
+                        <video key={idx} className="rounded-lg aspect-square object-cover w-full h-auto" src={m.url ?? ""} controls />
+                      ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

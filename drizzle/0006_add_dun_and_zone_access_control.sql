@@ -49,7 +49,7 @@ DECLARE
 BEGIN
   -- Create a default DUN if none exists
   INSERT INTO "duns" ("name", "code", "description")
-  VALUES ('N.18 Inanam', 'N18', 'Default DUN for existing zones')
+  VALUES ('N.1 Inanam', 'N18', 'Default DUN for existing zones')
   ON CONFLICT DO NOTHING
   RETURNING id INTO default_dun_id;
   
@@ -66,6 +66,7 @@ END $$;
 --> statement-breakpoint
 -- Make dun_id NOT NULL after setting defaults
 ALTER TABLE "zones" ALTER COLUMN "dun_id" SET NOT NULL;
+
 
 
 

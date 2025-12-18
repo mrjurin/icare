@@ -3,6 +3,7 @@
     "appName": "{dunName} Community Platform",
     "loading": "Loading...",
     "loadingPage": "Loading page...",
+    "loadingIssues": "Loading issues...",
     "switchingLanguage": "Switching language...",
     "save": "Save",
     "cancel": "Cancel",
@@ -1646,6 +1647,68 @@
       "backToLogin": "Back to Login",
       "showPassword": "Show password",
       "hidePassword": "Hide password"
+    }
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "description": "Find answers to common questions about reporting issues and managing your account.",
+    "searchPlaceholder": "How can we help?",
+    "filters": {
+      "all": "All",
+      "reportingIssues": "Reporting Issues",
+      "accountManagement": "Account Management",
+      "generalInformation": "General Information"
+    },
+    "questions": {
+      "reportIssue": {
+        "question": "How do I report a new issue like a pothole or broken streetlight?",
+        "answer": "To report a new issue, click on the 'Report a New Issue' in the sidebar. Fill out the form with details about the issue, including its location, a description, and a photo if possible. Once submitted, you'll receive a confirmation and a tracking number."
+      },
+      "trackStatus": {
+        "question": "How can I track the status of my reported issue?",
+        "answer": "You can track the status of any issue you've reported by navigating to the 'Dashboard' from the sidebar. There you will find a list of all your submissions and their current status, such as 'Pending', 'In Progress', or 'Resolved'."
+      },
+      "resetPassword": {
+        "question": "How do I reset my password?",
+        "answer": "If you've forgotten your password, go to the Login page and select the 'Forgot Password?' link. Enter your registered email address, and we will send you a link to reset your password."
+      },
+      "platformPurpose": {
+        "question": "What is the purpose of this platform?",
+        "answer": "This platform enables residents of {dunName} to report local community issues, track their resolution, and stay informed about community developments. Our goal is to foster a responsive and collaborative environment."
+      }
+    },
+    "cantFindAnswer": {
+      "title": "Can't find an answer?",
+      "description": "Our team is here to help. Reach out to us for any questions you can't find answers to.",
+      "contactSupport": "Contact Support"
+    }
+  },
+  "communityDashboard": {
+    "recentAnnouncements": "Recent Announcements",
+    "viewAll": "View All",
+    "readMore": "Read more",
+    "noAnnouncements": "No announcements at the moment.",
+    "myReportedIssues": "My Reported Issues",
+    "totalIssues": "Total: {count, plural, =1 {# issue} other {# issues}}",
+    "noIssuesReported": "No issues reported yet",
+    "status": {
+      "all": "All",
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "table": {
+      "issue": "Issue",
+      "category": "Category",
+      "dateSubmitted": "Date Submitted",
+      "status": "Status",
+      "actions": "Actions",
+      "view": "View"
+    },
+    "empty": {
+      "noIssues": "No issues yet. Submit a new report to see it here.",
+      "noFilteredIssues": "No {filter} issues found. Submit a new report to see it here."
     }
   }
 }
