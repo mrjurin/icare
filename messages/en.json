@@ -1765,6 +1765,24 @@
       "hidePassword": "Hide password"
     }
   },
+  "loginSelection": {
+    "title": "Choose Your Login Type",
+    "subtitle": "Select how you want to access the platform",
+    "backToHome": "Back to Home",
+    "loginButton": "Login",
+    "staff": {
+      "title": "Staff Login",
+      "description": "Access the staff dashboard to manage issues and community services"
+    },
+    "community": {
+      "title": "Community User Login",
+      "description": "Login as a community member to report issues and track progress"
+    },
+    "admin": {
+      "title": "Admin Login",
+      "description": "Access administrative features and system management"
+    }
+  },
   "faq": {
     "title": "Frequently Asked Questions",
     "description": "Find answers to common questions about reporting issues and managing your account.",

@@ -1761,6 +1761,24 @@
       "hidePassword": "Sembunyikan kata laluan"
     }
   },
+  "loginSelection": {
+    "title": "Pilih Jenis Log Masuk",
+    "subtitle": "Pilih cara anda ingin mengakses platform",
+    "backToHome": "Kembali ke Laman Utama",
+    "loginButton": "Log Masuk",
+    "staff": {
+      "title": "Log Masuk Kakitangan",
+      "description": "Akses papan pemuka kakitangan untuk mengurus isu dan perkhidmatan komuniti"
+    },
+    "community": {
+      "title": "Log Masuk Pengguna Komuniti",
+      "description": "Log masuk sebagai ahli komuniti untuk melaporkan isu dan menjejaki kemajuan"
+    },
+    "admin": {
+      "title": "Log Masuk Admin",
+      "description": "Akses ciri pentadbiran dan pengurusan sistem"
+    }
+  },
   "faq": {
     "title": "Soalan Lazim",
     "description": "Cari jawapan kepada soalan lazim tentang melaporkan isu dan menguruskan akaun anda.",

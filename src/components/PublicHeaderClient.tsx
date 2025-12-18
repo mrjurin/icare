@@ -275,7 +275,7 @@ export default function PublicHeaderClient({ appName }: PublicHeaderClientProps)
                 </div>
               ) : (
                 <Button asChild variant="outline" className="h-10 px-5">
-                  <Link href="/community/login">{t('loginRegister')}</Link>
+                  <Link href="/login">{t('loginRegister')}</Link>
                 </Button>
               )
             )}
@@ -381,7 +381,7 @@ export default function PublicHeaderClient({ appName }: PublicHeaderClientProps)
                   </>
                 ) : (
                   <Button asChild variant="outline" className="w-full h-12">
-                    <Link href="/community/login" onClick={() => setMobileMenuOpen(false)}>{t('loginRegister')}</Link>
+                    <Link href="/login" onClick={() => setMobileMenuOpen(false)}>{t('loginRegister')}</Link>
                   </Button>
                 )
               )}
