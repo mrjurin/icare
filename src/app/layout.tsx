@@ -21,7 +21,7 @@ export default async function RootLayout({
 
   return (
     <html className="light" lang="ms" suppressHydrationWarning>
-      <body className={publicSans.className}>
+      <body className={publicSans.className} suppressHydrationWarning>
         <NextIntlClientProvider messages={messages}>
           <LoadingOverlayProvider>
             <NavigationLoadingDetector />
