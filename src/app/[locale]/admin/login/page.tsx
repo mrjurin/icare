@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
+import { useTranslations } from "next-intl";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Eye, EyeOff, AlertCircle, Loader2, Mail, Lock, CheckCircle2, Shield } from "lucide-react";
@@ -11,6 +12,7 @@ import Link from "next/link";
 export default function AdminLoginPage() {
   const router = useRouter();
   const params = useParams();
+  const t = useTranslations("adminLogin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -127,12 +129,12 @@ export default function AdminLoginPage() {
   // Validate email on blur
   const validateEmail = (value: string) => {
     if (!value.trim()) {
-      setEmailError("Email is required");
+      setEmailError(t("emailRequired"));
       return false;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value.trim())) {
-      setEmailError("Please enter a valid email address");
+      setEmailError(t("emailInvalid"));
       return false;
     }
     setEmailError(null);
@@ -142,11 +144,11 @@ export default function AdminLoginPage() {
   // Validate password on blur
   const validatePassword = (value: string) => {
     if (!value) {
-      setPasswordError("Password is required");
+      setPasswordError(t("passwordRequired"));
       return false;
     }
     if (value.length < 6) {
-      setPasswordError("Password must be at least 6 characters");
+      setPasswordError(t("passwordMinLength"));
       return false;
     }
     setPasswordError(null);
@@ -187,18 +189,14 @@ export default function AdminLoginPage() {
             .single();
           
           if (staffCheck) {
-            setError(
-              "This account exists in the system but hasn't been set up in authentication. " +
-              "Please contact your administrator or ensure the user was created in Supabase Auth. " +
-              "If you ran the seeder, make sure SUPABASE_SERVICE_ROLE_KEY was set in your .env file."
-            );
+            setError(t("errors.accountNotSetup"));
           } else {
-            setError("Invalid email or password. Please check your credentials and try again.");
+            setError(t("errors.invalidCredentials"));
           }
         } else if (signInError.message.includes("Email not confirmed")) {
-          setError("Please verify your email address before signing in.");
+          setError(t("errors.emailNotConfirmed"));
         } else {
-          setError(signInError.message || "An error occurred. Please try again.");
+          setError(signInError.message || t("errors.genericError"));
         }
         setLoading(false);
         return;
@@ -216,7 +214,7 @@ export default function AdminLoginPage() {
         if (staffError || !staffData) {
           // User is authenticated but not a staff member
           await supabase.auth.signOut();
-          setError("Access denied. This account is not authorized for admin access. Please contact your administrator.");
+          setError(t("errors.accessDenied"));
           setLoading(false);
           return;
         }
@@ -229,7 +227,7 @@ export default function AdminLoginPage() {
         }, 500);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred. Please try again.");
+      setError(err instanceof Error ? err.message : t("errors.unexpectedError"));
       setLoading(false);
     }
   };
@@ -240,7 +238,7 @@ export default function AdminLoginPage() {
       <div className="flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
         <div className="flex items-center gap-3">
           <Loader2 className="size-6 animate-spin text-primary" />
-          <span className="text-lg text-gray-600 dark:text-gray-400">Checking authentication...</span>
+          <span className="text-lg text-gray-600 dark:text-gray-400">{t("checkingAuth")}</span>
         </div>
       </div>
     );
@@ -264,9 +262,9 @@ export default function AdminLoginPage() {
               <div className="absolute bottom-8 left-8 right-8 text-white">
                 <div className="flex items-center gap-2 mb-2">
                   <Shield className="size-6" />
-                  <h2 className="text-2xl font-bold">Admin Portal</h2>
+                  <h2 className="text-2xl font-bold">{t("adminPortal")}</h2>
                 </div>
-                <p className="text-sm text-gray-200">Manage {dunName} community services and resources.</p>
+                <p className="text-sm text-gray-200">{t("manageDescription", { dunName })}</p>
               </div>
             </div>
           </div>
@@ -279,11 +277,11 @@ export default function AdminLoginPage() {
                 <div className="flex items-center gap-2 mb-2">
                   <Shield className="size-6 text-primary" />
                   <h1 className="text-[#111418] dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">
-                    Admin Login
+                    {t("title")}
                   </h1>
                 </div>
                 <p className="text-[#617589] dark:text-gray-400 text-base">
-                  Sign in to access the admin dashboard for {dunName}.
+                  {t("subtitle", { dunName })}
                 </p>
               </div>
 
@@ -291,7 +289,7 @@ export default function AdminLoginPage() {
               {success && (
                 <div className="rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 flex items-center gap-3 transition-all duration-300 ease-in-out opacity-100">
                   <CheckCircle2 className="size-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                  <p className="text-sm text-green-800 dark:text-green-200 font-medium">Login successful! Redirecting...</p>
+                  <p className="text-sm text-green-800 dark:text-green-200 font-medium">{t("loginSuccessful")}</p>
                 </div>
               )}
 
@@ -309,11 +307,11 @@ export default function AdminLoginPage() {
                 <label className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <Mail className="size-4 text-[#617589] dark:text-gray-400" />
-                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">Email Address</span>
+                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">{t("emailAddress")}</span>
                   </div>
                   <Input
                     type="email"
-                    placeholder="admin@n18inanam.gov.my"
+                    placeholder={t("emailPlaceholder")}
                     className={`h-14 transition-all duration-200 ${
                       emailError ? "border-red-300 dark:border-red-700 focus:border-red-500 focus:ring-red-200 dark:focus:ring-red-900" : ""
                     }`}
@@ -340,7 +338,7 @@ export default function AdminLoginPage() {
                 <label className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <Lock className="size-4 text-[#617589] dark:text-gray-400" />
-                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">Password</span>
+                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">{t("password")}</span>
                   </div>
                   <PasswordField
                     password={password}
@@ -372,14 +370,14 @@ export default function AdminLoginPage() {
                       className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-primary focus:ring-2 focus:ring-primary/50 cursor-pointer transition-all"
                     />
                     <span className="text-sm text-[#617589] dark:text-gray-400 group-hover:text-[#111418] dark:group-hover:text-gray-300 transition-colors">
-                      Remember me
+                      {t("rememberMe")}
                     </span>
                   </label>
                   <Link
                     href={`/${params?.locale || "en"}/admin/forgot-password`}
                     className="text-primary text-sm font-medium hover:text-primary/80 underline underline-offset-2 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 rounded"
                   >
-                    Forgot Password?
+                    {t("forgotPassword")}
                   </Link>
                 </div>
               </div>
@@ -394,24 +392,24 @@ export default function AdminLoginPage() {
                   {loading ? (
                     <span className="flex items-center gap-2">
                       <Loader2 className="size-5 animate-spin" />
-                      <span>Logging in...</span>
+                      <span>{t("loggingIn")}</span>
                     </span>
                   ) : success ? (
                     <span className="flex items-center gap-2">
                       <CheckCircle2 className="size-5" />
-                      <span>Success!</span>
+                      <span>{t("success")}</span>
                     </span>
                   ) : (
-                    "Sign In"
+                    t("signIn")
                   )}
                 </Button>
                 <p className="text-[#617589] dark:text-gray-400 text-center text-sm">
-                  For community member login,{" "}
+                  {t("forCommunityMemberLogin")}{" "}
                   <a
                     className="font-semibold text-primary hover:text-primary/80 underline underline-offset-2 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 rounded"
                     href="/community/login"
                   >
-                    click here
+                    {t("clickHere")}
                   </a>
                 </p>
               </div>
@@ -438,6 +436,7 @@ function PasswordField({
   onBlur?: () => void;
   onFocus?: () => void;
 }) {
+  const t = useTranslations("adminLogin");
   const [show, setShow] = useState(false);
   const [focused, setFocused] = useState(false);
 
@@ -446,7 +445,7 @@ function PasswordField({
       <div className="flex-1 relative">
         <Input
           type={show ? "text" : "password"}
-          placeholder="Enter your password"
+          placeholder={t("passwordPlaceholder")}
           className={`h-14 w-full rounded-r-none border-r-0 transition-all duration-200 ${
             error ? "border-red-300 dark:border-red-700 focus:border-red-500 focus:ring-red-200 dark:focus:ring-red-900" : ""
           } ${focused ? "ring-2 ring-primary/20" : ""}`}
@@ -475,7 +474,7 @@ function PasswordField({
           e.stopPropagation();
           setShow((s) => !s);
         }}
-        aria-label={show ? "Hide password" : "Show password"}
+        aria-label={show ? t("hidePassword") : t("showPassword")}
         disabled={disabled}
         className={`flex-shrink-0 h-14 flex items-center justify-center px-4 rounded-r-lg border border-l-0 text-[#617589] dark:text-gray-400 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
           error ? "border-red-300 dark:border-red-700" : "border-[#dbe0e6] dark:border-gray-700"
