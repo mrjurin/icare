@@ -56,7 +56,15 @@
     "pages": "Pages",
     "backups": "Backups",
     "settings": "Settings",
-    "auditLogs": "Audit Logs"
+    "auditLogs": "Audit Logs",
+    "communityHub": "Community Hub",
+    "communityUpdates": "Community Updates",
+    "myProfile": "My Profile",
+    "faq": "FAQ",
+    "contactSupport": "Contact Support",
+    "logout": "Logout",
+    "user": "User",
+    "resident": "Resident"
   },
   "home": {
     "hero": {
@@ -443,6 +451,7 @@
     },
     "detail": {
       "dashboard": "Dashboard",
+      "report": "Report",
       "allIssues": "All Issues",
       "issueNotFound": "Issue not found.",
       "checkUrlOrOpenFromList": "Please check the URL or open an issue from the dashboard list.",
@@ -453,9 +462,19 @@
         "resolved": "Resolved",
         "closed": "Closed"
       },
+      "details": "Details",
+      "media": "Media",
+      "summary": "Summary",
+      "activity": "Activity",
+      "statusLabel": "Status",
+      "categoryLabel": "Category",
+      "reportedLabel": "Reported",
+      "reporterLabel": "Reporter",
+      "emailLabel": "Email",
+      "phoneLabel": "Phone",
       "issueDetails": "Issue Details",
       "submittedMedia": "Submitted Media",
-      "noMediaSubmitted": "No media submitted for this issue.",
+      "noMediaSubmitted": "No media submitted.",
       "videos": "Videos",
       "images": "Images",
       "location": "Location",

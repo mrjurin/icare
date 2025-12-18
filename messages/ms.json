@@ -56,7 +56,15 @@
     "pages": "Halaman",
     "backups": "Sandaran",
     "settings": "Tetapan",
-    "auditLogs": "Log Audit"
+    "auditLogs": "Log Audit",
+    "communityHub": "Hab Komuniti",
+    "communityUpdates": "Kemas Kini Komuniti",
+    "myProfile": "Profil Saya",
+    "faq": "Soalan Lazim",
+    "contactSupport": "Hubungi Sokongan",
+    "logout": "Log Keluar",
+    "user": "Pengguna",
+    "resident": "Penduduk"
   },
   "home": {
     "hero": {
@@ -441,6 +449,7 @@
     },
     "detail": {
       "dashboard": "Papan Pemuka",
+      "report": "Laporan",
       "allIssues": "Semua Isu",
       "issueNotFound": "Isu tidak dijumpai.",
       "checkUrlOrOpenFromList": "Sila semak URL atau buka isu dari senarai papan pemuka.",
@@ -451,9 +460,19 @@
         "resolved": "Diselesaikan",
         "closed": "Tutup"
       },
+      "details": "Butiran",
+      "media": "Media",
+      "summary": "Ringkasan",
+      "activity": "Aktiviti",
+      "statusLabel": "Status",
+      "categoryLabel": "Kategori",
+      "reportedLabel": "Dilaporkan",
+      "reporterLabel": "Pelapor",
+      "emailLabel": "E-mel",
+      "phoneLabel": "Telefon",
       "issueDetails": "Butiran Isu",
       "submittedMedia": "Media yang Dihantar",
-      "noMediaSubmitted": "Tiada media yang dihantar untuk isu ini.",
+      "noMediaSubmitted": "Tiada media yang dihantar.",
       "videos": "Video",
       "images": "Imej",
       "location": "Lokasi",

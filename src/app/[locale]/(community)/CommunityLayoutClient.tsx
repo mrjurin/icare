@@ -10,6 +10,7 @@ import Button from "@/components/ui/Button";
 import NotificationIcon from "@/components/NotificationIcon";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { getDunName } from "@/lib/actions/settings";
+import { useTranslations } from "next-intl";
 
 export default function CommunityLayoutClient({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -18,6 +19,8 @@ export default function CommunityLayoutClient({ children }: { children: ReactNod
   const [dunName, setDunName] = useState<string>("N.18 Inanam");
   const pathname = usePathname();
   const router = useRouter();
+  const t = useTranslations("nav");
+  const tCommon = useTranslations("common");
   
   // Extract locale from pathname (e.g., /en/community/... or /ms/community/...)
   const locale = useMemo(() => {
@@ -54,13 +57,13 @@ export default function CommunityLayoutClient({ children }: { children: ReactNod
         if (profileError || !profile) {
           // If profile not found, use auth user data as fallback
           setUserProfile({
-            fullName: user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
+            fullName: user.user_metadata?.full_name || user.email?.split("@")[0] || null,
             avatarUrl: null,
             email: user.email,
           });
         } else {
           setUserProfile({
-            fullName: profile.full_name || user.email?.split("@")[0] || "User",
+            fullName: profile.full_name || user.email?.split("@")[0] || null,
             avatarUrl: profile.avatar_url,
             email: profile.email || user.email,
           });
@@ -143,13 +146,13 @@ export default function CommunityLayoutClient({ children }: { children: ReactNod
               <path clipRule="evenodd" d="M24 8.18819L33.4123 11.574L24 15.2071L14.5877 11.574L24 8.18819ZM9 15.8487L21 20.4805V37.6263L9 32.9945V15.8487ZM27 37.6263V20.4805L39 15.8487V32.9945L27 37.6263ZM25.354 2.29885C24.4788 1.98402 23.5212 1.98402 22.646 2.29885L4.98454 8.65208C3.7939 9.08038 3 10.2097 3 11.475V34.3663C3 36.0196 4.01719 37.5026 5.55962 38.098L22.9197 44.7987C23.6149 45.0671 24.3851 45.0671 25.0803 44.7987L42.4404 38.098C43.9828 37.5026 45 36.0196 45 34.3663V11.475C45 10.2097 44.2061 9.08038 43.0155 8.65208L25.354 2.29885Z" fillRule="evenodd"></path>
             </svg>
           </div>
-          <span style={{ fontWeight: 700 }}>{dunName} Community Hub</span>
+          <span style={{ fontWeight: 700 }}>{dunName} {t("communityHub")}</span>
         </div>
         <div className={styles.topbarActions}>
           <NotificationIcon href={`/${locale}/community/notifications`} />
           <LanguageSwitcher />
           <Button asChild className={styles.reportBtn}>
-            <Link href={`/${locale}/community/report`}>Report a New Issue</Link>
+            <Link href={`/${locale}/community/report`}>{t("reportIssue")}</Link>
           </Button>
           {userProfile?.avatarUrl ? (
             <Image className={styles.avatar} alt="User" src={userProfile.avatarUrl} width={40} height={40} />
@@ -166,7 +169,7 @@ export default function CommunityLayoutClient({ children }: { children: ReactNod
               fontWeight: "bold",
               fontSize: "16px"
             }}>
-              {userProfile?.fullName?.[0]?.toUpperCase() || "U"}
+                    {(userProfile?.fullName?.[0] || t("user")[0])?.toUpperCase()}
             </div>
           )}
         </div>
@@ -207,14 +210,14 @@ export default function CommunityLayoutClient({ children }: { children: ReactNod
                     fontWeight: "bold",
                     fontSize: "16px"
                   }}>
-                    {userProfile?.fullName?.[0]?.toUpperCase() || "U"}
+                    {(userProfile?.fullName?.[0] || t("user")[0])?.toUpperCase()}
                   </div>
                 )}
                 <div>
                   <p className={styles.sideUserName}>
-                    {loading ? "Loading..." : (userProfile?.fullName || "User")}
+                    {loading ? tCommon("loading") : (userProfile?.fullName || t("user"))}
                   </p>
-                  <p className={styles.sideUserRole}>Resident</p>
+                  <p className={styles.sideUserRole}>{t("resident")}</p>
                 </div>
               </div>
               <button
@@ -226,16 +229,16 @@ export default function CommunityLayoutClient({ children }: { children: ReactNod
               </button>
             </div>
             <div className={styles.sideNav}>
-              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/dashboard` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/dashboard`} onClick={closeSidebar}>Dashboard</Link>
-              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/report` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/report`} onClick={closeSidebar}>Report a New Issue</Link>
-              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/notifications` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/notifications`} onClick={closeSidebar}>Notifications</Link>
-              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/announcements` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/announcements`} onClick={closeSidebar}>Community Updates</Link>
-              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/profile` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/profile`} onClick={closeSidebar}>My Profile</Link>
+              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/dashboard` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/dashboard`} onClick={closeSidebar}>{t("dashboard")}</Link>
+              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/report` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/report`} onClick={closeSidebar}>{t("reportIssue")}</Link>
+              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/notifications` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/notifications`} onClick={closeSidebar}>{t("notifications")}</Link>
+              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/announcements` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/announcements`} onClick={closeSidebar}>{t("communityUpdates")}</Link>
+              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/profile` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/profile`} onClick={closeSidebar}>{t("myProfile")}</Link>
             </div>
             <div className={styles.sideMeta}>
-              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/faq` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/faq`} onClick={closeSidebar}>FAQ</Link>
-              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/support` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/support`} onClick={closeSidebar}>Contact Support</Link>
-              <Link className={styles.sideLink} href="#" onClick={handleLogout}>Logout</Link>
+              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/faq` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/faq`} onClick={closeSidebar}>{t("faq")}</Link>
+              <Link className={`${styles.sideLink} ${pathname === `/${locale}/community/support` ? styles.sideLinkActive : ""}`} href={`/${locale}/community/support`} onClick={closeSidebar}>{t("contactSupport")}</Link>
+              <Link className={styles.sideLink} href="#" onClick={handleLogout}>{t("logout")}</Link>
             </div>
           </div>
         </aside>

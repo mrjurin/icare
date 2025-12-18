@@ -4,30 +4,35 @@ import { getSupabaseReadOnlyClient } from "@/lib/supabase/server";
 import { getIssueActivity } from "@/lib/actions/issues";
 import ActivityLog from "@/components/issues/ActivityLog";
 import ImagePreview from "./ImagePreview";
+import { getTranslations, getLocale } from "next-intl/server";
 
-function statusBadge(s: string) {
-  const map: Record<string, { cls: string; label: string }> = {
-    pending: { cls: "bg-orange-100 text-orange-600", label: "Pending" },
-    in_progress: { cls: "bg-blue-100 text-blue-600", label: "In Progress" },
-    resolved: { cls: "bg-green-100 text-green-600", label: "Resolved" },
-    closed: { cls: "bg-gray-100 text-gray-600", label: "Closed" },
+function StatusBadge({ status, label }: { status: string; label: string }) {
+  const map: Record<string, string> = {
+    pending: "bg-orange-100 text-orange-600",
+    in_progress: "bg-blue-100 text-blue-600",
+    resolved: "bg-green-100 text-green-600",
+    closed: "bg-gray-100 text-gray-600",
   };
-  const m = map[s] ?? map.pending;
-  return <span className={`inline-flex items-center rounded-full h-7 px-3 text-xs font-medium ${m.cls}`}>{m.label}</span>;
+  const cls = map[status] ?? map.pending;
+  return <span className={`inline-flex items-center rounded-full h-7 px-3 text-xs font-medium ${cls}`}>{label}</span>;
 }
 
 export default async function CommunityIssueDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const idNum = Number(id);
+  const t = await getTranslations("issues.detail");
+  const locale = await getLocale();
+  const basePath = `/${locale}`;
+  
   if (!idNum || Number.isNaN(idNum)) {
     return (
       <div className="space-y-8">
         <div className="flex flex-wrap gap-2 text-sm">
-          <Link href="/community/dashboard" className="text-gray-500 hover:text-primary">Dashboard</Link>
+          <Link href={`${basePath}/community/dashboard`} className="text-gray-500 hover:text-primary">{t("dashboard")}</Link>
         </div>
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">
-          <p className="text-base text-gray-700 dark:text-gray-300">Issue not found.</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Please check the URL or open an issue from the dashboard list.</p>
+          <p className="text-base text-gray-700 dark:text-gray-300">{t("issueNotFound")}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t("checkUrlOrOpenFromList")}</p>
         </div>
       </div>
     );
@@ -45,11 +50,11 @@ export default async function CommunityIssueDetailPage({ params }: { params: Pro
     return (
       <div className="space-y-8">
         <div className="flex flex-wrap gap-2 text-sm">
-          <Link href="/community/dashboard" className="text-gray-500 hover:text-primary">Dashboard</Link>
+          <Link href={`${basePath}/community/dashboard`} className="text-gray-500 hover:text-primary">{t("dashboard")}</Link>
         </div>
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">
-          <p className="text-base text-gray-700 dark:text-gray-300">Issue not found.</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">The requested issue does not exist or you may not have access.</p>
+          <p className="text-base text-gray-700 dark:text-gray-300">{t("issueNotFound")}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t("issueNotExistOrNoAccess")}</p>
         </div>
       </div>
     );
@@ -91,12 +96,14 @@ export default async function CommunityIssueDetailPage({ params }: { params: Pro
     ? `https://www.openstreetmap.org/export/embed.html?bbox=${(Number(issue.lng) - 0.005).toFixed(5)},${(Number(issue.lat) - 0.005).toFixed(5)},${(Number(issue.lng) + 0.005).toFixed(5)},${(Number(issue.lat) + 0.005).toFixed(5)}&layer=mapnik&marker=${Number(issue.lat).toFixed(5)},${Number(issue.lng).toFixed(5)}`
     : "";
 
+  const statusLabel = t(`status.${issue.status}`, { defaultValue: issue.status });
+  
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap gap-2 text-sm">
-        <Link href="/community/dashboard" className="text-gray-500 hover:text-primary">Dashboard</Link>
+        <Link href={`${basePath}/community/dashboard`} className="text-gray-500 hover:text-primary">{t("dashboard")}</Link>
         <span className="text-gray-400">/</span>
-        <Link href="/community/report" className="text-gray-500 hover:text-primary">Report</Link>
+        <Link href={`${basePath}/community/report`} className="text-gray-500 hover:text-primary">{t("report")}</Link>
         <span className="text-gray-400">/</span>
         <span className="text-gray-900 dark:text-white font-medium">#{issue.id}</span>
       </div>
@@ -105,7 +112,7 @@ export default async function CommunityIssueDetailPage({ params }: { params: Pro
         <div className="min-w-72 flex-1">
           <div className="flex items-center gap-4">
             <p className="text-4xl font-black tracking-[-0.033em] text-gray-900 dark:text-white">{issue.title}</p>
-            {statusBadge(issue.status)}
+            <StatusBadge status={issue.status} label={statusLabel} />
           </div>
           <p className="text-gray-600 dark:text-gray-300">{catLabel} • {dateStr}</p>
         </div>
@@ -114,14 +121,14 @@ export default async function CommunityIssueDetailPage({ params }: { params: Pro
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 flex flex-col gap-6">
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">
-            <h2 className="text-lg font-bold tracking-[-0.015em] text-gray-900 dark:text-white pb-2">Details</h2>
+            <h2 className="text-lg font-bold tracking-[-0.015em] text-gray-900 dark:text-white pb-2">{t("details")}</h2>
             <p className="text-gray-600 dark:text-gray-300">{issue.description}</p>
           </div>
 
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">
-            <h2 className="text-lg font-bold tracking-[-0.015em] text-gray-900 dark:text-white pb-2">Media</h2>
+            <h2 className="text-lg font-bold tracking-[-0.015em] text-gray-900 dark:text-white pb-2">{t("media")}</h2>
             {media.length === 0 ? (
-              <p className="text-sm text-gray-600 dark:text-gray-300">No media submitted.</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">{t("noMediaSubmitted")}</p>
             ) : (
               <div className="space-y-4">
                 <ImagePreview media={media} issueTitle={issue.title} />
@@ -139,14 +146,14 @@ export default async function CommunityIssueDetailPage({ params }: { params: Pro
           </div>
 
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">
-            <h2 className="text-lg font-bold tracking-[-0.015em] text-gray-900 dark:text-white pb-2">Location</h2>
+            <h2 className="text-lg font-bold tracking-[-0.015em] text-gray-900 dark:text-white pb-2">{t("location")}</h2>
             <div className="flex flex-col gap-4">
               {hasCoords ? (
                 <div className="h-64 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800">
-                  <iframe src={mapSrc} className="w-full h-full" loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Issue Location" />
+                  <iframe src={mapSrc} className="w-full h-full" loading="lazy" referrerPolicy="no-referrer-when-downgrade" title={t("issueLocationTitle")} />
                 </div>
               ) : (
-                <div className="h-32 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center text-sm text-gray-500">No coordinates available</div>
+                <div className="h-32 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center text-sm text-gray-500">{t("noCoordinatesAvailable")}</div>
               )}
               <p className="text-gray-600 dark:text-gray-300">{issue.address}</p>
             </div>
@@ -155,21 +162,21 @@ export default async function CommunityIssueDetailPage({ params }: { params: Pro
 
         <div className="flex flex-col gap-6">
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">
-            <h2 className="text-lg font-bold tracking-[-0.015em] text-gray-900 dark:text-white pb-2">Summary</h2>
+            <h2 className="text-lg font-bold tracking-[-0.015em] text-gray-900 dark:text-white pb-2">{t("summary")}</h2>
             <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
-              <p><span className="font-medium">Status:</span> {issue.status.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}</p>
-              <p><span className="font-medium">Category:</span> {catLabel}</p>
-              <p><span className="font-medium">Reported:</span> {dateStr}</p>
+              <p><span className="font-medium">{t("statusLabel")}:</span> {statusLabel}</p>
+              <p><span className="font-medium">{t("categoryLabel")}:</span> {catLabel}</p>
+              <p><span className="font-medium">{t("reportedLabel")}:</span> {dateStr}</p>
               {reporterInfo && (
                 <>
                   {reporterInfo.full_name && (
-                    <p><span className="font-medium">Reporter:</span> {reporterInfo.full_name}</p>
+                    <p><span className="font-medium">{t("reporterLabel")}:</span> {reporterInfo.full_name}</p>
                   )}
                   {reporterInfo.email && (
-                    <p><span className="font-medium">Email:</span> <a href={`mailto:${reporterInfo.email}`} className="text-primary hover:underline">{reporterInfo.email}</a></p>
+                    <p><span className="font-medium">{t("emailLabel")}:</span> <a href={`mailto:${reporterInfo.email}`} className="text-primary hover:underline">{reporterInfo.email}</a></p>
                   )}
                   {reporterInfo.phone && (
-                    <p><span className="font-medium">Phone:</span> <a href={`tel:${reporterInfo.phone}`} className="text-primary hover:underline">{reporterInfo.phone}</a></p>
+                    <p><span className="font-medium">{t("phoneLabel")}:</span> <a href={`tel:${reporterInfo.phone}`} className="text-primary hover:underline">{reporterInfo.phone}</a></p>
                   )}
                 </>
               )}
@@ -177,7 +184,7 @@ export default async function CommunityIssueDetailPage({ params }: { params: Pro
           </div>
 
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">
-            <h2 className="text-lg font-bold tracking-[-0.015em] text-gray-900 dark:text-white pb-4">Activity</h2>
+            <h2 className="text-lg font-bold tracking-[-0.015em] text-gray-900 dark:text-white pb-4">{t("activity")}</h2>
             <ActivityLog activities={activity} />
           </div>
         </div>
