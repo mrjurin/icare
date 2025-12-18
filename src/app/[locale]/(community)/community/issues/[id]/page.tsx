@@ -35,7 +35,7 @@ export default async function CommunityIssueDetailPage({ params }: { params: Pro
   const supabase = await getSupabaseReadOnlyClient();
   const { data: issue, error: issueErr } = await supabase
     .from("issues")
-    .select("id,title,description,status,address,category,created_at,lat,lng")
+    .select("id,title,description,status,address,category,created_at,lat,lng,reporter_id")
     .eq("id", idNum)
     .maybeSingle();
   if (issueErr) {
@@ -62,6 +62,24 @@ export default async function CommunityIssueDetailPage({ params }: { params: Pro
     console.error("media fetch error", mediaErr.message);
   }
   const media: Array<{ url: string; type?: string | null; size_bytes?: number | null }> = Array.isArray(mediaRows) ? mediaRows : [];
+
+  // Fetch reporter information
+  let reporterInfo: { full_name: string | null; email: string | null; phone: string | null } | null = null;
+  if (issue?.reporter_id) {
+    const { data: reporter, error: reporterError } = await supabase
+      .from("profiles")
+      .select("full_name,email,phone")
+      .eq("id", issue.reporter_id)
+      .maybeSingle();
+    
+    if (!reporterError && reporter) {
+      reporterInfo = {
+        full_name: reporter.full_name || null,
+        email: reporter.email || null,
+        phone: reporter.phone || null,
+      };
+    }
+  }
 
   // Get activity log using shared function
   const activity = await getIssueActivity(idNum);
@@ -139,9 +157,22 @@ export default async function CommunityIssueDetailPage({ params }: { params: Pro
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">
             <h2 className="text-lg font-bold tracking-[-0.015em] text-gray-900 dark:text-white pb-2">Summary</h2>
             <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
-              <p><span className="font-medium">Status:</span> {issue.status.replace(/_/g, " ")}</p>
+              <p><span className="font-medium">Status:</span> {issue.status.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}</p>
               <p><span className="font-medium">Category:</span> {catLabel}</p>
               <p><span className="font-medium">Reported:</span> {dateStr}</p>
+              {reporterInfo && (
+                <>
+                  {reporterInfo.full_name && (
+                    <p><span className="font-medium">Reporter:</span> {reporterInfo.full_name}</p>
+                  )}
+                  {reporterInfo.email && (
+                    <p><span className="font-medium">Email:</span> <a href={`mailto:${reporterInfo.email}`} className="text-primary hover:underline">{reporterInfo.email}</a></p>
+                  )}
+                  {reporterInfo.phone && (
+                    <p><span className="font-medium">Phone:</span> <a href={`tel:${reporterInfo.phone}`} className="text-primary hover:underline">{reporterInfo.phone}</a></p>
+                  )}
+                </>
+              )}
             </div>
           </div>
 

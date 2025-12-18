@@ -2,6 +2,7 @@
 
 import { Link } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import Button from "@/components/ui/Button";
 import { 
   FileText, 
@@ -41,9 +42,22 @@ export default function HomeClient({ appName, announcements, totalAnnouncements,
             {/* Hero Section */}
             <section className="py-12 md:py-20 lg:py-28 animate-in fade-in slide-in-from-bottom-4 duration-700">
               <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 p-8 md:p-12 lg:p-16 border border-primary/20 dark:border-primary/30 shadow-xl">
+                {/* Background Image */}
+                <div className="absolute inset-0 z-0">
+                  <Image
+                    src="https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=1920&q=80"
+                    alt="Community"
+                    fill
+                    className="object-cover opacity-20 dark:opacity-10"
+                    priority
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 1200px"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10"></div>
+                </div>
+                
                 {/* Decorative background elements */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 z-0"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 z-0"></div>
                 
                 <div className="relative z-10 flex flex-col items-center text-center max-w-3xl mx-auto gap-6">
                   <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-tight tracking-[-0.033em] text-gray-900 dark:text-white">

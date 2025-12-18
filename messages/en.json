@@ -1709,6 +1709,28 @@
     "empty": {
       "noIssues": "No issues yet. Submit a new report to see it here.",
       "noFilteredIssues": "No {filter} issues found. Submit a new report to see it here."
+    },
+    "statistics": {
+      "title": "Issue Statistics",
+      "totalIssues": "Total Issues",
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "resolved": "Resolved"
+    },
+    "charts": {
+      "title": "Charts & Analytics",
+      "statusDistribution": "Status Distribution",
+      "categoryBreakdown": "Category Breakdown",
+      "monthlyTrends": "Monthly Trends (Last 6 Months)",
+      "issues": "issues",
+      "noData": "No data available"
+    },
+    "summary": {
+      "title": "Issue Summary",
+      "resolutionRate": "Your issue resolution rate is {rate}%.",
+      "mostCommonCategory": "Your most common issue category is {category} with {count} {count, plural, =1 {issue} other {issues}}.",
+      "resolvedIssues": "Great job! You have {count} {count, plural, =1 {resolved issue} other {resolved issues}}.",
+      "noIssues": "Start reporting issues to see your statistics and insights here."
     }
   }
 }

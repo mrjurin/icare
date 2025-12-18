@@ -1704,6 +1704,28 @@
     "empty": {
       "noIssues": "Tiada isu lagi. Hantar laporan baharu untuk melihatnya di sini.",
       "noFilteredIssues": "Tiada isu {filter} ditemui. Hantar laporan baharu untuk melihatnya di sini."
+    },
+    "statistics": {
+      "title": "Statistik Isu",
+      "totalIssues": "Jumlah Isu",
+      "pending": "Menunggu",
+      "inProgress": "Sedang Diproses",
+      "resolved": "Diselesaikan"
+    },
+    "charts": {
+      "title": "Carta & Analitik",
+      "statusDistribution": "Taburan Status",
+      "categoryBreakdown": "Pecahan Kategori",
+      "monthlyTrends": "Trend Bulanan (6 Bulan Lalu)",
+      "issues": "isu",
+      "noData": "Tiada data tersedia"
+    },
+    "summary": {
+      "title": "Ringkasan Isu",
+      "resolutionRate": "Kadar penyelesaian isu anda ialah {rate}%.",
+      "mostCommonCategory": "Kategori isu yang paling biasa anda laporkan ialah {category} dengan {count} {count, plural, =1 {isu} other {isu}}.",
+      "resolvedIssues": "Tahniah! Anda mempunyai {count} {count, plural, =1 {isu yang diselesaikan} other {isu yang diselesaikan}}.",
+      "noIssues": "Mula laporkan isu untuk melihat statistik dan pandangan anda di sini."
     }
   }
 }
