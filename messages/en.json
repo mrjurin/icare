@@ -1914,5 +1914,76 @@
       "failedToUpdate": "Failed to update profile",
       "unexpectedError": "An unexpected error occurred. Please try again."
     }
+  },
+  "communityRegister": {
+    "title": "Create Account",
+    "subtitle": "Join the {dunName} Community to report issues and connect with your neighbors.",
+    "hero": {
+      "title": "Join Our Community!",
+      "description": "Create an account to report issues and connect with your neighbors in {dunName}."
+    },
+    "success": {
+      "title": "Account created successfully!",
+      "linkedToHousehold": "Your account has been automatically linked to your household record. Your zone leader will verify your information.",
+      "redirecting": "Redirecting..."
+    },
+    "fields": {
+      "fullName": "Full Name",
+      "fullNamePlaceholder": "Enter your full name",
+      "emailAddress": "Email Address",
+      "emailPlaceholder": "you@example.com",
+      "icNumber": "IC Number",
+      "icNumberPlaceholder": "e.g., 850101-01-1234",
+      "zone": "Zone",
+      "zonePlaceholder": "Select a zone",
+      "village": "Village",
+      "villagePlaceholder": "Select a village",
+      "villageLoading": "Loading villages...",
+      "villageSelectZoneFirst": "Select a zone first",
+      "password": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "confirmPassword": "Confirm Password",
+      "confirmPasswordPlaceholder": "Confirm your password"
+    },
+    "validation": {
+      "fullNameRequired": "Full name is required",
+      "fullNameMinLength": "Full name must be at least 2 characters",
+      "emailRequired": "Email is required",
+      "emailInvalid": "Please enter a valid email address",
+      "icNumberRequired": "IC number is required",
+      "icNumberInvalid": "IC number must be 10-12 digits",
+      "passwordRequired": "Password is required",
+      "passwordMinLength": "Password must be at least 6 characters",
+      "confirmPasswordRequired": "Please confirm your password",
+      "passwordsDoNotMatch": "Passwords do not match",
+      "zoneRequired": "Please select a zone",
+      "villageRequired": "Please select a village",
+      "termsRequired": "Please accept the Terms of Service and Privacy Policy to continue"
+    },
+    "terms": {
+      "accept": "I agree to the",
+      "termsOfService": "Terms of Service",
+      "and": "and",
+      "privacyPolicy": "Privacy Policy"
+    },
+    "submit": {
+      "button": "Create Account",
+      "creating": "Creating account...",
+      "success": "Success!"
+    },
+    "loginLink": {
+      "alreadyHaveAccount": "Already have an account?",
+      "loginHere": "Log in here"
+    },
+    "errors": {
+      "generic": "An error occurred. Please try again.",
+      "unexpected": "An unexpected error occurred. Please try again."
+    },
+    "passwordToggle": {
+      "show": "Show password",
+      "hide": "Hide password"
+    },
+    "backToLogin": "Back to Login",
+    "backToHome": "Back to Home"
   }
 }

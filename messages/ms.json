@@ -1904,5 +1904,76 @@
       "failedToUpdate": "Gagal mengemaskini profil",
       "unexpectedError": "Ralat tidak dijangka telah berlaku. Sila cuba lagi."
     }
+  },
+  "communityRegister": {
+    "title": "Cipta Akaun",
+    "subtitle": "Sertai Komuniti {dunName} untuk melaporkan isu dan berhubung dengan jiran anda.",
+    "hero": {
+      "title": "Sertai Komuniti Kami!",
+      "description": "Cipta akaun untuk melaporkan isu dan berhubung dengan jiran anda di {dunName}."
+    },
+    "success": {
+      "title": "Akaun berjaya dicipta!",
+      "linkedToHousehold": "Akaun anda telah dikaitkan secara automatik dengan rekod isi rumah anda. Ketua zon anda akan mengesahkan maklumat anda.",
+      "redirecting": "Mengalihkan..."
+    },
+    "fields": {
+      "fullName": "Nama Penuh",
+      "fullNamePlaceholder": "Masukkan nama penuh anda",
+      "emailAddress": "Alamat E-mel",
+      "emailPlaceholder": "anda@contoh.com",
+      "icNumber": "Nombor IC",
+      "icNumberPlaceholder": "cth., 850101-01-1234",
+      "zone": "Zon",
+      "zonePlaceholder": "Pilih zon",
+      "village": "Kampung",
+      "villagePlaceholder": "Pilih kampung",
+      "villageLoading": "Memuatkan kampung...",
+      "villageSelectZoneFirst": "Pilih zon terlebih dahulu",
+      "password": "Kata Laluan",
+      "passwordPlaceholder": "Masukkan kata laluan anda",
+      "confirmPassword": "Sahkan Kata Laluan",
+      "confirmPasswordPlaceholder": "Sahkan kata laluan anda"
+    },
+    "validation": {
+      "fullNameRequired": "Nama penuh diperlukan",
+      "fullNameMinLength": "Nama penuh mestilah sekurang-kurangnya 2 aksara",
+      "emailRequired": "E-mel diperlukan",
+      "emailInvalid": "Sila masukkan alamat e-mel yang sah",
+      "icNumberRequired": "Nombor IC diperlukan",
+      "icNumberInvalid": "Nombor IC mestilah 10-12 digit",
+      "passwordRequired": "Kata laluan diperlukan",
+      "passwordMinLength": "Kata laluan mestilah sekurang-kurangnya 6 aksara",
+      "confirmPasswordRequired": "Sila sahkan kata laluan anda",
+      "passwordsDoNotMatch": "Kata laluan tidak sepadan",
+      "zoneRequired": "Sila pilih zon",
+      "villageRequired": "Sila pilih kampung",
+      "termsRequired": "Sila terima Terma Perkhidmatan dan Dasar Privasi untuk meneruskan"
+    },
+    "terms": {
+      "accept": "Saya bersetuju dengan",
+      "termsOfService": "Terma Perkhidmatan",
+      "and": "dan",
+      "privacyPolicy": "Dasar Privasi"
+    },
+    "submit": {
+      "button": "Cipta Akaun",
+      "creating": "Mencipta akaun...",
+      "success": "Berjaya!"
+    },
+    "loginLink": {
+      "alreadyHaveAccount": "Sudah mempunyai akaun?",
+      "loginHere": "Log masuk di sini"
+    },
+    "errors": {
+      "generic": "Ralat telah berlaku. Sila cuba lagi.",
+      "unexpected": "Ralat tidak dijangka telah berlaku. Sila cuba lagi."
+    },
+    "passwordToggle": {
+      "show": "Tunjukkan kata laluan",
+      "hide": "Sembunyikan kata laluan"
+    },
+    "backToLogin": "Kembali ke Log Masuk",
+    "backToHome": "Kembali ke Laman Utama"
   }
 }

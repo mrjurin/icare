@@ -1,16 +1,20 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link as I18nLink } from '@/i18n/routing';
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import { Eye, EyeOff, AlertCircle, Loader2, Mail, Lock, CheckCircle2, User, CreditCard, MapPin, Building2 } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, Loader2, Mail, Lock, CheckCircle2, User, CreditCard, MapPin, Building2, ArrowLeft, Home } from "lucide-react";
 import { registerCommunityUser } from "@/lib/actions/auth";
 import { getZonesPublic } from "@/lib/actions/zones";
 import { getVillagesPublic } from "@/lib/actions/villages";
+import { getDunName } from "@/lib/actions/settings";
 import type { Zone } from "@/lib/actions/zones";
 import type { Village } from "@/lib/actions/villages";
 
 export default function CommunityRegisterPage() {
+  const t = useTranslations("communityRegister");
   const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -31,12 +35,28 @@ export default function CommunityRegisterPage() {
   const [villageError, setVillageError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [linkedToHousehold, setLinkedToHousehold] = useState(false);
+  const [dunName, setDunName] = useState<string>("N.18 Inanam");
 
   // Data for dropdowns
   const [zones, setZones] = useState<Zone[]>([]);
   const [villages, setVillages] = useState<Village[]>([]);
   const [loadingZones, setLoadingZones] = useState(true);
   const [loadingVillages, setLoadingVillages] = useState(false);
+
+  // Load DUN name
+  useEffect(() => {
+    const loadDunName = async () => {
+      try {
+        const result = await getDunName();
+        if (result) {
+          setDunName(result);
+        }
+      } catch (err) {
+        console.error("Failed to load DUN name:", err);
+      }
+    };
+    loadDunName();
+  }, []);
 
   // Fetch zones on mount
   useEffect(() => {
@@ -75,11 +95,11 @@ export default function CommunityRegisterPage() {
   // Validate full name on blur
   const validateFullName = (value: string) => {
     if (!value.trim()) {
-      setFullNameError("Full name is required");
+      setFullNameError(t("validation.fullNameRequired"));
       return false;
     }
     if (value.trim().length < 2) {
-      setFullNameError("Full name must be at least 2 characters");
+      setFullNameError(t("validation.fullNameMinLength"));
       return false;
     }
     setFullNameError(null);
@@ -89,12 +109,12 @@ export default function CommunityRegisterPage() {
   // Validate email on blur
   const validateEmail = (value: string) => {
     if (!value.trim()) {
-      setEmailError("Email is required");
+      setEmailError(t("validation.emailRequired"));
       return false;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value.trim())) {
-      setEmailError("Please enter a valid email address");
+      setEmailError(t("validation.emailInvalid"));
       return false;
     }
     setEmailError(null);
@@ -104,13 +124,13 @@ export default function CommunityRegisterPage() {
   // Validate IC number on blur
   const validateIcNumber = (value: string) => {
     if (!value.trim()) {
-      setIcNumberError("IC number is required");
+      setIcNumberError(t("validation.icNumberRequired"));
       return false;
     }
     // Remove dashes and spaces for validation
     const cleaned = value.replace(/\D/g, "");
     if (cleaned.length < 10 || cleaned.length > 12) {
-      setIcNumberError("IC number must be 10-12 digits");
+      setIcNumberError(t("validation.icNumberInvalid"));
       return false;
     }
     setIcNumberError(null);
@@ -120,11 +140,11 @@ export default function CommunityRegisterPage() {
   // Validate password on blur
   const validatePassword = (value: string) => {
     if (!value) {
-      setPasswordError("Password is required");
+      setPasswordError(t("validation.passwordRequired"));
       return false;
     }
     if (value.length < 6) {
-      setPasswordError("Password must be at least 6 characters");
+      setPasswordError(t("validation.passwordMinLength"));
       return false;
     }
     setPasswordError(null);
@@ -134,11 +154,11 @@ export default function CommunityRegisterPage() {
   // Validate confirm password on blur
   const validateConfirmPassword = (value: string) => {
     if (!value) {
-      setConfirmPasswordError("Please confirm your password");
+      setConfirmPasswordError(t("validation.confirmPasswordRequired"));
       return false;
     }
     if (value !== password) {
-      setConfirmPasswordError("Passwords do not match");
+      setConfirmPasswordError(t("validation.passwordsDoNotMatch"));
       return false;
     }
     setConfirmPasswordError(null);
@@ -164,10 +184,10 @@ export default function CommunityRegisterPage() {
     const isConfirmPasswordValid = validateConfirmPassword(confirmPassword);
 
     if (!zoneId || zoneId === 0) {
-      setZoneError("Please select a zone");
+      setZoneError(t("validation.zoneRequired"));
     }
     if (!villageId || villageId === 0) {
-      setVillageError("Please select a village");
+      setVillageError(t("validation.villageRequired"));
     }
 
     if (!isFullNameValid || !isEmailValid || !isIcNumberValid || !isPasswordValid || !isConfirmPasswordValid || !zoneId || !villageId) {
@@ -175,7 +195,7 @@ export default function CommunityRegisterPage() {
     }
 
     if (!termsAccepted) {
-      setError("Please accept the Terms of Service and Privacy Policy to continue");
+      setError(t("validation.termsRequired"));
       return;
     }
 
@@ -192,7 +212,7 @@ export default function CommunityRegisterPage() {
       });
 
       if (!result.success) {
-        setError(result.error || "An error occurred. Please try again.");
+        setError(result.error || t("errors.generic"));
         setLoading(false);
         return;
       }
@@ -209,7 +229,7 @@ export default function CommunityRegisterPage() {
         router.refresh();
       }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred. Please try again.");
+      setError(err instanceof Error ? err.message : t("errors.unexpected"));
       setLoading(false);
     }
   };
@@ -229,22 +249,39 @@ export default function CommunityRegisterPage() {
             >
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
               <div className="absolute bottom-8 left-8 right-8 text-white">
-                <h2 className="text-2xl font-bold mb-2">Join Our Community!</h2>
-                <p className="text-sm text-gray-200">Create an account to report issues and connect with your neighbors in N.18 Inanam.</p>
+                <h2 className="text-2xl font-bold mb-2">{t("hero.title")}</h2>
+                <p className="text-sm text-gray-200">{t("hero.description", { dunName })}</p>
               </div>
             </div>
           </div>
 
           {/* Right side - Form */}
           <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 sm:p-12 md:p-16">
+            {/* Back to Login Selection and Home */}
+            <div className="mb-4 flex items-center gap-3">
+              <I18nLink 
+                href="/community/login" 
+                className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors text-sm font-medium"
+              >
+                <ArrowLeft className="size-4" />
+                {t("backToLogin")}
+              </I18nLink>
+              <I18nLink 
+                href="/" 
+                className="inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+                title="Go to Home"
+              >
+                <Home className="size-4" />
+              </I18nLink>
+            </div>
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
               {/* Header */}
               <div className="flex flex-col gap-2">
                 <h1 className="text-[#111418] dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">
-                  Create Account
+                  {t("title")}
                 </h1>
                 <p className="text-[#617589] dark:text-gray-400 text-base">
-                  Join the N.18 Inanam Community to report issues and connect with your neighbors.
+                  {t("subtitle", { dunName })}
                 </p>
               </div>
 
@@ -253,14 +290,14 @@ export default function CommunityRegisterPage() {
                 <div className="rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 flex flex-col gap-2 transition-all duration-300 ease-in-out opacity-100">
                   <div className="flex items-center gap-3">
                     <CheckCircle2 className="size-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                    <p className="text-sm text-green-800 dark:text-green-200 font-medium">Account created successfully!</p>
+                    <p className="text-sm text-green-800 dark:text-green-200 font-medium">{t("success.title")}</p>
                   </div>
                   {linkedToHousehold && (
                     <p className="text-xs text-green-700 dark:text-green-300 ml-8">
-                      Your account has been automatically linked to your household record. Your zone leader will verify your information.
+                      {t("success.linkedToHousehold")}
                     </p>
                   )}
-                  <p className="text-xs text-green-700 dark:text-green-300 ml-8">Redirecting...</p>
+                  <p className="text-xs text-green-700 dark:text-green-300 ml-8">{t("success.redirecting")}</p>
                 </div>
               )}
 
@@ -278,11 +315,11 @@ export default function CommunityRegisterPage() {
                 <label className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <User className="size-4 text-[#617589] dark:text-gray-400" />
-                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">Full Name</span>
+                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">{t("fields.fullName")}</span>
                   </div>
                   <Input
                     type="text"
-                    placeholder="Enter your full name"
+                    placeholder={t("fields.fullNamePlaceholder")}
                     className={`h-14 transition-all duration-200 ${
                       fullNameError ? "border-red-300 dark:border-red-700 focus:border-red-500 focus:ring-red-200 dark:focus:ring-red-900" : ""
                     }`}
@@ -309,11 +346,11 @@ export default function CommunityRegisterPage() {
                 <label className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <Mail className="size-4 text-[#617589] dark:text-gray-400" />
-                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">Email Address</span>
+                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">{t("fields.emailAddress")}</span>
                   </div>
                   <Input
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder={t("fields.emailPlaceholder")}
                     className={`h-14 transition-all duration-200 ${
                       emailError ? "border-red-300 dark:border-red-700 focus:border-red-500 focus:ring-red-200 dark:focus:ring-red-900" : ""
                     }`}
@@ -340,11 +377,11 @@ export default function CommunityRegisterPage() {
                 <label className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <CreditCard className="size-4 text-[#617589] dark:text-gray-400" />
-                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">IC Number</span>
+                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">{t("fields.icNumber")}</span>
                   </div>
                   <Input
                     type="text"
-                    placeholder="e.g., 850101-01-1234"
+                    placeholder={t("fields.icNumberPlaceholder")}
                     className={`h-14 transition-all duration-200 ${
                       icNumberError ? "border-red-300 dark:border-red-700 focus:border-red-500 focus:ring-red-200 dark:focus:ring-red-900" : ""
                     }`}
@@ -371,7 +408,7 @@ export default function CommunityRegisterPage() {
                 <label className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <MapPin className="size-4 text-[#617589] dark:text-gray-400" />
-                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">Zone</span>
+                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">{t("fields.zone")}</span>
                   </div>
                   <select
                     value={zoneId}
@@ -389,7 +426,7 @@ export default function CommunityRegisterPage() {
                         : "border-[#dbe0e6] dark:border-gray-700 focus:border-primary focus:ring-primary/20"
                     } bg-white dark:bg-gray-800 text-gray-900 dark:text-white`}
                   >
-                    <option value={0}>Select a zone</option>
+                    <option value={0}>{t("fields.zonePlaceholder")}</option>
                     {zones.map((zone) => (
                       <option key={zone.id} value={zone.id}>
                         {zone.name}
@@ -408,7 +445,7 @@ export default function CommunityRegisterPage() {
                 <label className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <Building2 className="size-4 text-[#617589] dark:text-gray-400" />
-                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">Village</span>
+                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">{t("fields.village")}</span>
                   </div>
                   <select
                     value={villageId}
@@ -426,7 +463,7 @@ export default function CommunityRegisterPage() {
                     } bg-white dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     <option value={0}>
-                      {loadingVillages ? "Loading villages..." : !zoneId || zoneId === 0 ? "Select a zone first" : "Select a village"}
+                      {loadingVillages ? t("fields.villageLoading") : !zoneId || zoneId === 0 ? t("fields.villageSelectZoneFirst") : t("fields.villagePlaceholder")}
                     </option>
                     {villages.map((village) => (
                       <option key={village.id} value={village.id}>
@@ -446,13 +483,14 @@ export default function CommunityRegisterPage() {
                 <label className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <Lock className="size-4 text-[#617589] dark:text-gray-400" />
-                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">Password</span>
+                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">{t("fields.password")}</span>
                   </div>
                   <PasswordField
                     password={password}
                     setPassword={setPassword}
                     disabled={loading || success}
                     error={passwordError}
+                    placeholder={t("fields.passwordPlaceholder")}
                     onBlur={() => validatePassword(password)}
                     onFocus={() => {
                       if (passwordError) setPasswordError(null);
@@ -471,14 +509,14 @@ export default function CommunityRegisterPage() {
                 <label className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <Lock className="size-4 text-[#617589] dark:text-gray-400" />
-                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">Confirm Password</span>
+                    <span className="text-[#111418] dark:text-gray-300 text-sm font-semibold">{t("fields.confirmPassword")}</span>
                   </div>
                   <PasswordField
                     password={confirmPassword}
                     setPassword={setConfirmPassword}
                     disabled={loading || success}
                     error={confirmPasswordError}
-                    placeholder="Confirm your password"
+                    placeholder={t("fields.confirmPasswordPlaceholder")}
                     onBlur={() => validateConfirmPassword(confirmPassword)}
                     onFocus={() => {
                       if (confirmPasswordError) setConfirmPasswordError(null);
@@ -506,19 +544,19 @@ export default function CommunityRegisterPage() {
                     className="h-5 w-5 rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-primary focus:ring-2 focus:ring-primary/50 cursor-pointer transition-all mt-0.5"
                   />
                   <span className="text-sm text-[#617589] dark:text-gray-400 group-hover:text-[#111418] dark:group-hover:text-gray-300 transition-colors">
-                    I agree to the{" "}
+                    {t("terms.accept")}{" "}
                     <a
                       href="#"
                       className="font-medium text-primary hover:text-primary/80 underline underline-offset-2 transition-colors"
                     >
-                      Terms of Service
+                      {t("terms.termsOfService")}
                     </a>{" "}
-                    and{" "}
+                    {t("terms.and")}{" "}
                     <a
                       href="#"
                       className="font-medium text-primary hover:text-primary/80 underline underline-offset-2 transition-colors"
                     >
-                      Privacy Policy
+                      {t("terms.privacyPolicy")}
                     </a>
                     .
                   </span>
@@ -535,24 +573,24 @@ export default function CommunityRegisterPage() {
                   {loading ? (
                     <span className="flex items-center gap-2">
                       <Loader2 className="size-5 animate-spin" />
-                      <span>Creating account...</span>
+                      <span>{t("submit.creating")}</span>
                     </span>
                   ) : success ? (
                     <span className="flex items-center gap-2">
                       <CheckCircle2 className="size-5" />
-                      <span>Success!</span>
+                      <span>{t("submit.success")}</span>
                     </span>
                   ) : (
-                    "Create Account"
+                    t("submit.button")
                   )}
                 </Button>
                 <p className="text-[#617589] dark:text-gray-400 text-center text-sm">
-                  Already have an account?{" "}
+                  {t("loginLink.alreadyHaveAccount")}{" "}
                   <a
                     className="font-semibold text-primary hover:text-primary/80 underline underline-offset-2 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 rounded"
                     href="/community/login"
                   >
-                    Log in here
+                    {t("loginLink.loginHere")}
                   </a>
                 </p>
               </div>
@@ -581,6 +619,7 @@ function PasswordField({
   onBlur?: () => void;
   onFocus?: () => void;
 }) {
+  const t = useTranslations("communityRegister");
   const [show, setShow] = useState(false);
   const [focused, setFocused] = useState(false);
 
@@ -618,7 +657,7 @@ function PasswordField({
           e.stopPropagation();
           setShow((s) => !s);
         }}
-        aria-label={show ? "Hide password" : "Show password"}
+        aria-label={show ? t("passwordToggle.hide") : t("passwordToggle.show")}
         disabled={disabled}
         className={`flex-shrink-0 h-14 flex items-center justify-center px-4 rounded-r-lg border border-l-0 text-[#617589] dark:text-gray-400 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
           error ? "border-red-300 dark:border-red-700" : "border-[#dbe0e6] dark:border-gray-700"
