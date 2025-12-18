@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, Search, Loader2, User, Home, MapPin } from "lucide-react";
+import { X, Search, Loader2, User, Home, MapPin, Zap } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { searchHouseholdMembers, linkUserToHouseholdMember } from "@/lib/actions/communityUsers";
@@ -21,12 +21,13 @@ type HouseholdMemberOption = {
 type Props = {
   userId: number;
   userName: string;
+  userIcNumber: string | null;
   userZoneId: number | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
-export default function LinkHouseholdModal({ userId, userName, userZoneId, open, onOpenChange }: Props) {
+export default function LinkHouseholdModal({ userId, userName, userIcNumber, userZoneId, open, onOpenChange }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [members, setMembers] = useState<HouseholdMemberOption[]>([]);
@@ -82,6 +83,19 @@ export default function LinkHouseholdModal({ userId, userName, userZoneId, open,
     }
   }, [open, search, userZoneId]);
 
+  const handleSearchByIc = () => {
+    if (!userIcNumber) {
+      setError("No IC number available for this user");
+      return;
+    }
+
+    // Set search to IC number
+    setSearch(userIcNumber);
+    setError(null);
+    
+    // The useEffect hook will automatically trigger the search when search changes
+  };
+
   const handleLink = () => {
     if (!selectedMemberId) {
       setError("Please select a household member");
@@ -120,9 +134,28 @@ export default function LinkHouseholdModal({ userId, userName, userZoneId, open,
 
           <div className="p-6 space-y-4">
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                <strong>User:</strong> {userName}
-              </p>
+              <div className="flex items-start justify-between gap-4">
+                <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1 flex-1">
+                  <p>
+                    <strong>User:</strong> {userName}
+                  </p>
+                  {userIcNumber && (
+                    <p>
+                      <strong>IC Number:</strong> {userIcNumber}
+                    </p>
+                  )}
+                </div>
+                {userIcNumber && (
+                  <button
+                    onClick={handleSearchByIc}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-900/60 rounded-lg transition-colors whitespace-nowrap"
+                    title="Search for this IC number in household data"
+                  >
+                    <Zap className="size-3" />
+                    Search by IC
+                  </button>
+                )}
+              </div>
             </div>
 
             {error && (

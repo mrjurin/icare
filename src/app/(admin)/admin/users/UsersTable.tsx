@@ -6,7 +6,7 @@ import { Search, CheckCircle2, XCircle, Clock, Link2, Unlink, AlertCircle, Penci
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import type { CommunityUser } from "@/lib/actions/communityUsers";
-import { verifyCommunityUser, unlinkUserFromHouseholdMember } from "@/lib/actions/communityUsers";
+import { verifyCommunityUser, unlinkUserFromHouseholdMember, unlinkUserFromSprVoter } from "@/lib/actions/communityUsers";
 import type { PaginationProps } from "@/components/ui/Pagination";
 import Pagination from "@/components/ui/Pagination";
 import LinkHouseholdModal from "./LinkHouseholdModal";
@@ -106,12 +106,25 @@ export default function UsersTable({ users, pagination }: UsersTableProps) {
     setRevokeModalOpen(true);
   };
 
-  const handleUnlink = async (userId: number) => {
+  const handleUnlinkHousehold = async (userId: number) => {
     if (!confirm("Are you sure you want to unlink this user from their household member?")) {
       return;
     }
     startTransition(async () => {
       const result = await unlinkUserFromHouseholdMember(userId);
+      if (!result.success) {
+        alert(result.error || "Failed to unlink user");
+      }
+      router.refresh();
+    });
+  };
+
+  const handleUnlinkSpr = async (userId: number) => {
+    if (!confirm("Are you sure you want to unlink this user from their SPR voter record?")) {
+      return;
+    }
+    startTransition(async () => {
+      const result = await unlinkUserFromSprVoter(userId);
       if (!result.success) {
         alert(result.error || "Failed to unlink user");
       }
@@ -219,7 +232,7 @@ export default function UsersTable({ users, pagination }: UsersTableProps) {
                   Location
                 </th>
                 <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
-                  Household Link
+                  Data Links
                 </th>
                 <th className="px-6 py-3 text-xs font-semibold uppercase text-gray-600 dark:text-gray-400">
                   Status
@@ -283,32 +296,70 @@ export default function UsersTable({ users, pagination }: UsersTableProps) {
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {user.household_member ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-900 dark:text-white">
-                            {user.household_member.name}
-                          </span>
-                          <button
-                            onClick={() => handleUnlink(user.id)}
-                            disabled={isPending}
-                            className="p-1 text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                            title="Unlink from household"
-                          >
-                            <Unlink className="size-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => handleLink(user)}
-                          disabled={isPending}
-                          className="text-sm text-primary hover:underline flex items-center gap-1"
-                          title="Link to household member"
-                        >
-                          <Link2 className="size-4" />
-                          Link
-                        </button>
-                      )}
+                    <td className="px-6 py-4">
+                      <div className="space-y-2">
+                        {/* Household Member Link */}
+                        {user.household_member ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Household:</span>
+                            <span className="text-sm text-gray-900 dark:text-white">
+                              {user.household_member.name}
+                            </span>
+                            <button
+                              onClick={() => handleUnlinkHousehold(user.id)}
+                              disabled={isPending}
+                              className="p-1 text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                              title="Unlink from household"
+                            >
+                              <Unlink className="size-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Household:</span>
+                            <button
+                              onClick={() => handleLink(user)}
+                              disabled={isPending}
+                              className="text-xs text-primary hover:underline flex items-center gap-1"
+                              title="Link to household member"
+                            >
+                              <Link2 className="size-3" />
+                              Link
+                            </button>
+                          </div>
+                        )}
+                        
+                        {/* SPR Voter Link */}
+                        {user.spr_voter ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">SPR:</span>
+                            <span className="text-sm text-gray-900 dark:text-white">
+                              {user.spr_voter.nama}
+                            </span>
+                            <button
+                              onClick={() => handleUnlinkSpr(user.id)}
+                              disabled={isPending}
+                              className="p-1 text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                              title="Unlink from SPR voter"
+                            >
+                              <Unlink className="size-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">SPR:</span>
+                            <button
+                              onClick={() => handleLink(user)}
+                              disabled={isPending}
+                              className="text-xs text-primary hover:underline flex items-center gap-1"
+                              title="Link to SPR voter"
+                            >
+                              <Link2 className="size-3" />
+                              Link
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(user.verification_status)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
@@ -390,6 +441,7 @@ export default function UsersTable({ users, pagination }: UsersTableProps) {
         <LinkHouseholdModal
           userId={selectedUserForLink.id}
           userName={selectedUserForLink.full_name || "Unknown User"}
+          userIcNumber={selectedUserForLink.ic_number}
           userZoneId={selectedUserForLink.zone_id}
           open={linkModalOpen}
           onOpenChange={(open) => {

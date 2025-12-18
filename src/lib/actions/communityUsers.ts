@@ -13,6 +13,7 @@ export type CommunityUser = {
   village_id: number | null;
   zone_id: number | null;
   household_member_id: number | null;
+  spr_voter_id: number | null;
   verification_status: "pending" | "verified" | "rejected";
   verified_by: number | null;
   verified_at: string | null;
@@ -31,6 +32,12 @@ export type CommunityUser = {
     id: number;
     name: string;
     household_id: number;
+  };
+  spr_voter?: {
+    id: number;
+    nama: string;
+    no_kp: string | null;
+    version_id: number;
   };
 };
 
@@ -82,7 +89,8 @@ export async function getCommunityUsers(options?: {
       *,
       villages(id, name),
       zones(id, name),
-      household_members(id, name, household_id)
+      household_members(id, name, household_id),
+      spr_voters(id, nama, no_kp, version_id)
     `, { count: "exact" });
 
   // Apply zone-based access control
@@ -142,6 +150,7 @@ export async function getCommunityUsers(options?: {
     village_id: user.village_id,
     zone_id: user.zone_id,
     household_member_id: user.household_member_id,
+    spr_voter_id: user.spr_voter_id,
     verification_status: user.verification_status,
     verified_by: user.verified_by,
     verified_at: user.verified_at,
@@ -155,6 +164,14 @@ export async function getCommunityUsers(options?: {
           id: user.household_members.id,
           name: user.household_members.name,
           household_id: user.household_members.household_id,
+        }
+      : undefined,
+    spr_voter: user.spr_voters
+      ? {
+          id: user.spr_voters.id,
+          nama: user.spr_voters.nama,
+          no_kp: user.spr_voters.no_kp,
+          version_id: user.spr_voters.version_id,
         }
       : undefined,
   }));
@@ -411,6 +428,83 @@ export async function searchHouseholdMembers(options?: {
   return { success: true, data: result };
 }
 
+/**
+ * Link a community user to an SPR voter
+ * Note: This requires a spr_voter_id field in the profiles table
+ * Similar to household_member_id, we'll add spr_voter_id to profiles
+ */
+export async function linkUserToSprVoter(
+  userId: number,
+  sprVoterId: number
+): Promise<ActionResult> {
+  const supabase = await getSupabaseServerClient();
+  const access = await getCurrentUserAccess();
+
+  if (!access.isAuthenticated || !access.staffId) {
+    return { success: false, error: "Authentication required" };
+  }
+
+  // Verify SPR voter exists
+  const { data: sprVoter, error: sprVoterError } = await supabase
+    .from("spr_voters")
+    .select("id")
+    .eq("id", sprVoterId)
+    .single();
+
+  if (sprVoterError || !sprVoter) {
+    return { success: false, error: "SPR voter not found" };
+  }
+
+  // Update profile with spr_voter_id
+  // Note: This will fail if the field doesn't exist - we'll need a migration
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      spr_voter_id: sprVoterId,
+    })
+    .eq("id", userId);
+
+  if (error) {
+    // If column doesn't exist, provide helpful error message
+    if (error.code === "42703" || error.message.includes("spr_voter_id")) {
+      return { success: false, error: "Database schema needs to be updated. Please run migration to add spr_voter_id field to profiles table." };
+    }
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/admin/users");
+  return { success: true };
+}
+
+/**
+ * Unlink a community user from SPR voter
+ */
+export async function unlinkUserFromSprVoter(userId: number): Promise<ActionResult> {
+  const supabase = await getSupabaseServerClient();
+  const access = await getCurrentUserAccess();
+
+  if (!access.isAuthenticated || !access.staffId) {
+    return { success: false, error: "Authentication required" };
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      spr_voter_id: null,
+    })
+    .eq("id", userId);
+
+  if (error) {
+    if (error.code === "42703" || error.message.includes("spr_voter_id")) {
+      return { success: false, error: "Database schema needs to be updated. Please run migration to add spr_voter_id field to profiles table." };
+    }
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/admin/users");
+  return { success: true };
+}
+
 export type UpdateCommunityUserInput = {
   id: number;
   fullName?: string;
@@ -543,7 +637,8 @@ export async function updateCommunityUser(
       *,
       villages(id, name),
       zones(id, name),
-      household_members(id, name, household_id)
+      household_members(id, name, household_id),
+      spr_voters(id, nama, no_kp, version_id)
     `)
     .single();
 
@@ -561,6 +656,7 @@ export async function updateCommunityUser(
     village_id: data.village_id,
     zone_id: data.zone_id,
     household_member_id: data.household_member_id,
+    spr_voter_id: data.spr_voter_id,
     verification_status: data.verification_status,
     verified_by: data.verified_by,
     verified_at: data.verified_at,
@@ -574,6 +670,14 @@ export async function updateCommunityUser(
           id: data.household_members.id,
           name: data.household_members.name,
           household_id: data.household_members.household_id,
+        }
+      : undefined,
+    spr_voter: data.spr_voters
+      ? {
+          id: data.spr_voters.id,
+          nama: data.spr_voters.nama,
+          no_kp: data.spr_voters.no_kp,
+          version_id: data.spr_voters.version_id,
         }
       : undefined,
   };

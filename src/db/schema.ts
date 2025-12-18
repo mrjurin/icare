@@ -76,6 +76,7 @@ export const profiles: any = pgTable("profiles", {
   villageId: integer("village_id").references(() => villages.id, { onDelete: "set null" }), // Village where user resides
   zoneId: integer("zone_id").references(() => zones.id, { onDelete: "set null" }), // Zone where user resides
   householdMemberId: integer("household_member_id").references(() => householdMembers.id, { onDelete: "set null" }), // Link to household member if exists
+  sprVoterId: integer("spr_voter_id").references(() => sprVoters.id, { onDelete: "set null" }), // Link to SPR voter if exists
   verificationStatus: profileVerificationStatusEnum("verification_status").default("pending").notNull(), // Verification status by zone leader
   verifiedBy: integer("verified_by").references(() => staff.id, { onDelete: "set null" }), // Staff who verified the profile
   verifiedAt: timestamp("verified_at"), // When verification was completed
@@ -89,6 +90,7 @@ export const profiles: any = pgTable("profiles", {
   index("profiles_zone_idx").on(table.zoneId),
   index("profiles_verification_status_idx").on(table.verificationStatus),
   index("profiles_household_member_idx").on(table.householdMemberId),
+  index("profiles_spr_voter_idx").on(table.sprVoterId),
 ]);
 
 // DUN (Dewan Undangan Negeri) table
