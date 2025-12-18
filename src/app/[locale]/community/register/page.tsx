@@ -545,19 +545,23 @@ export default function CommunityRegisterPage() {
                   />
                   <span className="text-sm text-[#617589] dark:text-gray-400 group-hover:text-[#111418] dark:group-hover:text-gray-300 transition-colors">
                     {t("terms.accept")}{" "}
-                    <a
-                      href="#"
+                    <I18nLink
+                      href="/terms-of-service"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="font-medium text-primary hover:text-primary/80 underline underline-offset-2 transition-colors"
                     >
                       {t("terms.termsOfService")}
-                    </a>{" "}
+                    </I18nLink>{" "}
                     {t("terms.and")}{" "}
-                    <a
-                      href="#"
+                    <I18nLink
+                      href="/privacy-policy"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="font-medium text-primary hover:text-primary/80 underline underline-offset-2 transition-colors"
                     >
                       {t("terms.privacyPolicy")}
-                    </a>
+                    </I18nLink>
                     .
                   </span>
                 </label>

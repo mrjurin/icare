@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Eye, EyeOff, AlertCircle, Loader2, Mail, Lock, CheckCircle2, User, CreditCard, MapPin, Building2 } from "lucide-react";
@@ -507,19 +508,23 @@ export default function CommunityRegisterPage() {
                   />
                   <span className="text-sm text-[#617589] dark:text-gray-400 group-hover:text-[#111418] dark:group-hover:text-gray-300 transition-colors">
                     I agree to the{" "}
-                    <a
-                      href="#"
+                    <Link
+                      href="/terms-of-service"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="font-medium text-primary hover:text-primary/80 underline underline-offset-2 transition-colors"
                     >
                       Terms of Service
-                    </a>{" "}
+                    </Link>{" "}
                     and{" "}
-                    <a
-                      href="#"
+                    <Link
+                      href="/privacy-policy"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="font-medium text-primary hover:text-primary/80 underline underline-offset-2 transition-colors"
                     >
                       Privacy Policy
-                    </a>
+                    </Link>
                     .
                   </span>
                 </label>

@@ -5,6 +5,7 @@ import { getMessages } from 'next-intl/server';
 import { LoadingOverlayProvider } from '@/contexts/LoadingOverlayContext';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
 import NavigationLoadingDetector from '@/components/NavigationLoadingDetector';
+import CookieConsent from '@/components/CookieConsent';
 
 const publicSans = Public_Sans({
   subsets: ["latin"],
@@ -27,6 +28,7 @@ export default async function RootLayout({
             <NavigationLoadingDetector />
             {children}
             <LoadingOverlay />
+            <CookieConsent />
           </LoadingOverlayProvider>
         </NextIntlClientProvider>
       </body>

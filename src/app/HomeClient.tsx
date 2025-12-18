@@ -349,10 +349,10 @@ export default function HomeClient({ appName, announcements, totalAnnouncements,
                 {t('footer.allRightsReserved', { appName })}
               </p>
               <div className="flex gap-6">
-                <Link href="/about" className="text-sm hover:text-primary transition-colors">
+                <Link href="/privacy-policy" className="text-sm hover:text-primary transition-colors">
                   {t('footer.privacyPolicy')}
                 </Link>
-                <Link href="/contact" className="text-sm hover:text-primary transition-colors">
+                <Link href="/terms-of-service" className="text-sm hover:text-primary transition-colors">
                   {t('footer.termsOfService')}
                 </Link>
               </div>
