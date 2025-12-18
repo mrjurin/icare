@@ -25,7 +25,8 @@
     "success": "Berjaya",
     "error": "Ralat",
     "warning": "Amaran",
-    "info": "Maklumat"
+    "info": "Maklumat",
+    "required": "diperlukan"
   },
   "nav": {
     "home": "Laman Utama",
@@ -490,20 +491,41 @@
       "noIssuerInformation": "Tiada maklumat pengeluar tersedia"
     },
     "form": {
+      "title": "Laporkan Isu",
+      "subtitle": "Berikan butiran supaya moderator komuniti boleh bertindak dengan cepat.",
+      "communityIssueReporting": "Pelaporan Isu Komuniti",
+      "description": "Menghadapi isu seperti lubang di jalan, longkang tersumbat, atau lampu jalan yang rosak? Beritahu kami. Kami komited untuk memantau setiap laporan daripada penduduk {dunName}.",
+      "carelineContact": "Hubungi CARELINE",
+      "whatsappUs": "WhatsApp Kami",
+      "motto": "Kepada Tuhan Kami Percaya, Bersatu Kita Mesti.",
+      "step1": "Langkah 1: Butiran Isu",
+      "step2": "Langkah 2: Lokasi",
+      "step3": "Langkah 3: Lampirkan Media",
+      "titleLabel": "Tajuk",
+      "titlePlaceholder": "Tajuk ringkas, cth., Lubang di jalan berhampiran sekolah",
+      "titleRequired": "Tajuk diperlukan",
+      "typeOfIssue": "Jenis Isu",
+      "selectIssueType": "Sila pilih jenis isu",
+      "selectIssueTypePlaceholder": "Pilih jenis isu",
+      "loadingIssueTypes": "Memuatkan jenis isu...",
+      "descriptionLabel": "Penerangan Isu",
+      "descriptionPlaceholder": "Sila berikan sebanyak butiran yang mungkin. Apa yang berlaku? Bila? Apakah kesannya?",
+      "descriptionRequired": "Penerangan diperlukan",
+      "localityOptional": "Lokaliti (pilihan)",
+      "selectLocalityPlaceholder": "Pilih lokaliti...",
+      "addressOrLandmark": "Alamat atau Mercu Tanda",
+      "addressPlaceholder": "cth., Jalan Inanam, berhampiran dewan komuniti",
+      "addressRequired": "Alamat diperlukan",
+      "pinpointOnMap": "Tandakan di Peta",
+      "pinpointDescription": "Seret pin ke lokasi tepat isu untuk respons terpantas.",
+      "submitReport": "Hantar Laporan",
+      "submitting": "Menghantar...",
       "addNewIssue": "Tambah Isu Baharu",
       "createNewIssue": "Cipta isu baharu",
-      "title": "Tajuk",
-      "titlePlaceholder": "Masukkan tajuk isu",
-      "titleRequired": "Tajuk diperlukan",
       "category": "Kategori",
-      "description": "Penerangan",
-      "descriptionPlaceholder": "Masukkan penerangan isu",
-      "descriptionRequired": "Penerangan diperlukan",
+      "selectCategory": "Pilih Kategori",
       "priority": "Keutamaan",
       "useDefault": "Guna Lalai",
-      "address": "Alamat",
-      "addressPlaceholder": "Masukkan alamat atau mercu tanda",
-      "addressRequired": "Alamat diperlukan",
       "detectLocation": "Kesan Lokasi",
       "detecting": "Mengesan...",
       "geocoding": "Mengesan lokasi...",
@@ -522,6 +544,12 @@
       "cancel": "Batal",
       "createIssue": "Cipta Isu",
       "error": "Gagal mencipta isu",
+      "errors": {
+        "failedToSubmit": "Gagal menghantar laporan. Sila cuba lagi.",
+        "mustBeLoggedIn": "Anda mesti log masuk untuk melaporkan isu.",
+        "profileNotFound": "Profil tidak dijumpai. Sila pastikan akaun anda ditetapkan dengan betul.",
+        "invalidFormData": "Data borang tidak sah. Sila semak semua medan yang diperlukan."
+      },
       "categories": {
         "roadMaintenance": "Penyelenggaraan Jalan",
         "drainage": "Saliran",
@@ -1745,6 +1773,35 @@
       "mostCommonCategory": "Kategori isu yang paling biasa anda laporkan ialah {category} dengan {count} {count, plural, =1 {isu} other {isu}}.",
       "resolvedIssues": "Tahniah! Anda mempunyai {count} {count, plural, =1 {isu yang diselesaikan} other {isu yang diselesaikan}}.",
       "noIssues": "Mula laporkan isu untuk melihat statistik dan pandangan anda di sini."
+    }
+  },
+  "communityProfile": {
+    "title": "Profil Saya",
+    "description": "Urus maklumat peribadi anda dan jejaki aktiviti anda.",
+    "loading": "Memuatkan profil...",
+    "successMessage": "Profil berjaya dikemaskini!",
+    "personalInformation": "Maklumat Peribadi",
+    "fullName": "Nama Penuh",
+    "emailAddress": "Alamat E-mel",
+    "contactNumber": "Nombor Telefon",
+    "addressOptional": "Alamat (Pilihan)",
+    "phonePlaceholder": "cth., +60 12-345 6789",
+    "addressPlaceholder": "cth., 123 Jalan Inanam",
+    "saveChanges": "Simpan Perubahan",
+    "saving": "Menyimpan...",
+    "editAvatar": "Edit avatar",
+    "avatarEditingComingSoon": "Sunting avatar akan datang",
+    "validation": {
+      "fullNameRequired": "Nama penuh diperlukan",
+      "fullNameMinLength": "Nama penuh mestilah sekurang-kurangnya 2 aksara",
+      "emailRequired": "E-mel diperlukan",
+      "emailInvalid": "Sila masukkan alamat e-mel yang sah",
+      "phoneInvalid": "Sila masukkan nombor telefon yang sah"
+    },
+    "errors": {
+      "failedToLoad": "Gagal memuatkan profil. Sila cuba lagi.",
+      "failedToUpdate": "Gagal mengemaskini profil",
+      "unexpectedError": "Ralat tidak dijangka telah berlaku. Sila cuba lagi."
     }
   }
 }

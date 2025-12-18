@@ -2,8 +2,8 @@
 
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useState, useEffect, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { z } from "zod";
 import LocationCapture from "./LocationCapture";
@@ -13,21 +13,33 @@ import { getActiveIssueTypes, type IssueType } from "@/lib/actions/issue-types";
 import SearchableSelect from "@/components/ui/SearchableSelect";
 import { getReferenceDataList, type ReferenceData } from "@/lib/actions/reference-data";
 import { getDunName } from "@/lib/actions/settings";
-
-const issueSchema = z.object({
-  title: z.string().min(1, "Title is required").trim(),
-  category: z.string().min(1, "Please select an issue type"),
-  description: z.string().min(1, "Description is required").trim(),
-  address: z.string().min(1, "Address is required").trim(),
-  lat: z.string().optional(),
-  lng: z.string().optional(),
-  localityId: z.string().optional(),
-  mediaJson: z.string().optional(),
-});
-
+import { useTranslations } from "next-intl";
 
 export default function CommunityReportIssuePage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const t = useTranslations("issues.form");
+  const tCommon = useTranslations("common");
+  
+  // Extract locale from pathname
+  const locale = useMemo(() => {
+    const segments = pathname.split('/').filter(Boolean);
+    const firstSegment = segments[0];
+    return firstSegment === 'en' || firstSegment === 'ms' ? firstSegment : 'en';
+  }, [pathname]);
+  
+  // Create schema with translated messages
+  const issueSchema = useMemo(() => z.object({
+    title: z.string().min(1, t("titleRequired")).trim(),
+    category: z.string().min(1, t("selectIssueType")),
+    description: z.string().min(1, t("descriptionRequired")).trim(),
+    address: z.string().min(1, t("addressRequired")).trim(),
+    lat: z.string().optional(),
+    lng: z.string().optional(),
+    localityId: z.string().optional(),
+    mediaJson: z.string().optional(),
+  }), [t, locale]);
+  
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -109,9 +121,9 @@ export default function CommunityReportIssuePage() {
     setIsSubmitting(true);
     try {
       await createIssue(formData, issueTypes);
-      router.push("/community/dashboard");
+      router.push(`/${locale}/community/dashboard`);
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Failed to submit report. Please try again.");
+      setSubmitError(error instanceof Error ? error.message : t("errors.failedToSubmit"));
     } finally {
       setIsSubmitting(false);
     }
@@ -126,7 +138,7 @@ export default function CommunityReportIssuePage() {
     // Get authenticated user from session to set reporter_id
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      throw new Error("You must be logged in to report an issue.");
+      throw new Error(t("errors.mustBeLoggedIn"));
     }
 
     // Get user's profile ID to set as reporter_id
@@ -141,7 +153,7 @@ export default function CommunityReportIssuePage() {
     }
 
     if (!reporterId) {
-      throw new Error("Profile not found. Please ensure your account is properly set up.");
+      throw new Error(t("errors.profileNotFound"));
     }
 
     // Extract and validate form data with Zod
@@ -159,7 +171,7 @@ export default function CommunityReportIssuePage() {
     const result = issueSchema.safeParse(formValues);
     
     if (!result.success) {
-      throw new Error("Invalid form data. Please check all required fields.");
+      throw new Error(t("errors.invalidFormData"));
     }
 
     const { title, description, category, address, lat, lng, localityId, mediaJson } = result.data;
@@ -237,8 +249,8 @@ export default function CommunityReportIssuePage() {
     <div className="space-y-4 sm:space-y-6 lg:space-y-8 px-4 sm:px-6 lg:px-0 max-w-7xl mx-auto">
       <div className="flex flex-wrap justify-between gap-3 pb-2">
         <div className="flex flex-col gap-2 w-full sm:min-w-72">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-[-0.033em] text-gray-900 dark:text-white">Report an Issue</h1>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Provide details so community moderators can act quickly.</p>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-[-0.033em] text-gray-900 dark:text-white">{t("title")}</h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">{t("subtitle")}</p>
         </div>
       </div>
 
@@ -246,13 +258,12 @@ export default function CommunityReportIssuePage() {
         <section className="lg:col-span-1 flex flex-col gap-4 order-2 lg:order-1">
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-4 sm:p-6">
             <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">{dunName.toUpperCase()}</h2>
-            <p className="text-sm sm:text-base text-primary font-semibold mt-1">Community Issue Reporting</p>
+            <p className="text-sm sm:text-base text-primary font-semibold mt-1">{t("communityIssueReporting")}</p>
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-4 leading-relaxed">
-              Facing issues like potholes, clogged drains, or faulty streetlights? Let us know.
-              We are committed to monitoring every report from the residents of {dunName}.
+              {t("description", { dunName })}
             </p>
             <div className="mt-6 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 p-4">
-              <p className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">CARELINE Contact</p>
+              <p className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">{t("carelineContact")}</p>
               <div className="mt-3 space-y-2.5 text-sm sm:text-base text-gray-700 dark:text-gray-300">
                 <div className="flex items-center gap-2.5">
                   <span className="text-lg" aria-hidden="true">📞</span>
@@ -260,11 +271,11 @@ export default function CommunityReportIssuePage() {
                 </div>
                 <div className="flex items-center gap-2.5">
                   <span className="text-lg" aria-hidden="true">💬</span>
-                  <a className="text-primary hover:underline" href="#" target="_blank" rel="noopener noreferrer">WhatsApp Us</a>
+                  <a className="text-primary hover:underline" href="#" target="_blank" rel="noopener noreferrer">{t("whatsappUs")}</a>
                 </div>
               </div>
             </div>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-4">In God We Trust, Unite We Must.</p>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-4">{t("motto")}</p>
           </div>
         </section>
 
@@ -279,16 +290,16 @@ export default function CommunityReportIssuePage() {
               )}
 
               <div>
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Step 1: Issue Details</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">{t("step1")}</h3>
                 <div className="mt-3 space-y-4 sm:space-y-5">
                   <div>
                     <label htmlFor="title" className="block text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                      Title <span className="text-red-500" aria-label="required">*</span>
+                      {t("titleLabel")} <span className="text-red-500" aria-label="required">*</span>
                     </label>
                     <Input 
                       id="title"
                       name="title" 
-                      placeholder="Short title, e.g., Pothole near school" 
+                      placeholder={t("titlePlaceholder")} 
                       className={`w-full ${errors.title ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}`}
                       required
                       aria-invalid={errors.title ? "true" : "false"}
@@ -303,7 +314,7 @@ export default function CommunityReportIssuePage() {
                   </div>
                   <div>
                     <label htmlFor="category" className="block text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                      Type of Issue <span className="text-red-500" aria-label="required">*</span>
+                      {t("typeOfIssue")} <span className="text-red-500" aria-label={tCommon("required")}>*</span>
                     </label>
                     <select 
                       id="category"
@@ -318,7 +329,7 @@ export default function CommunityReportIssuePage() {
                       aria-invalid={errors.category ? "true" : "false"}
                       aria-describedby={errors.category ? "category-error" : undefined}
                     >
-                      <option value="">{isLoadingTypes ? "Loading issue types..." : "Select an issue type"}</option>
+                      <option value="">{isLoadingTypes ? t("loadingIssueTypes") : t("selectIssueTypePlaceholder")}</option>
                       {issueTypes.map((type) => (
                         <option key={type.id} value={type.id}>
                           {type.name}
@@ -334,13 +345,13 @@ export default function CommunityReportIssuePage() {
                   </div>
                   <div>
                     <label htmlFor="description" className="block text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                      Description of Issue <span className="text-red-500" aria-label="required">*</span>
+                      {t("descriptionLabel")} <span className="text-red-500" aria-label={tCommon("required")}>*</span>
                     </label>
                     <textarea 
                       id="description"
                       name="description" 
                       rows={6}
-                      placeholder="Please provide as much detail as possible. What happened? When? What is the impact?" 
+                      placeholder={t("descriptionPlaceholder")} 
                       className={`w-full rounded-lg border bg-white dark:bg-gray-800 px-3 sm:px-4 py-3 text-base sm:text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:outline-none resize-y min-h-[120px] sm:min-h-[100px] ${
                         errors.description 
                           ? "border-red-500 focus:border-red-500 focus:ring-red-500" 
@@ -361,11 +372,11 @@ export default function CommunityReportIssuePage() {
               </div>
 
               <div>
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Step 2: Location</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">{t("step2")}</h3>
                 <div className="mt-3 space-y-4 sm:space-y-5">
                   <div>
                     <label htmlFor="locality" className="block text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                      Locality (optional)
+                      {t("localityOptional")}
                     </label>
                     <input
                       type="hidden"
@@ -386,18 +397,18 @@ export default function CommunityReportIssuePage() {
                           }
                         }
                       }}
-                      placeholder="Select locality..."
+                      placeholder={t("selectLocalityPlaceholder")}
                       disabled={isLoadingTypes}
                     />
                   </div>
                   <div>
                     <label htmlFor="address" className="block text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                      Address or Landmark <span className="text-red-500" aria-label="required">*</span>
+                      {t("addressOrLandmark")} <span className="text-red-500" aria-label={tCommon("required")}>*</span>
                     </label>
                     <Input 
                       id="address"
                       name="address" 
-                      placeholder="e.g., Jalan Inanam, near the community hall" 
+                      placeholder={t("addressPlaceholder")} 
                       className={`w-full ${errors.address ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}`}
                       required
                       aria-invalid={errors.address ? "true" : "false"}
@@ -411,15 +422,15 @@ export default function CommunityReportIssuePage() {
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-1.5">Pinpoint on Map</label>
+                    <label className="block text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t("pinpointOnMap")}</label>
                     <LocationCapture />
-                    <p className="mt-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Drag the pin to the exact location of the issue for fastest response.</p>
+                    <p className="mt-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{t("pinpointDescription")}</p>
                   </div>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Step 3: Attach Media</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">{t("step3")}</h3>
                 <MediaUploader />
               </div>
 
@@ -433,10 +444,10 @@ export default function CommunityReportIssuePage() {
                   {isSubmitting ? (
                     <>
                       <span className="inline-block animate-spin mr-2">⏳</span>
-                      Submitting...
+                      {t("submitting")}
                     </>
                   ) : (
-                    "Submit Report"
+                    t("submitReport")
                   )}
                 </Button>
               </div>

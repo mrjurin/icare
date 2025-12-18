@@ -25,7 +25,8 @@
     "success": "Success",
     "error": "Error",
     "warning": "Warning",
-    "info": "Info"
+    "info": "Info",
+    "required": "required"
   },
   "nav": {
     "home": "Home",
@@ -492,21 +493,41 @@
       "noIssuerInformation": "No issuer information available"
     },
     "form": {
+      "title": "Report an Issue",
+      "subtitle": "Provide details so community moderators can act quickly.",
+      "communityIssueReporting": "Community Issue Reporting",
+      "description": "Facing issues like potholes, clogged drains, or faulty streetlights? Let us know. We are committed to monitoring every report from the residents of {dunName}.",
+      "carelineContact": "CARELINE Contact",
+      "whatsappUs": "WhatsApp Us",
+      "motto": "In God We Trust, Unite We Must.",
+      "step1": "Step 1: Issue Details",
+      "step2": "Step 2: Location",
+      "step3": "Step 3: Attach Media",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Short title, e.g., Pothole near school",
+      "titleRequired": "Title is required",
+      "typeOfIssue": "Type of Issue",
+      "selectIssueType": "Please select an issue type",
+      "selectIssueTypePlaceholder": "Select an issue type",
+      "loadingIssueTypes": "Loading issue types...",
+      "descriptionLabel": "Description of Issue",
+      "descriptionPlaceholder": "Please provide as much detail as possible. What happened? When? What is the impact?",
+      "descriptionRequired": "Description is required",
+      "localityOptional": "Locality (optional)",
+      "selectLocalityPlaceholder": "Select locality...",
+      "addressOrLandmark": "Address or Landmark",
+      "addressPlaceholder": "e.g., Jalan Inanam, near the community hall",
+      "addressRequired": "Address is required",
+      "pinpointOnMap": "Pinpoint on Map",
+      "pinpointDescription": "Drag the pin to the exact location of the issue for fastest response.",
+      "submitReport": "Submit Report",
+      "submitting": "Submitting...",
       "addNewIssue": "Add New Issue",
       "createNewIssue": "Create a new issue",
-      "title": "Title",
-      "titlePlaceholder": "Enter issue title",
-      "titleRequired": "Title is required",
       "category": "Category",
       "selectCategory": "Select Category",
-      "description": "Description",
-      "descriptionPlaceholder": "Enter issue description",
-      "descriptionRequired": "Description is required",
       "priority": "Priority",
       "useDefault": "Use Default",
-      "address": "Address",
-      "addressPlaceholder": "Enter address or landmark",
-      "addressRequired": "Address is required",
       "detectLocation": "Detect Location",
       "detecting": "Detecting...",
       "geocoding": "Detecting location...",
@@ -525,6 +546,12 @@
       "cancel": "Cancel",
       "createIssue": "Create Issue",
       "error": "Failed to create issue",
+      "errors": {
+        "failedToSubmit": "Failed to submit report. Please try again.",
+        "mustBeLoggedIn": "You must be logged in to report an issue.",
+        "profileNotFound": "Profile not found. Please ensure your account is properly set up.",
+        "invalidFormData": "Invalid form data. Please check all required fields."
+      },
       "categories": {
         "roadMaintenance": "Road Maintenance",
         "drainage": "Drainage",
@@ -1750,6 +1777,35 @@
       "mostCommonCategory": "Your most common issue category is {category} with {count} {count, plural, =1 {issue} other {issues}}.",
       "resolvedIssues": "Great job! You have {count} {count, plural, =1 {resolved issue} other {resolved issues}}.",
       "noIssues": "Start reporting issues to see your statistics and insights here."
+    }
+  },
+  "communityProfile": {
+    "title": "My Profile",
+    "description": "Manage your personal information and track your activity.",
+    "loading": "Loading profile...",
+    "successMessage": "Profile updated successfully!",
+    "personalInformation": "Personal Information",
+    "fullName": "Full Name",
+    "emailAddress": "Email Address",
+    "contactNumber": "Contact Number",
+    "addressOptional": "Address (Optional)",
+    "phonePlaceholder": "e.g., +60 12-345 6789",
+    "addressPlaceholder": "e.g., 123 Jalan Inanam",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "editAvatar": "Edit avatar",
+    "avatarEditingComingSoon": "Avatar editing coming soon",
+    "validation": {
+      "fullNameRequired": "Full name is required",
+      "fullNameMinLength": "Full name must be at least 2 characters",
+      "emailRequired": "Email is required",
+      "emailInvalid": "Please enter a valid email address",
+      "phoneInvalid": "Please enter a valid phone number"
+    },
+    "errors": {
+      "failedToLoad": "Failed to load profile. Please try again.",
+      "failedToUpdate": "Failed to update profile",
+      "unexpectedError": "An unexpected error occurred. Please try again."
     }
   }
 }

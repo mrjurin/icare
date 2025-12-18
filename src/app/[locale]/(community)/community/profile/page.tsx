@@ -8,6 +8,7 @@ import { useState, useEffect, FormEvent } from "react";
 import { getCurrentUserProfile, updateProfile, type ProfileData } from "@/lib/actions/profile";
 import { createClient } from "@supabase/supabase-js";
 import { getDunName } from "@/lib/actions/settings";
+import { useTranslations } from "next-intl";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,6 +24,9 @@ export default function CommunityProfilePage() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [dunName, setDunName] = useState<string>("N.18 Inanam");
+  const t = useTranslations("communityProfile");
+  const tCommon = useTranslations("common");
+  const tNav = useTranslations("nav");
 
   // Form state
   const [formData, setFormData] = useState({
@@ -72,7 +76,7 @@ export default function CommunityProfilePage() {
         });
       }
     } catch (err) {
-      setError("Failed to load profile. Please try again.");
+      setError(t("errors.failedToLoad"));
       console.error("Error loading profile:", err);
     } finally {
       setLoading(false);
@@ -95,21 +99,21 @@ export default function CommunityProfilePage() {
 
     // Full Name validation
     if (!formData.fullName.trim()) {
-      newErrors.fullName = "Full name is required";
+      newErrors.fullName = t("validation.fullNameRequired");
     } else if (formData.fullName.trim().length < 2) {
-      newErrors.fullName = "Full name must be at least 2 characters";
+      newErrors.fullName = t("validation.fullNameMinLength");
     }
 
     // Email validation
     if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
+      newErrors.email = t("validation.emailRequired");
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
+      newErrors.email = t("validation.emailInvalid");
     }
 
     // Phone validation (optional but must be valid if provided)
     if (formData.phone.trim() && !/^[\d\s\-\+\(\)]+$/.test(formData.phone)) {
-      newErrors.phone = "Please enter a valid phone number";
+      newErrors.phone = t("validation.phoneInvalid");
     }
 
     setErrors(newErrors);
@@ -142,10 +146,10 @@ export default function CommunityProfilePage() {
         // Clear success message after 3 seconds
         setTimeout(() => setSuccess(false), 3000);
       } else {
-        setError(result.error || "Failed to update profile");
+        setError(result.error || t("errors.failedToUpdate"));
       }
     } catch (err) {
-      setError("An unexpected error occurred. Please try again.");
+      setError(t("errors.unexpectedError"));
       console.error("Error updating profile:", err);
     } finally {
       setSaving(false);
@@ -174,7 +178,7 @@ export default function CommunityProfilePage() {
     setSuccess(false);
   };
 
-  const displayName = profile?.fullName || formData.fullName || "User";
+  const displayName = profile?.fullName || formData.fullName || tNav("user");
   const displayEmail = profile?.email || userEmail || "";
   const avatarUrl = profile?.avatarUrl || userAvatar || "https://lh3.googleusercontent.com/aida-public/AB6AXuAb-eIawPtC5Og3JJtMbEPozMMIsQbzzTkpZPcTAURowGnT1ihVAtAPL_lXehKSq4WyL1KC1F9KhA_nXirCUXXqJUZjO0tXCuk1tXnRK8S2hKaDPTuqZQSbXl81XWEnz-O1zhB2gz4GQiMtqkkDul_7qJJnla5fPvQNtFRnHh0DHB2mQw8gHIpke51RfMwfLVZb6uhlCXczgR6MDmf7bereyrXm4pD56hRvslv8HmoXEixJd9EhePN1clVLqUD_TX6y9CaeZl3Zetg";
 
@@ -183,12 +187,12 @@ export default function CommunityProfilePage() {
       <div className="space-y-8">
         <div className="flex flex-wrap justify-between gap-3 pb-2">
           <div className="flex min-w-72 flex-col gap-2">
-            <p className="text-4xl font-black tracking-[-0.033em] text-gray-900 dark:text-white">My Profile</p>
-            <p className="text-base text-gray-600 dark:text-gray-400">Manage your personal information and track your activity.</p>
+            <p className="text-4xl font-black tracking-[-0.033em] text-gray-900 dark:text-white">{t("title")}</p>
+            <p className="text-base text-gray-600 dark:text-gray-400">{t("description")}</p>
           </div>
         </div>
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">
-          <p className="text-center text-gray-600 dark:text-gray-400 py-8">Loading profile...</p>
+          <p className="text-center text-gray-600 dark:text-gray-400 py-8">{t("loading")}</p>
         </div>
       </div>
     );
@@ -198,8 +202,8 @@ export default function CommunityProfilePage() {
     <div className="space-y-8">
       <div className="flex flex-wrap justify-between gap-3 pb-2">
         <div className="flex min-w-72 flex-col gap-2">
-          <p className="text-4xl font-black tracking-[-0.033em] text-gray-900 dark:text-white">My Profile</p>
-          <p className="text-base text-gray-600 dark:text-gray-400">Manage your personal information and track your activity.</p>
+          <p className="text-4xl font-black tracking-[-0.033em] text-gray-900 dark:text-white">{t("title")}</p>
+          <p className="text-base text-gray-600 dark:text-gray-400">{t("description")}</p>
         </div>
       </div>
 
@@ -211,7 +215,7 @@ export default function CommunityProfilePage() {
 
       {success && (
         <div className="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-4">
-          <p className="text-sm text-green-600 dark:text-green-400">Profile updated successfully!</p>
+          <p className="text-sm text-green-600 dark:text-green-400">{t("successMessage")}</p>
         </div>
       )}
 
@@ -222,25 +226,25 @@ export default function CommunityProfilePage() {
               <Image className="rounded-full" alt="User avatar" src={avatarUrl} width={96} height={96} />
               <button 
                 className="absolute bottom-0 right-0 flex items-center justify-center size-8 bg-gray-100 dark:bg-gray-700 rounded-full border-2 border-white dark:border-gray-900 hover:bg-gray-200 dark:hover:bg-gray-600" 
-                aria-label="Edit avatar"
+                aria-label={t("editAvatar")}
                 disabled
-                title="Avatar editing coming soon"
+                title={t("avatarEditingComingSoon")}
               >
                 <Pencil className="size-4 text-gray-900 dark:text-white" />
               </button>
             </div>
             <div className="flex flex-col">
               <p className="text-[22px] font-bold leading-tight tracking-[-0.015em] text-gray-900 dark:text-white">{displayName}</p>
-              <p className="text-base text-gray-600 dark:text-gray-400">{dunName} Resident</p>
+              <p className="text-base text-gray-600 dark:text-gray-400">{dunName} {tNav("resident")}</p>
             </div>
           </div>
 
-          <h2 className="text-[22px] font-bold tracking-[-0.015em] text-gray-900 dark:text-white px-4">Personal Information</h2>
+          <h2 className="text-[22px] font-bold tracking-[-0.015em] text-gray-900 dark:text-white px-4">{t("personalInformation")}</h2>
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4">
               <div className="flex flex-col">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 pb-2">
-                  Full Name <span className="text-red-500">*</span>
+                  {t("fullName")} <span className="text-red-500">*</span>
                 </label>
                 <Input
                   value={formData.fullName}
@@ -259,7 +263,7 @@ export default function CommunityProfilePage() {
               </div>
               <div className="flex flex-col">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 pb-2">
-                  Email Address <span className="text-red-500">*</span>
+                  {t("emailAddress")} <span className="text-red-500">*</span>
                 </label>
                 <Input
                   type="email"
@@ -278,7 +282,7 @@ export default function CommunityProfilePage() {
                 )}
               </div>
               <div className="flex flex-col">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 pb-2">Contact Number</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 pb-2">{t("contactNumber")}</label>
                 <Input
                   type="tel"
                   value={formData.phone}
@@ -286,7 +290,7 @@ export default function CommunityProfilePage() {
                     setFormData({ ...formData, phone: e.target.value });
                     if (errors.phone) setErrors({ ...errors, phone: "" });
                   }}
-                  placeholder="e.g., +60 12-345 6789"
+                  placeholder={t("phonePlaceholder")}
                   className="h-14"
                   aria-invalid={!!errors.phone}
                   aria-describedby={errors.phone ? "phone-error" : undefined}
@@ -296,11 +300,11 @@ export default function CommunityProfilePage() {
                 )}
               </div>
               <div className="flex flex-col">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 pb-2">Address (Optional)</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 pb-2">{t("addressOptional")}</label>
                 <Input
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="e.g., 123 Jalan Inanam"
+                  placeholder={t("addressPlaceholder")}
                   className="h-14"
                 />
               </div>
@@ -313,13 +317,13 @@ export default function CommunityProfilePage() {
                 onClick={handleCancel}
                 disabled={saving}
               >
-                Cancel
+                {tCommon("cancel")}
               </Button>
               <Button 
                 type="submit"
                 disabled={saving}
               >
-                {saving ? "Saving..." : "Save Changes"}
+                {saving ? t("saving") : t("saveChanges")}
               </Button>
             </div>
           </form>
