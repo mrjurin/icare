@@ -10,12 +10,8 @@ import {
   CheckCircle2, 
   TrendingUp, 
   MessageSquare, 
-  MapPin, 
   Eye,
-  ArrowRight,
-  Shield,
-  Clock,
-  BarChart3
+  ArrowRight
 } from "lucide-react";
 import PublicHeaderClient from "@/components/PublicHeaderClient";
 import AnnouncementsSection from "@/components/AnnouncementsSection";

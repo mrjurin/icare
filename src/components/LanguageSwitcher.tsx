@@ -10,7 +10,7 @@ import { useLoadingOverlay } from '@/hooks/useLoadingOverlay';
 
 export default function LanguageSwitcher() {
   const locale = useLocale();
-  const router = useRouter(); // Use Next.js native router
+  const router = useRouter();
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(false);
@@ -32,25 +32,17 @@ export default function LanguageSwitcher() {
   const switchLocale = (newLocale: string) => {
     if (newLocale === locale) {
       setIsOpen(false);
-      return; // Don't switch if already on this locale
+      return;
     }
     
-    // Show loading overlay immediately
     setLoading(true, t('switchingLanguage'));
     
     startTransition(() => {
-      // Get the actual browser pathname to handle any locale segments
       const browserPath = typeof window !== 'undefined' ? window.location.pathname : pathname;
-      
-      // Split path into segments and filter out all locale segments (en, ms)
       const segments = browserPath.split('/').filter(segment => 
         segment && segment !== 'en' && segment !== 'ms'
       );
-      
-      // Reconstruct the path without locale segments
       const cleanPath = segments.length > 0 ? '/' + segments.join('/') : '/';
-      
-      // Construct the new path with the new locale (using native router, so we need full path)
       const newPath = cleanPath === '/' ? `/${newLocale}` : `/${newLocale}${cleanPath}`;
       
       router.replace(newPath);

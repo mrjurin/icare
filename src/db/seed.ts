@@ -15,6 +15,7 @@
  *   - app_settings (or app-settings)
  *   - announcements
  *   - dynamic_pages (or dynamic-pages)
+ *   - landing_page (or landing-page)
  * 
  * Examples:
  *   npm run db:seed
@@ -842,7 +843,7 @@ async function seedDynamicPages(existingData?: SeedResult): Promise<SeedResult> 
       // Create View Reports page
       const viewReportsPage = await db.insert(pageLayouts).values({
         name: "View Reports",
-        pageType: "informational",
+        pageType: "custom",
         route: "/view-reports",
         title: "View Reports",
         description: "Access community reports and statistics",
@@ -1082,7 +1083,7 @@ Untuk maklumat lanjut atau bantuan dengan laporan, sila hubungi pentadbir komuni
 
       const termsPage = await db.insert(pageLayouts).values({
       name: "Terms of Service",
-      pageType: "legal",
+      pageType: "terms",
       route: "/terms-of-service",
       title: "Terms of Service",
       description: "Terms and conditions for using our community platform",
@@ -1257,7 +1258,7 @@ Jika anda mempunyai sebarang soalan tentang Terma Perkhidmatan ini, sila hubungi
     // Create Privacy Policy page
     const privacyPage = await db.insert(pageLayouts).values({
       name: "Privacy Policy",
-      pageType: "legal",
+      pageType: "privacy",
       route: "/privacy-policy",
       title: "Privacy Policy",
       description: "How we collect, use, and protect your personal information",
@@ -1403,7 +1404,7 @@ Jika anda mempunyai soalan tentang Dasar Privasi ini, sila hubungi kami melalui 
     // Create How It Works page
     const howItWorksPage = await db.insert(pageLayouts).values({
       name: "How It Works",
-      pageType: "informational",
+      pageType: "custom",
       route: "/how-it-works",
       title: "How It Works",
       description: "Learn how to use our community platform effectively",
@@ -1555,7 +1556,7 @@ Jika anda memerlukan bantuan atau mempunyai soalan, jangan teragak-agak untuk me
     // Create About page
     const aboutPage = await db.insert(pageLayouts).values({
       name: "About Us",
-      pageType: "informational",
+      pageType: "about",
       route: "/about",
       title: "About Us",
       description: "Learn more about our community platform and mission",
@@ -1881,6 +1882,345 @@ Kami menghargai maklum balas anda! Jika anda mempunyai cadangan, komen, atau keb
 
 seedFunctions['dynamic_pages'] = seedDynamicPages;
 seedFunctions['dynamic-pages'] = seedDynamicPages; // Also support kebab-case
+
+async function seedLandingPage(existingData?: SeedResult): Promise<SeedResult> {
+  console.log("🏠 Seeding landing page...");
+
+  // Check if we should clear existing data
+  if (shouldClearData()) {
+    await db.execute(sql`DELETE FROM block_translations WHERE block_id IN (SELECT id FROM content_blocks WHERE layout_id IN (SELECT id FROM page_layouts WHERE route = '/' OR route = '/en' OR route = '/ms'))`);
+    await db.execute(sql`DELETE FROM content_blocks WHERE layout_id IN (SELECT id FROM page_layouts WHERE route = '/' OR route = '/en' OR route = '/ms')`);
+    await db.execute(sql`DELETE FROM page_layouts WHERE route = '/' OR route = '/en' OR route = '/ms'`);
+  }
+
+  const createdPages = [];
+  const createdBlocks = [];
+
+  try {
+    // Check existing pages first
+    const existingPages = await db.select().from(pageLayouts);
+    const existingRoutes = new Set(existingPages.map(p => p.route));
+    
+    console.log(`Found ${existingPages.length} existing pages`);
+
+    // Create Landing Page for both locales if they don't exist
+    const landingRoutes = ['/', '/en', '/ms'];
+    
+    for (const route of landingRoutes) {
+      if (!existingRoutes.has(route)) {
+        console.log(`✅ Creating Landing page for route: ${route}`);
+
+        const locale = route === '/ms' ? 'ms' : 'en';
+        const pageName = locale === 'ms' ? 'Halaman Utama' : 'Landing Page';
+
+        // Create Landing page
+        const landingPage = await db.insert(pageLayouts).values({
+          name: pageName,
+          pageType: "landing",
+          route: route,
+          title: locale === 'ms' ? 'Halaman Utama' : 'Home',
+          description: locale === 'ms' ? 'Halaman utama platform komuniti kami' : 'Main homepage of our community platform',
+          isActive: true,
+          isPublished: true,
+          createdBy: null,
+        }).returning();
+
+        createdPages.push(landingPage[0]);
+
+        // Create hero block for landing page
+        const landingHero = await db.insert(contentBlocks).values({
+          layoutId: landingPage[0].id,
+          blockType: "hero",
+          blockKey: "landing-hero",
+          displayOrder: 1,
+          isVisible: true,
+          configuration: JSON.stringify({ 
+            pageType: "landing",
+            backgroundImage: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=1920&q=80",
+            overlayOpacity: 0.2,
+            alignment: "center",
+            height: "large",
+            showButtons: true
+          }),
+        }).returning();
+
+        createdBlocks.push(landingHero[0]);
+
+        // Add landing hero translations
+        await db.insert(blockTranslations).values([
+          {
+            blockId: landingHero[0].id,
+            locale: "en",
+            content: JSON.stringify({
+              title: "Welcome to N.18 Inanam Community Watch",
+              subtitle: "Connecting communities and empowering local governance through technology. Report issues, track progress, and stay informed about your community.",
+              primaryButton: "Report Issue",
+              primaryButtonUrl: "/report-issue",
+              secondaryButton: "View Reports", 
+              secondaryButtonUrl: "/view-reports",
+              backgroundImage: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=1920&q=80"
+            })
+          },
+          {
+            blockId: landingHero[0].id,
+            locale: "ms",
+            content: JSON.stringify({
+              title: "Selamat Datang ke N.18 Inanam Community Watch",
+              subtitle: "Menghubungkan komuniti dan memperkasakan tadbir urus tempatan melalui teknologi. Laporkan isu, jejaki kemajuan, dan kekal dimaklumkan tentang komuniti anda.",
+              primaryButton: "Laporkan Isu",
+              primaryButtonUrl: "/report-issue",
+              secondaryButton: "Lihat Laporan",
+              secondaryButtonUrl: "/view-reports",
+              backgroundImage: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=1920&q=80"
+            })
+          }
+        ]);
+
+        // Create announcements block for landing page
+        const landingAnnouncements = await db.insert(contentBlocks).values({
+          layoutId: landingPage[0].id,
+          blockType: "announcements",
+          blockKey: "landing-announcements",
+          displayOrder: 2,
+          isVisible: true,
+          configuration: JSON.stringify({
+            limit: 3,
+            showViewAll: true,
+            showDate: true,
+            showExcerpt: true
+          }),
+        }).returning();
+
+        createdBlocks.push(landingAnnouncements[0]);
+
+        // Add announcements translations
+        await db.insert(blockTranslations).values([
+          {
+            blockId: landingAnnouncements[0].id,
+            locale: "en",
+            content: JSON.stringify({
+              title: "Latest Announcements",
+              viewAllText: "View All Announcements"
+            })
+          },
+          {
+            blockId: landingAnnouncements[0].id,
+            locale: "ms",
+            content: JSON.stringify({
+              title: "Pengumuman Terkini",
+              viewAllText: "Lihat Semua Pengumuman"
+            })
+          }
+        ]);
+
+        // Create features block for landing page
+        const landingFeatures = await db.insert(contentBlocks).values({
+          layoutId: landingPage[0].id,
+          blockType: "features",
+          blockKey: "landing-features",
+          displayOrder: 3,
+          isVisible: true,
+          configuration: JSON.stringify({
+            columns: 3,
+            showIcons: true,
+            layout: "grid"
+          }),
+        }).returning();
+
+        createdBlocks.push(landingFeatures[0]);
+
+        // Add features translations
+        await db.insert(blockTranslations).values([
+          {
+            blockId: landingFeatures[0].id,
+            locale: "en",
+            content: JSON.stringify({
+              title: "Platform Features",
+              subtitle: "Discover what makes our community platform effective and user-friendly",
+              features: [
+                {
+                  title: "Transparent Tracking",
+                  description: "Track the progress of your reported issues with real-time updates and transparent communication.",
+                  icon: "eye"
+                },
+                {
+                  title: "Direct Communication",
+                  description: "Connect directly with community leaders and staff for faster resolution of concerns.",
+                  icon: "message-square"
+                },
+                {
+                  title: "Collective Problem Solving",
+                  description: "Work together with your community to identify and solve local issues effectively.",
+                  icon: "trending-up"
+                }
+              ]
+            })
+          },
+          {
+            blockId: landingFeatures[0].id,
+            locale: "ms",
+            content: JSON.stringify({
+              title: "Ciri Platform",
+              subtitle: "Temui apa yang menjadikan platform komuniti kami berkesan dan mesra pengguna",
+              features: [
+                {
+                  title: "Penjejakan Telus",
+                  description: "Jejaki kemajuan isu yang anda laporkan dengan kemas kini masa nyata dan komunikasi yang telus.",
+                  icon: "eye"
+                },
+                {
+                  title: "Komunikasi Langsung",
+                  description: "Berhubung terus dengan pemimpin komuniti dan kakitangan untuk penyelesaian masalah yang lebih pantas.",
+                  icon: "message-square"
+                },
+                {
+                  title: "Penyelesaian Masalah Kolektif",
+                  description: "Bekerjasama dengan komuniti anda untuk mengenal pasti dan menyelesaikan isu tempatan dengan berkesan.",
+                  icon: "trending-up"
+                }
+              ]
+            })
+          }
+        ]);
+
+        // Create statistics block for landing page
+        const landingStats = await db.insert(contentBlocks).values({
+          layoutId: landingPage[0].id,
+          blockType: "statistics",
+          blockKey: "landing-statistics",
+          displayOrder: 4,
+          isVisible: true,
+          configuration: JSON.stringify({
+            columns: 3,
+            showIcons: true,
+            animateNumbers: true
+          }),
+        }).returning();
+
+        createdBlocks.push(landingStats[0]);
+
+        // Add statistics translations
+        await db.insert(blockTranslations).values([
+          {
+            blockId: landingStats[0].id,
+            locale: "en",
+            content: JSON.stringify({
+              title: "Community Impact",
+              subtitle: "See the positive changes we're making together",
+              stats: [
+                {
+                  value: "1,200+",
+                  label: "Issues Reported",
+                  icon: "file-text"
+                },
+                {
+                  value: "950+", 
+                  label: "Issues Resolved",
+                  icon: "check-circle-2"
+                },
+                {
+                  value: "3,500+",
+                  label: "Active Members",
+                  icon: "users"
+                }
+              ]
+            })
+          },
+          {
+            blockId: landingStats[0].id,
+            locale: "ms",
+            content: JSON.stringify({
+              title: "Impak Komuniti",
+              subtitle: "Lihat perubahan positif yang kita buat bersama",
+              stats: [
+                {
+                  value: "1,200+",
+                  label: "Isu Dilaporkan",
+                  icon: "file-text"
+                },
+                {
+                  value: "950+",
+                  label: "Isu Diselesaikan", 
+                  icon: "check-circle-2"
+                },
+                {
+                  value: "3,500+",
+                  label: "Ahli Aktif",
+                  icon: "users"
+                }
+              ]
+            })
+          }
+        ]);
+
+        // Create CTA block for landing page
+        const landingCta = await db.insert(contentBlocks).values({
+          layoutId: landingPage[0].id,
+          blockType: "cta",
+          blockKey: "landing-cta",
+          displayOrder: 5,
+          isVisible: true,
+          configuration: JSON.stringify({
+            style: "primary",
+            size: "large",
+            centered: true
+          }),
+        }).returning();
+
+        createdBlocks.push(landingCta[0]);
+
+        // Add CTA translations
+        await db.insert(blockTranslations).values([
+          {
+            blockId: landingCta[0].id,
+            locale: "en",
+            content: JSON.stringify({
+              title: "Ready to Make a Difference?",
+              description: "Join thousands of community members who are actively improving N.18 Inanam. Your voice matters, and together we can build a better community.",
+              buttonText: "Get Started",
+              buttonUrl: "/report-issue"
+            })
+          },
+          {
+            blockId: landingCta[0].id,
+            locale: "ms",
+            content: JSON.stringify({
+              title: "Bersedia untuk Membuat Perubahan?",
+              description: "Sertai ribuan ahli komuniti yang secara aktif memperbaiki N.18 Inanam. Suara anda penting, dan bersama-sama kita boleh membina komuniti yang lebih baik.",
+              buttonText: "Mulakan",
+              buttonUrl: "/report-issue"
+            })
+          }
+        ]);
+
+        console.log(`✅ Created Landing page content blocks for ${route}`);
+      } else {
+        console.log(`⏭️  Landing page already exists for route: ${route}`);
+      }
+    }
+
+    console.log("🎉 Successfully seeded landing page!");
+    console.log("\nCreated landing pages:");
+    landingRoutes.forEach(route => {
+      if (!existingRoutes.has(route)) {
+        console.log(`- Landing Page (${route})`);
+      }
+    });
+    console.log("\nYou can now manage these pages through the Page Builder admin interface.");
+
+  } catch (error) {
+    console.error("❌ Error seeding landing page:", error);
+    throw error;
+  }
+
+  return { 
+    pageLayouts: createdPages, 
+    contentBlocks: createdBlocks 
+  };
+}
+
+seedFunctions['landing_page'] = seedLandingPage;
+seedFunctions['landing-page'] = seedLandingPage; // Also support kebab-case
 
 async function seed() {
   const tableToSeed = getTableToSeed();
@@ -2501,7 +2841,12 @@ async function seed() {
     const announcementsResult = await seedAnnouncements(seedResults);
     seedResults.announcements = announcementsResult.announcements;
 
-    // 10. Insert Notifications
+    // 10. Seed Landing Page with Page Builder
+    console.log("🏠 Seeding landing page with page builder...");
+    const landingPageResult = await seedLandingPage(seedResults);
+    seedResults.landingPage = landingPageResult;
+
+    // 11. Insert Notifications
     console.log("🔔 Inserting notifications...");
     await db.insert(notifications).values([
       {

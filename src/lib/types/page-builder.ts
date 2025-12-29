@@ -618,10 +618,48 @@ export class BlockValidator {
         if (typeof value !== 'string') {
           return { isValid: false, message: 'Must be a text value' };
         }
-        try {
-          new URL(value);
-        } catch {
-          return { isValid: false, message: 'Must be a valid URL' };
+        
+        // Special handling for different URL field types
+        const isNavigationField = field.key.includes('Button') || field.key === 'buttonUrl';
+        const isVideoField = field.key === 'videoUrl';
+        
+        if (isVideoField) {
+          // Video URLs must be absolute URLs
+          try {
+            new URL(value);
+          } catch {
+            return { isValid: false, message: 'Must be a valid absolute URL (e.g., https://example.com)' };
+          }
+        } else if (isNavigationField) {
+          // Navigation URLs can be relative (starting with /) or absolute
+          if (value.startsWith('/')) {
+            // Relative URL - just check it's not empty after the slash
+            if (value.length === 1) {
+              return { isValid: false, message: 'URL path cannot be empty' };
+            }
+          } else {
+            // Absolute URL - validate with URL constructor
+            try {
+              new URL(value);
+            } catch {
+              return { isValid: false, message: 'Must be a valid URL or relative path starting with /' };
+            }
+          }
+        } else {
+          // Other URL fields - allow both relative and absolute
+          if (value.startsWith('/')) {
+            // Relative URL - just check it's not empty after the slash
+            if (value.length === 1) {
+              return { isValid: false, message: 'URL path cannot be empty' };
+            }
+          } else {
+            // Absolute URL - validate with URL constructor
+            try {
+              new URL(value);
+            } catch {
+              return { isValid: false, message: 'Must be a valid URL or relative path starting with /' };
+            }
+          }
         }
         break;
 

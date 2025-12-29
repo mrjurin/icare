@@ -9,13 +9,8 @@ export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // List of routes that should be handled by the dynamic page system
-  const DYNAMIC_ROUTES = [
-    '/terms-of-service',
-    '/privacy-policy',
-    '/how-it-works',
-    '/about',
-    '/contact',
-    '/view-reports'
+  const DYNAMIC_ROUTES: string[] = [
+    // All routes now have dedicated pages for better locale handling
   ];
 
   // Check if this is a dynamic route that needs to be redirected
@@ -63,10 +58,6 @@ export default async function middleware(request: NextRequest) {
   // 4. Protect Routes
   const isProtectedAdmin = pathname.includes("/admin") && !pathname.includes("/login");
   const isProtectedStaff = pathname.includes("/staff") && !pathname.includes("/login");
-  const isProtectedCommunity = pathname.includes("/community") &&
-    !pathname.includes("/login") &&
-    !pathname.includes("/register") &&
-    !pathname.includes("/faq");
 
   if (!user && (isProtectedAdmin || isProtectedStaff)) {
     const url = request.nextUrl.clone();
