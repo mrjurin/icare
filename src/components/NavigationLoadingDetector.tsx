@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "@/i18n/routing";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useLoadingOverlay } from "@/hooks/useLoadingOverlay";
 
@@ -12,9 +13,11 @@ import { useLoadingOverlay } from "@/hooks/useLoadingOverlay";
  */
 export default function NavigationLoadingDetector() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { setLoading } = useLoadingOverlay();
   const t = useTranslations('common');
   const previousPathname = useRef<string | null>(null);
+  const previousSearchParams = useRef<string | null>(null);
   const navigationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isNavigatingRef = useRef(false);
 
@@ -70,36 +73,43 @@ export default function NavigationLoadingDetector() {
     };
   }, [setLoading]);
 
-  // Detect pathname changes to hide loading overlay
+  // Detect pathname or search params changes to hide loading overlay
   useEffect(() => {
     // Normalize pathnames for comparison (remove trailing slashes)
     const normalizedPathname = pathname.replace(/\/$/, '') || '/';
     const normalizedPrevious = previousPathname.current?.replace(/\/$/, '') || null;
+    const currentSearchParams = searchParams.toString();
+    const previousSearchParamsStr = previousSearchParams.current;
 
-    // If pathname changed, hide loading (regardless of how it was set)
-    if (normalizedPrevious !== null && normalizedPrevious !== normalizedPathname) {
+    // If pathname or search params changed, hide loading
+    const pathnameChanged = normalizedPrevious !== null && normalizedPrevious !== normalizedPathname;
+    const searchParamsChanged = previousSearchParamsStr !== null && previousSearchParamsStr !== currentSearchParams;
+
+    if (pathnameChanged || searchParamsChanged) {
       // Clear any existing timeout
       if (navigationTimeoutRef.current) {
         clearTimeout(navigationTimeoutRef.current);
       }
 
-      // Hide loading overlay when pathname changes
+      // Hide loading overlay when pathname or search params change
       // Use a small delay to ensure smooth transition
       navigationTimeoutRef.current = setTimeout(() => {
         setLoading(false);
         isNavigatingRef.current = false;
       }, 100);
-    } else if (normalizedPrevious === null) {
-      // First render - just set the pathname
+    } else if (normalizedPrevious === null && previousSearchParamsStr === null) {
+      // First render - just set the initial values
       previousPathname.current = normalizedPathname;
+      previousSearchParams.current = currentSearchParams;
       // Make sure loading is not shown on initial render
       setLoading(false);
       isNavigatingRef.current = false;
     }
 
-    // Update previous pathname
+    // Update previous values
     previousPathname.current = normalizedPathname;
-  }, [pathname, setLoading]);
+    previousSearchParams.current = currentSearchParams;
+  }, [pathname, searchParams, setLoading]);
 
   // Monitor browser URL changes to catch locale switches and other programmatic navigation
   // This is needed because next-intl's usePathname might not always reflect locale changes immediately
@@ -160,7 +170,7 @@ export default function NavigationLoadingDetector() {
   }, [setLoading]);
 
   // Safety fallback: Hide loading after maximum timeout (5 seconds)
-  // This runs whenever pathname changes to set up a new timeout if needed
+  // This runs whenever pathname or search params change to set up a new timeout if needed
   useEffect(() => {
     let maxTimeout: NodeJS.Timeout | null = null;
 
@@ -178,7 +188,7 @@ export default function NavigationLoadingDetector() {
         clearTimeout(maxTimeout);
       }
     };
-  }, [pathname, setLoading]);
+  }, [pathname, searchParams, setLoading]);
 
   return null;
 }

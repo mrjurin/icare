@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getIssueResolutionReport, type IssueResolutionData } from "@/lib/actions/reports";
-import { FileCheck, CheckCircle, Clock, AlertCircle, XCircle, TrendingUp } from "lucide-react";
+import { getIssueResolutionReport, getDetailedIssuesForExport, type IssueResolutionData } from "@/lib/actions/reports";
+import { FileCheck, CheckCircle, Clock, AlertCircle, XCircle, TrendingUp, Download, FileSpreadsheet } from "lucide-react";
+import Button from "@/components/ui/Button";
+import { exportData, generateTimestamp } from "@/lib/utils/export";
 
 export default function IssueResolutionReport() {
   const [data, setData] = useState<IssueResolutionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exportingDetailed, setExportingDetailed] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -27,6 +30,142 @@ export default function IssueResolutionReport() {
     }
     fetchData();
   }, []);
+
+  const handleDetailedExport = async () => {
+    if (!data) return;
+    
+    try {
+      setExportingDetailed(true);
+      const result = await getDetailedIssuesForExport();
+      
+      if (result.success && result.data) {
+        const timestamp = generateTimestamp();
+        const filename = `detailed_issues_export_${timestamp}`;
+        
+        // Format the detailed data for CSV export
+        const csvData = result.data.map(issue => ({
+          issue_id: issue.id,
+          title: issue.title || 'N/A',
+          description: issue.description || 'N/A',
+          category: issue.category || 'N/A',
+          priority: issue.priority || 'medium',
+          status: issue.status || 'pending',
+          zone_name: issue.zone_name || 'N/A',
+          locality_name: issue.locality_name || 'N/A',
+          reporter_name: issue.reporter_name || 'N/A',
+          assignee_name: issue.assignee_name || 'N/A',
+          created_at: issue.created_at ? new Date(issue.created_at).toLocaleDateString() : 'N/A',
+          resolved_at: issue.resolved_at ? new Date(issue.resolved_at).toLocaleDateString() : 'N/A',
+          resolution_days: issue.resolution_days || 0,
+          latitude: issue.lat || '',
+          longitude: issue.lng || ''
+        }));
+        
+        exportData({ filename, format: 'csv', data: csvData });
+      } else {
+        console.error('Failed to fetch detailed issues:', result.error);
+      }
+    } catch (error) {
+      console.error('Error exporting detailed issues:', error);
+    } finally {
+      setExportingDetailed(false);
+    }
+  };
+
+  const handleExport = (format: 'csv' | 'json') => {
+    if (!data) return;
+    
+    const timestamp = generateTimestamp();
+    const filename = `issue_resolution_report_${timestamp}`;
+    
+    if (format === 'json') {
+      // For JSON, export the complete data structure
+      const exportDataObj = {
+        report_type: 'Issue Resolution Report',
+        generated_at: new Date().toISOString(),
+        summary: {
+          total_issues: data.total_issues,
+          resolved_issues: data.resolved_issues,
+          pending_issues: data.pending_issues,
+          in_progress_issues: data.in_progress_issues,
+          closed_issues: data.closed_issues,
+          resolution_rate: data.resolution_rate,
+          average_resolution_time_days: data.average_resolution_time_days,
+        },
+        issues_by_category: data.issues_by_category,
+        issues_by_zone: data.issues_by_zone,
+        issues_by_priority: data.issues_by_priority
+      };
+      
+      exportData({ filename, format, data: exportDataObj });
+    } else {
+      // For CSV, create a comprehensive flat structure with all data
+      const csvData = [
+        // Summary row
+        {
+          data_type: 'Summary',
+          category: 'Overall',
+          zone_name: 'All Zones',
+          priority: 'All Priorities',
+          total_issues: data.total_issues,
+          resolved_issues: data.resolved_issues,
+          pending_issues: data.pending_issues,
+          in_progress_issues: data.in_progress_issues,
+          closed_issues: data.closed_issues,
+          resolution_rate: data.resolution_rate,
+          average_resolution_time_days: data.average_resolution_time_days,
+          percentage_of_total: 100
+        },
+        // Category breakdown
+        ...data.issues_by_category.map(item => ({
+          data_type: 'Category Breakdown',
+          category: item.category,
+          zone_name: 'All Zones',
+          priority: 'All Priorities',
+          total_issues: item.total,
+          resolved_issues: item.resolved,
+          pending_issues: item.total - item.resolved,
+          in_progress_issues: 0,
+          closed_issues: 0,
+          resolution_rate: item.resolution_rate,
+          average_resolution_time_days: data.average_resolution_time_days,
+          percentage_of_total: data.total_issues > 0 ? Number(((item.total / data.total_issues) * 100).toFixed(2)) : 0
+        })),
+        // Zone breakdown
+        ...data.issues_by_zone.map(item => ({
+          data_type: 'Zone Breakdown',
+          category: 'All Categories',
+          zone_name: item.zone_name,
+          priority: 'All Priorities',
+          total_issues: item.total,
+          resolved_issues: item.resolved,
+          pending_issues: item.total - item.resolved,
+          in_progress_issues: 0,
+          closed_issues: 0,
+          resolution_rate: item.resolution_rate,
+          average_resolution_time_days: data.average_resolution_time_days,
+          percentage_of_total: data.total_issues > 0 ? Number(((item.total / data.total_issues) * 100).toFixed(2)) : 0
+        })),
+        // Priority breakdown
+        ...data.issues_by_priority.map(item => ({
+          data_type: 'Priority Breakdown',
+          category: 'All Categories',
+          zone_name: 'All Zones',
+          priority: item.priority,
+          total_issues: item.total,
+          resolved_issues: item.resolved,
+          pending_issues: item.total - item.resolved,
+          in_progress_issues: 0,
+          closed_issues: 0,
+          resolution_rate: item.resolution_rate,
+          average_resolution_time_days: data.average_resolution_time_days,
+          percentage_of_total: data.total_issues > 0 ? Number(((item.total / data.total_issues) * 100).toFixed(2)) : 0
+        }))
+      ];
+      
+      exportData({ filename, format, data: csvData });
+    }
+  };
 
   if (loading) {
     return (
@@ -54,6 +193,47 @@ export default function IssueResolutionReport() {
 
   return (
     <div className="space-y-6">
+      {/* Header with Export */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Issue Resolution Report
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            Issue resolution rates and response times
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => handleExport('csv')}
+            disabled={!data}
+            className="gap-2"
+          >
+            <Download className="size-4" />
+            Export Summary CSV
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleDetailedExport}
+            disabled={!data || exportingDetailed}
+            className="gap-2"
+          >
+            <FileSpreadsheet className="size-4" />
+            {exportingDetailed ? 'Exporting...' : 'Export Detailed CSV'}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => handleExport('json')}
+            disabled={!data}
+            className="gap-2"
+          >
+            <Download className="size-4" />
+            Export JSON
+          </Button>
+        </div>
+      </div>
+
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-6">

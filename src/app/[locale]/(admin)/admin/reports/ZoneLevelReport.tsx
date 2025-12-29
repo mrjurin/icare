@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { getZoneLevelReport, type ZoneLevelData } from "@/lib/actions/reports";
-import { MapPin, Users, Home, TrendingUp, CheckCircle, Clock, Package, AlertCircle } from "lucide-react";
+import { MapPin, Users, Home, TrendingUp, CheckCircle, Clock, Package, AlertCircle, Download } from "lucide-react";
+import Button from "@/components/ui/Button";
+import { exportData, generateTimestamp } from "@/lib/utils/export";
 
 export default function ZoneLevelReport() {
   const [data, setData] = useState<ZoneLevelData | null>(null);
@@ -27,6 +29,22 @@ export default function ZoneLevelReport() {
     }
     fetchData();
   }, []);
+
+  const handleExport = (format: 'csv' | 'json') => {
+    if (!data) return;
+    
+    const timestamp = generateTimestamp();
+    const filename = `zone_level_report_${timestamp}`;
+    
+    // Prepare export data
+    const exportDataObj = {
+      report_type: 'Zone Level Report',
+      generated_at: new Date().toISOString(),
+      zones: data.zones
+    };
+    
+    exportData({ filename, format, data: exportDataObj });
+  };
 
   if (loading) {
     return (
@@ -66,6 +84,38 @@ export default function ZoneLevelReport() {
 
   return (
     <div className="space-y-6">
+      {/* Header with Export */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Zone Level Report
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            Detailed statistics and performance for each zone
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => handleExport('csv')}
+            disabled={!data}
+            className="gap-2"
+          >
+            <Download className="size-4" />
+            Export CSV
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => handleExport('json')}
+            disabled={!data}
+            className="gap-2"
+          >
+            <Download className="size-4" />
+            Export JSON
+          </Button>
+        </div>
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-4">

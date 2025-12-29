@@ -3,14 +3,16 @@
 import { useEffect, useState } from "react";
 import { getSprVoterDemographicReport, type SprVoterDemographicData } from "@/lib/actions/reports";
 import { getVoterVersions, type SprVoterVersion } from "@/lib/actions/spr-voters";
-import { Users, BarChart3, PieChart } from "lucide-react";
+import { Users, BarChart3, PieChart, Download } from "lucide-react";
 import SearchableSelect from "@/components/ui/SearchableSelect";
+import Button from "@/components/ui/Button";
+import { exportData, generateTimestamp } from "@/lib/utils/export";
 
 export default function SprDemographicReport() {
   const [versions, setVersions] = useState<SprVoterVersion[]>([]);
   const [selectedVersionId, setSelectedVersionId] = useState<number | undefined>(undefined);
   const [data, setData] = useState<SprVoterDemographicData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Load versions on mount
@@ -35,6 +37,11 @@ export default function SprDemographicReport() {
 
   // Load report data when version changes
   useEffect(() => {
+    // Don't fetch data if selectedVersionId is undefined and we haven't loaded versions yet
+    if (selectedVersionId === undefined && versions.length === 0) {
+      return;
+    }
+
     async function fetchData() {
       try {
         setLoading(true);
@@ -52,9 +59,9 @@ export default function SprDemographicReport() {
       }
     }
     fetchData();
-  }, [selectedVersionId]);
+  }, [selectedVersionId, versions.length]);
 
-  if (loading && !data) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-gray-500">Loading SPR demographic data...</div>
@@ -86,8 +93,63 @@ export default function SprDemographicReport() {
 
   const selectedVersion = versions.find((v) => v.id === selectedVersionId);
 
+  const handleExport = (format: 'csv' | 'json') => {
+    if (!data) return;
+    
+    const timestamp = generateTimestamp();
+    const versionName = selectedVersion ? `_${selectedVersion.name.replace(/\s+/g, '_')}` : '';
+    const filename = `spr_demographic_report${versionName}_${timestamp}`;
+    
+    // Prepare export data
+    const exportDataObj = {
+      report_type: 'SPR Demographic Report',
+      generated_at: new Date().toISOString(),
+      version: selectedVersion?.name || 'All Versions',
+      total_voters: data.total_voters,
+      age_distribution: data.age_distribution,
+      gender_distribution: data.gender_distribution,
+      race_distribution: data.race_distribution,
+      religion_distribution: data.religion_distribution,
+      by_locality: data.by_locality
+    };
+    
+    exportData({ filename, format, data: exportDataObj });
+  };
+
   return (
     <div className="space-y-6">
+      {/* Header with Export */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            SPR Demographic Report
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            Demographic breakdown of SPR voters
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => handleExport('csv')}
+            disabled={!data}
+            className="gap-2"
+          >
+            <Download className="size-4" />
+            Export CSV
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => handleExport('json')}
+            disabled={!data}
+            className="gap-2"
+          >
+            <Download className="size-4" />
+            Export JSON
+          </Button>
+        </div>
+      </div>
+
       {/* Version Selector */}
       <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-background-dark p-4">
         <div className="flex items-center gap-4">

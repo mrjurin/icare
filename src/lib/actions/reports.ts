@@ -5,6 +5,101 @@ import { getAccessibleZoneIds, getAccessibleZoneIdsReadOnly, getCurrentUserAcces
 import { isEligibleToVote, calculateAge } from "@/lib/utils/ic-number";
 import { getVoterVersions } from "@/lib/actions/spr-voters";
 
+/**
+ * Fix common character encoding issues in text
+ */
+function normalizeText(text: string | null | undefined): string {
+  if (!text) return '';
+  
+  // Debug: Log if we find the specific issue
+  if (text.includes('‚Äô')) {
+    console.log('Found encoding issue in text:', text);
+  }
+  
+  // Fix common UTF-8 encoding issues and Windows-1252 to UTF-8 conversion problems
+  let normalized = text
+    // Fix the specific issue: NO‚ÄôMAN -> NO'MAN
+    .replace(/‚Äô/g, "'")     // This is the exact pattern from your example
+    .replace(/‚Äò/g, "'")     // Left single quote
+    .replace(/‚Äó/g, "'")     // Right single quote
+    .replace(/‚Äú/g, '"')     // Left double quote
+    .replace(/‚Äù/g, '"')     // Right double quote
+    .replace(/‚Äî/g, '—')     // Em dash
+    .replace(/‚Äì/g, '–')     // En dash
+    // Additional patterns that might appear
+    .replace(/â€™/g, "'")     // Another common apostrophe encoding
+    .replace(/â€œ/g, '"')     // Another left quote encoding
+    .replace(/â€/g, '"')      // Another right quote encoding
+    .replace(/â€"/g, '—')     // Another em dash encoding
+    .replace(/â€"/g, '–')     // Another en dash encoding
+    // Windows-1252 to UTF-8 issues
+    .replace(/Ã¡/g, 'á')      // a with acute
+    .replace(/Ã©/g, 'é')      // e with acute
+    .replace(/Ã­/g, 'í')      // i with acute
+    .replace(/Ã³/g, 'ó')      // o with acute
+    .replace(/Ãº/g, 'ú')      // u with acute
+    .replace(/Ã±/g, 'ñ')      // n with tilde
+    .replace(/Ã¼/g, 'ü')      // u with diaeresis
+    .replace(/Ã¤/g, 'ä')      // a with diaeresis
+    .replace(/Ã¶/g, 'ö')      // o with diaeresis
+    .replace(/Ã /g, 'à')      // a with grave
+    .replace(/Ã¨/g, 'è')      // e with grave
+    .replace(/Ã¬/g, 'ì')      // i with grave
+    .replace(/Ã²/g, 'ò')      // o with grave
+    .replace(/Ã¹/g, 'ù')      // u with grave
+    .replace(/Ã¢/g, 'â')      // a with circumflex
+    .replace(/Ãª/g, 'ê')      // e with circumflex
+    .replace(/Ã®/g, 'î')      // i with circumflex
+    .replace(/Ã´/g, 'ô')      // o with circumflex
+    .replace(/Ã»/g, 'û')      // u with circumflex
+    .replace(/Ã£/g, 'ã')      // a with tilde
+    .replace(/Ãµ/g, 'õ')      // o with tilde
+    .replace(/Ã§/g, 'ç')      // c with cedilla
+    .replace(/Ã¥/g, 'å')      // a with ring
+    .replace(/Ã¦/g, 'æ')      // ae ligature
+    .replace(/Ã¸/g, 'ø')      // o with stroke
+    .replace(/Ã¿/g, 'ÿ')      // y with diaeresis
+    .replace(/Ã½/g, 'ý')      // y with acute
+    // Other common symbols
+    .replace(/‚Ä¢/g, '¢')     // Cent sign
+    .replace(/‚Ä£/g, '£')     // Pound sign
+    .replace(/‚Ä¤/g, '¤')     // Currency sign
+    .replace(/‚Ä¥/g, '¥')     // Yen sign
+    .replace(/‚Ä¦/g, '¦')     // Broken bar
+    .replace(/‚Ä§/g, '§')     // Section sign
+    .replace(/‚Ä¨/g, '¨')     // Diaeresis
+    .replace(/‚Ä©/g, '©')     // Copyright sign
+    .replace(/‚Äª/g, 'ª')     // Feminine ordinal
+    .replace(/‚Ä«/g, '«')     // Left guillemet
+    .replace(/‚Ä¬/g, '¬')     // Not sign
+    .replace(/‚Ä®/g, '®')     // Registered sign
+    .replace(/‚Ä¯/g, '¯')     // Macron
+    .replace(/‚Ä°/g, '°')     // Degree sign
+    .replace(/‚Ä±/g, '±')     // Plus-minus sign
+    .replace(/‚Ä²/g, '²')     // Superscript 2
+    .replace(/‚Ä³/g, '³')     // Superscript 3
+    .replace(/‚Ä´/g, '´')     // Acute accent
+    .replace(/‚Äµ/g, 'µ')     // Micro sign
+    .replace(/‚Ä¶/g, '¶')     // Pilcrow sign
+    .replace(/‚Ä·/g, '·')     // Middle dot
+    .replace(/‚Ä¸/g, '¸')     // Cedilla
+    .replace(/‚Ä¹/g, '¹')     // Superscript 1
+    .replace(/‚Äº/g, 'º')     // Masculine ordinal
+    .replace(/‚Ä»/g, '»')     // Right guillemet
+    .replace(/‚Ä¼/g, '¼')     // Fraction 1/4
+    .replace(/‚Ä½/g, '½')     // Fraction 1/2
+    .replace(/‚Ä¾/g, '¾')     // Fraction 3/4
+    .replace(/‚Ä¿/g, '¿')     // Inverted question mark
+    .trim();
+  
+  // Debug: Log the result if we made changes
+  if (normalized !== text) {
+    console.log('Normalized text:', text, '->', normalized);
+  }
+  
+  return normalized;
+}
+
 export type ActionResult<T = void> = {
   success: boolean;
   error?: string;
@@ -663,6 +758,202 @@ export type IssueResolutionData = {
     resolution_rate: number;
   }>;
 };
+
+// Detailed Issues Export
+export type DetailedIssueData = {
+  id: number;
+  title: string | null;
+  description: string | null;
+  category: string | null;
+  priority: string | null;
+  status: string | null;
+  zone_name: string | null;
+  locality_name: string | null;
+  reporter_name: string | null;
+  assignee_name: string | null;
+  created_at: string | null;
+  resolved_at: string | null;
+  resolution_days: number | null;
+  lat: number | null;
+  lng: number | null;
+};
+
+export async function getDetailedIssuesForExport(): Promise<ActionResult<DetailedIssueData[]>> {
+  const supabase = await getSupabaseServerClient();
+  const accessibleZoneIds = await getAccessibleZoneIds();
+
+  // Get accessible zones first
+  let zonesQuery = supabase.from("zones").select("id, name, dun_id");
+  if (accessibleZoneIds !== null) {
+    if (accessibleZoneIds.length === 0) {
+      return { success: true, data: [] };
+    }
+    zonesQuery = zonesQuery.in("id", accessibleZoneIds);
+  }
+
+  const { data: zones, error: zonesError } = await zonesQuery;
+  if (zonesError || !zones) {
+    return { success: false, error: zonesError?.message || "Failed to fetch zones" };
+  }
+
+  const dunIds = [...new Set(zones.map(z => z.dun_id).filter(Boolean))];
+  const zoneMap = new Map(zones.map(z => [z.id, z.name]));
+
+  // Get localities to map to zones
+  let localitiesQuery = supabase.from("localities").select("id, name, dun_id");
+  if (dunIds.length > 0) {
+    localitiesQuery = localitiesQuery.in("dun_id", dunIds);
+  }
+  const { data: localities, error: localitiesError } = await localitiesQuery;
+
+  if (localitiesError) {
+    return { success: false, error: localitiesError.message };
+  }
+
+  // Get locality IDs that belong to accessible zones
+  const accessibleLocalityIds = (localities || [])
+    .filter(l => l.dun_id && dunIds.includes(l.dun_id))
+    .map(l => l.id);
+
+  const localityMap = new Map((localities || []).map(l => [l.id, l.name]));
+  const localityToDunMap = new Map((localities || []).map(l => [l.id, l.dun_id]));
+  const dunToZonesMap = new Map<number, number[]>();
+  zones.forEach(zone => {
+    if (zone.dun_id) {
+      const existing = dunToZonesMap.get(zone.dun_id) || [];
+      existing.push(zone.id);
+      dunToZonesMap.set(zone.dun_id, existing);
+    }
+  });
+
+  // Get detailed issues
+  let issuesQuery = supabase
+    .from("issues")
+    .select(`
+      id,
+      title,
+      description,
+      category,
+      priority,
+      status,
+      created_at,
+      resolved_at,
+      locality_id,
+      lat,
+      lng,
+      reporter_id
+    `);
+
+  if (accessibleZoneIds !== null && accessibleLocalityIds.length > 0) {
+    issuesQuery = issuesQuery.in("locality_id", accessibleLocalityIds);
+  } else if (accessibleZoneIds !== null && accessibleLocalityIds.length === 0) {
+    return { success: true, data: [] };
+  }
+
+  const { data: issues, error: issuesError } = await issuesQuery;
+
+  if (issuesError) {
+    return { success: false, error: issuesError.message };
+  }
+
+  // Get issue assignments to find assignees
+  const issueIds = (issues || []).map(i => i.id);
+  const { data: assignments, error: assignmentsError } = await supabase
+    .from("issue_assignments")
+    .select("issue_id, staff_id")
+    .in("issue_id", issueIds.length > 0 ? issueIds : [-1])
+    .eq("status", "assigned"); // Only get active assignments
+
+  if (assignmentsError) {
+    return { success: false, error: assignmentsError.message };
+  }
+
+  // Create a map from issue_id to staff_id (assignee)
+  const issueAssigneeMap = new Map<number, string>();
+  (assignments || []).forEach(assignment => {
+    if (assignment.staff_id) {
+      issueAssigneeMap.set(assignment.issue_id, assignment.staff_id.toString());
+    }
+  });
+
+  // Get user profiles for reporter and assignee names
+  const userIds = new Set<string>();
+  (issues || []).forEach(issue => {
+    if (issue.reporter_id) userIds.add(issue.reporter_id);
+  });
+  // Add assignee IDs (staff_id from assignments)
+  issueAssigneeMap.forEach(staffId => userIds.add(staffId));
+
+  // Get profiles for reporters (from profiles table)
+  const { data: profiles, error: profilesError } = await supabase
+    .from("profiles")
+    .select("id, full_name")
+    .in("id", Array.from(userIds));
+
+  if (profilesError) {
+    return { success: false, error: profilesError.message };
+  }
+
+  // Get staff names for assignees (from staff table)
+  const staffIds = Array.from(new Set(Array.from(issueAssigneeMap.values()).map(id => parseInt(id))));
+  const { data: staff, error: staffError } = await supabase
+    .from("staff")
+    .select("id, name")
+    .in("id", staffIds.length > 0 ? staffIds : [-1]);
+
+  if (staffError) {
+    return { success: false, error: staffError.message };
+  }
+
+  const profileMap = new Map((profiles || []).map(p => [p.id, p.full_name]));
+  const staffMap = new Map((staff || []).map(s => [s.id.toString(), s.name]));
+
+  // Format the data
+  const detailedIssues: DetailedIssueData[] = (issues || []).map(issue => {
+    // Map locality to zone
+    let zoneName: string | null = null;
+    if (issue.locality_id) {
+      const dunId = localityToDunMap.get(issue.locality_id);
+      if (dunId) {
+        const zoneIdsForDun = dunToZonesMap.get(dunId) || [];
+        if (zoneIdsForDun.length > 0) {
+          zoneName = zoneMap.get(zoneIdsForDun[0]) || null;
+        }
+      }
+    }
+
+    // Calculate resolution days
+    let resolutionDays: number | null = null;
+    if (issue.status === 'resolved' && issue.created_at && issue.resolved_at) {
+      const created = new Date(issue.created_at);
+      const resolved = new Date(issue.resolved_at);
+      resolutionDays = Math.ceil((resolved.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+    }
+
+    // Get assignee from the assignments map
+    const assigneeId = issueAssigneeMap.get(issue.id);
+
+    return {
+      id: issue.id,
+      title: normalizeText(issue.title),
+      description: normalizeText(issue.description),
+      category: issue.category,
+      priority: issue.priority,
+      status: issue.status,
+      zone_name: normalizeText(zoneName),
+      locality_name: issue.locality_id ? normalizeText(localityMap.get(issue.locality_id)) || null : null,
+      reporter_name: issue.reporter_id ? normalizeText(profileMap.get(issue.reporter_id)) || null : null,
+      assignee_name: assigneeId ? normalizeText(staffMap.get(assigneeId)) || null : null,
+      created_at: issue.created_at,
+      resolved_at: issue.resolved_at,
+      resolution_days: resolutionDays,
+      lat: issue.lat,
+      lng: issue.lng,
+    };
+  });
+
+  return { success: true, data: detailedIssues };
+}
 
 export async function getIssueResolutionReport(): Promise<ActionResult<IssueResolutionData>> {
   const supabase = await getSupabaseServerClient();

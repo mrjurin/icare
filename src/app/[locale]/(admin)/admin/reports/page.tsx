@@ -10,7 +10,6 @@ import {
   PieChart, 
   FileCheck, 
   Package,
-  Download,
   MapPin,
   Home,
   Vote
@@ -25,7 +24,6 @@ import ZoneLevelReport from "./ZoneLevelReport";
 import VillageLevelReport from "./VillageLevelReport";
 import SprSupportReport from "./SprSupportReport";
 import SprDemographicReport from "./SprDemographicReport";
-import Button from "@/components/ui/Button";
 
 type ReportType = 
   | "voter-analysis"
@@ -132,10 +130,6 @@ function ReportsContent() {
             Analyze your winning possibility for the next election
           </p>
         </div>
-        <Button className="gap-2">
-          <Download className="size-4" />
-          <span>Export Report</span>
-        </Button>
       </div>
 
       {/* Submenu Navigation */}
