@@ -35,7 +35,7 @@ const items: NavItem[] = [
   { href: "/admin/memberships", labelKey: "memberships", icon: UserPlus },
   { href: "/admin/announcements", labelKey: "announcements", icon: Megaphone },
   { href: "/admin/reports", labelKey: "reports", icon: ChartPie },
-  { href: "/admin/pages", labelKey: "pages", icon: FileEdit },
+  { href: "/admin/page-builder", labelKey: "pageBuilder", icon: FileEdit },
   { href: "/admin/backups", labelKey: "backups", icon: HardDrive },
   { href: "/admin/audit-logs", labelKey: "auditLogs", icon: ScrollText },
   { href: "/admin/settings", labelKey: "settings", icon: Settings },

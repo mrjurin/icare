@@ -14,6 +14,7 @@
  *   - issues (depends on profiles and issue_types - will auto-seed dependencies if missing)
  *   - app_settings (or app-settings)
  *   - announcements
+ *   - dynamic_pages (or dynamic-pages)
  * 
  * Examples:
  *   npm run db:seed
@@ -72,7 +73,7 @@ const pool = new Pool({
 
 const db = drizzle(pool);
 
-import { profiles, staff, issues, issueMedia, issueFeedback, announcements, notifications, issueAssignments, supportRequests, duns, zones, cawangan, villages, households, householdMembers, householdIncome, aidDistributions, roles, roleAssignments, permissions, staffPermissions, appSettings, aidsPrograms, aidsProgramZones, aidsProgramAssignments, aidsDistributionRecords, issueTypes, issueStatuses, priorities } from "./schema";
+import { profiles, staff, issues, issueMedia, issueFeedback, announcements, notifications, issueAssignments, supportRequests, duns, zones, cawangan, villages, households, householdMembers, householdIncome, aidDistributions, roles, roleAssignments, permissions, staffPermissions, appSettings, aidsPrograms, aidsProgramZones, aidsProgramAssignments, aidsDistributionRecords, issueTypes, issueStatuses, priorities, pageLayouts, contentBlocks, blockTranslations } from "./schema";
 import { sql } from "drizzle-orm";
 
 // Type for seed function results
@@ -813,6 +814,1073 @@ async function seedAnnouncements(existingData?: SeedResult): Promise<SeedResult>
 }
 
 seedFunctions['announcements'] = seedAnnouncements;
+
+async function seedDynamicPages(existingData?: SeedResult): Promise<SeedResult> {
+  console.log("📄 Seeding dynamic pages...");
+
+  // Check if we should clear existing data
+  if (shouldClearData()) {
+    await db.execute(sql`DELETE FROM block_translations`);
+    await db.execute(sql`DELETE FROM content_blocks`);
+    await db.execute(sql`DELETE FROM page_layouts`);
+  }
+
+  const createdPages = [];
+  const createdBlocks = [];
+
+  try {
+    // Check existing pages first
+    const existingPages = await db.select().from(pageLayouts);
+    const existingRoutes = new Set(existingPages.map(p => p.route));
+    
+    console.log(`Found ${existingPages.length} existing pages`);
+
+    // Create View Reports page if it doesn't exist
+    if (!existingRoutes.has("/view-reports")) {
+      console.log("✅ Creating View Reports page");
+
+      // Create View Reports page
+      const viewReportsPage = await db.insert(pageLayouts).values({
+        name: "View Reports",
+        pageType: "informational",
+        route: "/view-reports",
+        title: "View Reports",
+        description: "Access community reports and statistics",
+        isActive: true,
+        isPublished: true,
+        createdBy: null,
+      }).returning();
+
+      createdPages.push(viewReportsPage[0]);
+
+      // Create hero block for view reports page
+      const viewReportsHero = await db.insert(contentBlocks).values({
+        layoutId: viewReportsPage[0].id,
+        blockType: "hero",
+        blockKey: "view-reports-hero",
+        displayOrder: 1,
+        isVisible: true,
+        configuration: JSON.stringify({ pageType: "view-reports" }),
+      }).returning();
+
+      createdBlocks.push(viewReportsHero[0]);
+
+      // Add view reports hero translations
+      await db.insert(blockTranslations).values([
+        {
+          blockId: viewReportsHero[0].id,
+          locale: "en",
+          content: JSON.stringify({
+            title: "View Reports",
+            subtitle: "Stay informed about community activities, statistics, and developments",
+            backgroundImage: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&q=80"
+          })
+        },
+        {
+          blockId: viewReportsHero[0].id,
+          locale: "ms",
+          content: JSON.stringify({
+            title: "Lihat Laporan",
+            subtitle: "Kekal dimaklumkan tentang aktiviti komuniti, statistik, dan perkembangan",
+            backgroundImage: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&q=80"
+          })
+        }
+      ]);
+
+      // Create content block for view reports page
+      const viewReportsContent = await db.insert(contentBlocks).values({
+        layoutId: viewReportsPage[0].id,
+        blockType: "text",
+        blockKey: "view-reports-content",
+        displayOrder: 2,
+        isVisible: true,
+        configuration: JSON.stringify({}),
+      }).returning();
+
+      createdBlocks.push(viewReportsContent[0]);
+
+      // Add view reports content translations
+      await db.insert(blockTranslations).values([
+        {
+          blockId: viewReportsContent[0].id,
+          locale: "en",
+          content: JSON.stringify({
+            title: "Community Reports & Analytics",
+            content: `# View Reports
+
+Stay informed about community activities, statistics, and developments through our comprehensive reporting system.
+
+## Available Reports
+
+- **Issue Reports**: Track all issues reported in your community, including status, priority, and resolution progress.
+- **Community Statistics**: View demographic data, household information, and community metrics.
+- **Aid Program Reports**: Access information about aid distribution and program participation.
+- **Activity Reports**: Monitor community activities, announcements, and engagement metrics.
+
+## How to Access Reports
+
+1. Log in to your account
+2. Navigate to the Reports section
+3. Select the type of report you want to view
+4. Filter and customize reports based on your needs
+5. Export or share reports as needed
+
+## Report Features
+
+- Real-time data updates
+- Customizable filters and date ranges
+- Export capabilities (PDF, Excel)
+- Visual charts and graphs
+- Detailed breakdowns by zone, village, or category
+
+## Report Categories
+
+### Issue Tracking
+- Open issues by category and priority
+- Resolution times and trends
+- Geographic distribution of issues
+- Staff performance metrics
+
+### Community Demographics
+- Population statistics
+- Household composition
+- Age and gender distributions
+- Economic indicators
+
+### Aid Distribution
+- Program participation rates
+- Distribution efficiency
+- Beneficiary demographics
+- Resource allocation
+
+### Engagement Metrics
+- Platform usage statistics
+- Community participation rates
+- Feedback and satisfaction scores
+- Communication effectiveness
+
+For more information or assistance with reports, please contact your community administrators.`
+          })
+        },
+        {
+          blockId: viewReportsContent[0].id,
+          locale: "ms",
+          content: JSON.stringify({
+            title: "Laporan & Analitik Komuniti",
+            content: `# Lihat Laporan
+
+Kekal dimaklumkan tentang aktiviti komuniti, statistik, dan perkembangan melalui sistem pelaporan komprehensif kami.
+
+## Laporan Tersedia
+
+- **Laporan Isu**: Jejaki semua isu yang dilaporkan dalam komuniti anda, termasuk status, keutamaan, dan kemajuan penyelesaian.
+- **Statistik Komuniti**: Lihat data demografi, maklumat isi rumah, dan metrik komuniti.
+- **Laporan Program Bantuan**: Akses maklumat tentang pengagihan bantuan dan penyertaan program.
+- **Laporan Aktiviti**: Pantau aktiviti komuniti, pengumuman, dan metrik penglibatan.
+
+## Cara Mengakses Laporan
+
+1. Log masuk ke akaun anda
+2. Navigasi ke bahagian Laporan
+3. Pilih jenis laporan yang ingin anda lihat
+4. Tapis dan sesuaikan laporan berdasarkan keperluan anda
+5. Eksport atau kongsi laporan mengikut keperluan
+
+## Ciri Laporan
+
+- Kemas kini data masa nyata
+- Penapis dan julat tarikh yang boleh disesuaikan
+- Keupayaan eksport (PDF, Excel)
+- Carta dan graf visual
+- Perincian terperinci mengikut zon, kampung, atau kategori
+
+## Kategori Laporan
+
+### Penjejakan Isu
+- Isu terbuka mengikut kategori dan keutamaan
+- Masa penyelesaian dan trend
+- Taburan geografi isu
+- Metrik prestasi kakitangan
+
+### Demografi Komuniti
+- Statistik populasi
+- Komposisi isi rumah
+- Taburan umur dan jantina
+- Penunjuk ekonomi
+
+### Pengagihan Bantuan
+- Kadar penyertaan program
+- Kecekapan pengagihan
+- Demografi benefisiari
+- Peruntukan sumber
+
+### Metrik Penglibatan
+- Statistik penggunaan platform
+- Kadar penyertaan komuniti
+- Skor maklum balas dan kepuasan
+- Keberkesanan komunikasi
+
+Untuk maklumat lanjut atau bantuan dengan laporan, sila hubungi pentadbir komuniti anda.`
+          })
+        }
+      ]);
+
+      // Create CTA block for view reports page
+      const viewReportsCta = await db.insert(contentBlocks).values({
+        layoutId: viewReportsPage[0].id,
+        blockType: "cta",
+        blockKey: "view-reports-cta",
+        displayOrder: 3,
+        isVisible: true,
+        configuration: JSON.stringify({}),
+      }).returning();
+
+      createdBlocks.push(viewReportsCta[0]);
+
+      // Add view reports CTA translations
+      await db.insert(blockTranslations).values([
+        {
+          blockId: viewReportsCta[0].id,
+          locale: "en",
+          content: JSON.stringify({
+            primaryButton: {
+              text: "Access Reports Dashboard",
+              link: "/admin/reports",
+              showArrow: true
+            },
+            secondaryButton: {
+              text: "Contact Support",
+              link: "/contact"
+            }
+          })
+        },
+        {
+          blockId: viewReportsCta[0].id,
+          locale: "ms",
+          content: JSON.stringify({
+            primaryButton: {
+              text: "Akses Papan Pemuka Laporan",
+              link: "/admin/reports",
+              showArrow: true
+            },
+            secondaryButton: {
+              text: "Hubungi Sokongan",
+              link: "/contact"
+            }
+          })
+        }
+      ]);
+
+      console.log("✅ Created View Reports content blocks");
+    } else {
+      console.log("⏭️  View Reports page already exists");
+    }
+
+    // Create Terms of Service page if it doesn't exist
+    if (!existingRoutes.has("/terms-of-service")) {
+      console.log("✅ Creating Terms of Service page");
+
+      const termsPage = await db.insert(pageLayouts).values({
+      name: "Terms of Service",
+      pageType: "legal",
+      route: "/terms-of-service",
+      title: "Terms of Service",
+      description: "Terms and conditions for using our community platform",
+      isActive: true,
+      isPublished: true,
+      createdBy: null,
+    }).returning();
+
+    console.log("✅ Created Terms of Service page");
+
+    // Create hero block for terms page
+    const termsHero = await db.insert(contentBlocks).values({
+      layoutId: termsPage[0].id,
+      blockType: "hero",
+      blockKey: "terms-hero",
+      displayOrder: 1,
+      isVisible: true,
+      configuration: JSON.stringify({ pageType: "terms" }),
+    }).returning();
+
+    // Add hero translations
+    await db.insert(blockTranslations).values([
+      {
+        blockId: termsHero[0].id,
+        locale: "en",
+        content: JSON.stringify({
+          title: "Terms of Service",
+          subtitle: "Please read these terms and conditions carefully before using our community platform",
+          backgroundImage: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=1200&q=80"
+        })
+      },
+      {
+        blockId: termsHero[0].id,
+        locale: "ms",
+        content: JSON.stringify({
+          title: "Terma Perkhidmatan",
+          subtitle: "Sila baca terma dan syarat ini dengan teliti sebelum menggunakan platform komuniti kami",
+          backgroundImage: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=1200&q=80"
+        })
+      }
+    ]);
+
+    // Create content block for terms page
+    const termsContent = await db.insert(contentBlocks).values({
+      layoutId: termsPage[0].id,
+      blockType: "text",
+      blockKey: "terms-content",
+      displayOrder: 2,
+      isVisible: true,
+      configuration: JSON.stringify({}),
+    }).returning();
+
+    // Add content translations
+    await db.insert(blockTranslations).values([
+      {
+        blockId: termsContent[0].id,
+        locale: "en",
+        content: JSON.stringify({
+          title: "Terms and Conditions",
+          content: `# Terms and Conditions
+
+## 1. Acceptance of Terms
+
+By accessing and using this community platform, you accept and agree to be bound by the terms and provision of this agreement.
+
+## 2. Use License
+
+Permission is granted to temporarily download one copy of the materials on our community platform for personal, non-commercial transitory viewing only.
+
+## 3. Disclaimer
+
+The materials on our community platform are provided on an 'as is' basis. We make no warranties, expressed or implied, and hereby disclaim and negate all other warranties including without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.
+
+## 4. Limitations
+
+In no event shall our organization or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on our community platform.
+
+## 5. Privacy Policy
+
+Your privacy is important to us. Please review our Privacy Policy, which also governs your use of the platform.
+
+## 6. Contact Information
+
+If you have any questions about these Terms of Service, please contact us through our official channels.
+
+*Last updated: ${new Date().toLocaleDateString()}*`
+        })
+      },
+      {
+        blockId: termsContent[0].id,
+        locale: "ms",
+        content: JSON.stringify({
+          title: "Terma dan Syarat",
+          content: `# Terma dan Syarat
+
+## 1. Penerimaan Terma
+
+Dengan mengakses dan menggunakan platform komuniti ini, anda menerima dan bersetuju untuk terikat dengan terma dan peruntukan perjanjian ini.
+
+## 2. Lesen Penggunaan
+
+Kebenaran diberikan untuk memuat turun sementara satu salinan bahan di platform komuniti kami untuk tontonan peribadi, bukan komersial sahaja.
+
+## 3. Penafian
+
+Bahan-bahan di platform komuniti kami disediakan atas dasar 'sebagaimana adanya'. Kami tidak membuat sebarang waranti, tersurat atau tersirat, dan dengan ini menafikan semua waranti lain termasuk tanpa had, waranti tersirat atau syarat kebolehdagangan, kesesuaian untuk tujuan tertentu, atau bukan pelanggaran harta intelek atau pelanggaran hak lain.
+
+## 4. Had
+
+Dalam apa jua keadaan, organisasi kami atau pembekalnya tidak akan bertanggungjawab untuk sebarang kerosakan (termasuk, tanpa had, kerosakan untuk kehilangan data atau keuntungan, atau disebabkan gangguan perniagaan) yang timbul daripada penggunaan atau ketidakupayaan untuk menggunakan bahan di platform komuniti kami.
+
+## 5. Dasar Privasi
+
+Privasi anda penting bagi kami. Sila semak Dasar Privasi kami, yang juga mengawal penggunaan platform anda.
+
+## 6. Maklumat Hubungan
+
+Jika anda mempunyai sebarang soalan tentang Terma Perkhidmatan ini, sila hubungi kami melalui saluran rasmi kami.
+
+*Kemaskini terakhir: ${new Date().toLocaleDateString()}*`
+        })
+      }
+    ]);
+
+    // Create CTA block for terms page
+    const termsCta = await db.insert(contentBlocks).values({
+      layoutId: termsPage[0].id,
+      blockType: "cta",
+      blockKey: "terms-cta",
+      displayOrder: 3,
+      isVisible: true,
+      configuration: JSON.stringify({}),
+    }).returning();
+
+    // Add CTA translations
+    await db.insert(blockTranslations).values([
+      {
+        blockId: termsCta[0].id,
+        locale: "en",
+        content: JSON.stringify({
+          primaryButton: {
+            text: "Read Privacy Policy",
+            link: "/privacy-policy",
+            showArrow: true
+          },
+          secondaryButton: {
+            text: "Contact Us",
+            link: "/contact"
+          }
+        })
+      },
+      {
+        blockId: termsCta[0].id,
+        locale: "ms",
+        content: JSON.stringify({
+          primaryButton: {
+            text: "Baca Dasar Privasi",
+            link: "/privacy-policy",
+            showArrow: true
+          },
+          secondaryButton: {
+            text: "Hubungi Kami",
+            link: "/contact"
+          }
+        })
+      }
+    ]);
+
+    console.log("✅ Created Terms of Service content blocks");
+    }
+
+    // Create Privacy Policy page
+    const privacyPage = await db.insert(pageLayouts).values({
+      name: "Privacy Policy",
+      pageType: "legal",
+      route: "/privacy-policy",
+      title: "Privacy Policy",
+      description: "How we collect, use, and protect your personal information",
+      isActive: true,
+      isPublished: true,
+      createdBy: null,
+    }).returning();
+
+    console.log("✅ Created Privacy Policy page");
+
+    // Create hero block for privacy page
+    const privacyHero = await db.insert(contentBlocks).values({
+      layoutId: privacyPage[0].id,
+      blockType: "hero",
+      blockKey: "privacy-hero",
+      displayOrder: 1,
+      isVisible: true,
+      configuration: JSON.stringify({ pageType: "privacy" }),
+    }).returning();
+
+    // Add privacy hero translations
+    await db.insert(blockTranslations).values([
+      {
+        blockId: privacyHero[0].id,
+        locale: "en",
+        content: JSON.stringify({
+          title: "Privacy Policy",
+          subtitle: "We are committed to protecting your privacy and personal information",
+          backgroundImage: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=1200&q=80"
+        })
+      },
+      {
+        blockId: privacyHero[0].id,
+        locale: "ms",
+        content: JSON.stringify({
+          title: "Dasar Privasi",
+          subtitle: "Kami komited untuk melindungi privasi dan maklumat peribadi anda",
+          backgroundImage: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=1200&q=80"
+        })
+      }
+    ]);
+
+    // Create content block for privacy page
+    const privacyContent = await db.insert(contentBlocks).values({
+      layoutId: privacyPage[0].id,
+      blockType: "text",
+      blockKey: "privacy-content",
+      displayOrder: 2,
+      isVisible: true,
+      configuration: JSON.stringify({}),
+    }).returning();
+
+    // Add privacy content translations
+    await db.insert(blockTranslations).values([
+      {
+        blockId: privacyContent[0].id,
+        locale: "en",
+        content: JSON.stringify({
+          title: "How We Protect Your Privacy",
+          content: `# Privacy Policy
+
+## Information We Collect
+
+We collect information you provide directly to us, such as when you create an account, report an issue, or contact us for support.
+
+## How We Use Your Information
+
+We use the information we collect to:
+- Provide, maintain, and improve our services
+- Process transactions and send related information
+- Send technical notices and support messages
+- Respond to your comments and questions
+
+## Information Sharing
+
+We do not sell, trade, or otherwise transfer your personal information to third parties without your consent, except as described in this policy.
+
+## Data Security
+
+We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.
+
+## Your Rights
+
+You have the right to:
+- Access your personal information
+- Correct inaccurate information
+- Request deletion of your information
+- Object to processing of your information
+
+## Contact Us
+
+If you have questions about this Privacy Policy, please contact us through our official channels.
+
+*Last updated: ${new Date().toLocaleDateString()}*`
+        })
+      },
+      {
+        blockId: privacyContent[0].id,
+        locale: "ms",
+        content: JSON.stringify({
+          title: "Bagaimana Kami Melindungi Privasi Anda",
+          content: `# Dasar Privasi
+
+## Maklumat Yang Kami Kumpul
+
+Kami mengumpul maklumat yang anda berikan secara langsung kepada kami, seperti apabila anda membuat akaun, melaporkan isu, atau menghubungi kami untuk sokongan.
+
+## Bagaimana Kami Menggunakan Maklumat Anda
+
+Kami menggunakan maklumat yang kami kumpul untuk:
+- Menyediakan, mengekalkan, dan menambah baik perkhidmatan kami
+- Memproses transaksi dan menghantar maklumat berkaitan
+- Menghantar notis teknikal dan mesej sokongan
+- Membalas komen dan soalan anda
+
+## Perkongsian Maklumat
+
+Kami tidak menjual, berdagang, atau memindahkan maklumat peribadi anda kepada pihak ketiga tanpa persetujuan anda, kecuali seperti yang diterangkan dalam dasar ini.
+
+## Keselamatan Data
+
+Kami melaksanakan langkah keselamatan yang sesuai untuk melindungi maklumat peribadi anda daripada akses tanpa kebenaran, pengubahan, pendedahan, atau pemusnahan.
+
+## Hak Anda
+
+Anda mempunyai hak untuk:
+- Mengakses maklumat peribadi anda
+- Membetulkan maklumat yang tidak tepat
+- Meminta pemadaman maklumat anda
+- Membantah pemprosesan maklumat anda
+
+## Hubungi Kami
+
+Jika anda mempunyai soalan tentang Dasar Privasi ini, sila hubungi kami melalui saluran rasmi kami.
+
+*Kemaskini terakhir: ${new Date().toLocaleDateString()}*`
+        })
+      }
+    ]);
+
+    console.log("✅ Created Privacy Policy content blocks");
+
+    // Create How It Works page
+    const howItWorksPage = await db.insert(pageLayouts).values({
+      name: "How It Works",
+      pageType: "informational",
+      route: "/how-it-works",
+      title: "How It Works",
+      description: "Learn how to use our community platform effectively",
+      isActive: true,
+      isPublished: true,
+      createdBy: null,
+    }).returning();
+
+    console.log("✅ Created How It Works page");
+
+    // Create hero block for how it works page
+    const howItWorksHero = await db.insert(contentBlocks).values({
+      layoutId: howItWorksPage[0].id,
+      blockType: "hero",
+      blockKey: "how-it-works-hero",
+      displayOrder: 1,
+      isVisible: true,
+      configuration: JSON.stringify({ pageType: "how-it-works" }),
+    }).returning();
+
+    // Add how it works hero translations
+    await db.insert(blockTranslations).values([
+      {
+        blockId: howItWorksHero[0].id,
+        locale: "en",
+        content: JSON.stringify({
+          title: "How It Works",
+          subtitle: "Learn how to use our community platform to report issues and stay connected",
+          backgroundImage: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200&q=80"
+        })
+      },
+      {
+        blockId: howItWorksHero[0].id,
+        locale: "ms",
+        content: JSON.stringify({
+          title: "Bagaimana Ia Berfungsi",
+          subtitle: "Pelajari cara menggunakan platform komuniti kami untuk melaporkan isu dan kekal berhubung",
+          backgroundImage: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200&q=80"
+        })
+      }
+    ]);
+
+    // Create content block for how it works page
+    const howItWorksContent = await db.insert(contentBlocks).values({
+      layoutId: howItWorksPage[0].id,
+      blockType: "text",
+      blockKey: "how-it-works-content",
+      displayOrder: 2,
+      isVisible: true,
+      configuration: JSON.stringify({}),
+    }).returning();
+
+    // Add how it works content translations
+    await db.insert(blockTranslations).values([
+      {
+        blockId: howItWorksContent[0].id,
+        locale: "en",
+        content: JSON.stringify({
+          title: "Getting Started with Community Watch",
+          content: `# How It Works
+
+Welcome to the Community Watch platform! This platform connects community members with local representatives to address issues and concerns in your area.
+
+## Getting Started
+
+### 1. Register an Account
+Create your account by providing your basic information and verification details. This helps us ensure you're a legitimate community member.
+
+### 2. Report Issues
+Submit issues or concerns you encounter in your community, such as:
+- Infrastructure problems (potholes, broken streetlights)
+- Safety concerns (missing guardrails, unsafe areas)
+- Sanitation issues (garbage collection, drainage problems)
+- Other community concerns
+
+### 3. Track Progress
+Monitor the status of your submitted issues and receive updates on their resolution. You'll get notifications when:
+- Your issue is received and reviewed
+- Work begins on addressing the issue
+- The issue is resolved
+
+### 4. View Reports
+Access community reports and statistics to stay informed about local developments and see how your area is improving.
+
+## Features
+
+- **Issue Reporting**: Easy-to-use forms for reporting community problems
+- **Real-time Updates**: Get notified about the progress of your reports
+- **Community Dashboard**: View statistics and reports about your area
+- **Multi-language Support**: Available in English and Bahasa Malaysia
+- **Mobile Friendly**: Use the platform on any device
+
+## Support
+
+If you need assistance or have questions, please don't hesitate to contact us through the Contact page or reach out to your local community representatives.
+
+*Together, we can make our community better!*`
+        })
+      },
+      {
+        blockId: howItWorksContent[0].id,
+        locale: "ms",
+        content: JSON.stringify({
+          title: "Memulakan dengan Community Watch",
+          content: `# Bagaimana Ia Berfungsi
+
+Selamat datang ke platform Community Watch! Platform ini menghubungkan ahli komuniti dengan wakil tempatan untuk menangani isu dan kebimbangan di kawasan anda.
+
+## Memulakan
+
+### 1. Daftar Akaun
+Cipta akaun anda dengan memberikan maklumat asas dan butiran pengesahan. Ini membantu kami memastikan anda adalah ahli komuniti yang sah.
+
+### 2. Laporkan Isu
+Hantar isu atau kebimbangan yang anda hadapi dalam komuniti anda, seperti:
+- Masalah infrastruktur (lubang jalan, lampu jalan rosak)
+- Kebimbangan keselamatan (penghadang hilang, kawasan tidak selamat)
+- Isu sanitasi (kutipan sampah, masalah perparitan)
+- Kebimbangan komuniti lain
+
+### 3. Jejaki Kemajuan
+Pantau status isu yang anda hantar dan terima kemas kini tentang penyelesaiannya. Anda akan mendapat pemberitahuan apabila:
+- Isu anda diterima dan dikaji semula
+- Kerja bermula untuk menangani isu tersebut
+- Isu diselesaikan
+
+### 4. Lihat Laporan
+Akses laporan komuniti dan statistik untuk kekal dimaklumkan tentang perkembangan tempatan dan lihat bagaimana kawasan anda bertambah baik.
+
+## Ciri-ciri
+
+- **Pelaporan Isu**: Borang mudah digunakan untuk melaporkan masalah komuniti
+- **Kemas Kini Masa Nyata**: Dapatkan pemberitahuan tentang kemajuan laporan anda
+- **Papan Pemuka Komuniti**: Lihat statistik dan laporan tentang kawasan anda
+- **Sokongan Berbilang Bahasa**: Tersedia dalam Bahasa Inggeris dan Bahasa Malaysia
+- **Mesra Mudah Alih**: Gunakan platform pada mana-mana peranti
+
+## Sokongan
+
+Jika anda memerlukan bantuan atau mempunyai soalan, jangan teragak-agak untuk menghubungi kami melalui halaman Hubungi atau hubungi wakil komuniti tempatan anda.
+
+*Bersama-sama, kita boleh menjadikan komuniti kita lebih baik!*`
+        })
+      }
+    ]);
+
+    console.log("✅ Created How It Works content blocks");
+
+    // Create About page
+    const aboutPage = await db.insert(pageLayouts).values({
+      name: "About Us",
+      pageType: "informational",
+      route: "/about",
+      title: "About Us",
+      description: "Learn more about our community platform and mission",
+      isActive: true,
+      isPublished: true,
+      createdBy: null,
+    }).returning();
+
+    console.log("✅ Created About Us page");
+
+    // Create hero block for about page
+    const aboutHero = await db.insert(contentBlocks).values({
+      layoutId: aboutPage[0].id,
+      blockType: "hero",
+      blockKey: "about-hero",
+      displayOrder: 1,
+      isVisible: true,
+      configuration: JSON.stringify({ pageType: "about" }),
+    }).returning();
+
+    // Add about hero translations
+    await db.insert(blockTranslations).values([
+      {
+        blockId: aboutHero[0].id,
+        locale: "en",
+        content: JSON.stringify({
+          title: "About Us",
+          subtitle: "Connecting communities and empowering local governance through technology",
+          backgroundImage: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=1200&q=80"
+        })
+      },
+      {
+        blockId: aboutHero[0].id,
+        locale: "ms",
+        content: JSON.stringify({
+          title: "Tentang Kami",
+          subtitle: "Menghubungkan komuniti dan memperkasakan tadbir urus tempatan melalui teknologi",
+          backgroundImage: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=1200&q=80"
+        })
+      }
+    ]);
+
+    // Create content block for about page
+    const aboutContent = await db.insert(contentBlocks).values({
+      layoutId: aboutPage[0].id,
+      blockType: "text",
+      blockKey: "about-content",
+      displayOrder: 2,
+      isVisible: true,
+      configuration: JSON.stringify({}),
+    }).returning();
+
+    // Add about content translations
+    await db.insert(blockTranslations).values([
+      {
+        blockId: aboutContent[0].id,
+        locale: "en",
+        content: JSON.stringify({
+          title: "Our Mission",
+          content: `# About N.18 Inanam Community Watch
+
+Welcome to the N.18 Inanam Community Watch platform, a comprehensive community engagement and issue management system designed to strengthen the connection between community members and their local representatives.
+
+## Our Mission
+
+Our mission is to create a transparent, efficient, and responsive platform that empowers community members to report issues, access information, and engage with local governance. We strive to improve the quality of life in our community by facilitating better communication and faster problem resolution.
+
+## What We Do
+
+- **Issue Management**: We provide an organized system for reporting and tracking community issues, ensuring they are addressed promptly and efficiently.
+- **Community Engagement**: We facilitate communication between community members, staff, and representatives to foster a collaborative environment.
+- **Information Access**: We provide easy access to community reports, statistics, and important announcements.
+- **Support Services**: We connect community members with aid programs, support services, and resources available in the area.
+
+## Our Values
+
+- **Transparency**: We believe in open communication and accountability.
+- **Responsiveness**: We are committed to addressing community needs quickly and effectively.
+- **Inclusivity**: We ensure all community members have equal access to services and information.
+- **Integrity**: We maintain the highest standards of service and ethical conduct.
+
+## Our Team
+
+Our dedicated team of local representatives, staff, and community leaders work together to serve the N.18 Inanam constituency. We are committed to making our community a better place for everyone.
+
+## Contact Information
+
+For more information about our services or to get involved, please visit our Contact page or reach out to your local community representatives.
+
+*Together, we build a stronger community.*`
+        })
+      },
+      {
+        blockId: aboutContent[0].id,
+        locale: "ms",
+        content: JSON.stringify({
+          title: "Misi Kami",
+          content: `# Tentang N.18 Inanam Community Watch
+
+Selamat datang ke platform N.18 Inanam Community Watch, sistem penglibatan komuniti dan pengurusan isu yang komprehensif yang direka untuk mengukuhkan hubungan antara ahli komuniti dan wakil tempatan mereka.
+
+## Misi Kami
+
+Misi kami adalah untuk mewujudkan platform yang telus, cekap, dan responsif yang memberdayakan ahli komuniti untuk melaporkan isu, mengakses maklumat, dan terlibat dengan tadbir urus tempatan. Kami berusaha untuk meningkatkan kualiti hidup dalam komuniti kami dengan memudahkan komunikasi yang lebih baik dan penyelesaian masalah yang lebih pantas.
+
+## Apa Yang Kami Lakukan
+
+- **Pengurusan Isu**: Kami menyediakan sistem yang teratur untuk melaporkan dan menjejaki isu komuniti, memastikan mereka ditangani dengan segera dan cekap.
+- **Penglibatan Komuniti**: Kami memudahkan komunikasi antara ahli komuniti, kakitangan, dan wakil untuk memupuk persekitaran kolaboratif.
+- **Akses Maklumat**: Kami menyediakan akses mudah kepada laporan komuniti, statistik, dan pengumuman penting.
+- **Perkhidmatan Sokongan**: Kami menghubungkan ahli komuniti dengan program bantuan, perkhidmatan sokongan, dan sumber yang tersedia di kawasan ini.
+
+## Nilai Kami
+
+- **Ketelusan**: Kami percaya pada komunikasi terbuka dan akauntabiliti.
+- **Responsif**: Kami komited untuk menangani keperluan komuniti dengan cepat dan berkesan.
+- **Inklusiviti**: Kami memastikan semua ahli komuniti mempunyai akses yang sama kepada perkhidmatan dan maklumat.
+- **Integriti**: Kami mengekalkan standard perkhidmatan dan tingkah laku etika yang tertinggi.
+
+## Pasukan Kami
+
+Pasukan kami yang berdedikasi terdiri daripada wakil tempatan, kakitangan, dan pemimpin komuniti yang bekerjasama untuk berkhidmat kepada kawasan pilihan raya N.18 Inanam. Kami komited untuk menjadikan komuniti kami tempat yang lebih baik untuk semua.
+
+## Maklumat Hubungan
+
+Untuk maklumat lanjut tentang perkhidmatan kami atau untuk terlibat, sila lawati halaman Hubungi Kami atau hubungi wakil komuniti tempatan anda.
+
+*Bersama-sama, kami membina komuniti yang lebih kuat.*`
+        })
+      }
+    ]);
+
+    console.log("✅ Created About Us content blocks");
+
+    // Create Contact page
+    const contactPage = await db.insert(pageLayouts).values({
+      name: "Contact Us",
+      pageType: "contact",
+      route: "/contact",
+      title: "Contact Us",
+      description: "Get in touch with us for support and inquiries",
+      isActive: true,
+      isPublished: true,
+      createdBy: null,
+    }).returning();
+
+    console.log("✅ Created Contact Us page");
+
+    // Create hero block for contact page
+    const contactHero = await db.insert(contentBlocks).values({
+      layoutId: contactPage[0].id,
+      blockType: "hero",
+      blockKey: "contact-hero",
+      displayOrder: 1,
+      isVisible: true,
+      configuration: JSON.stringify({ pageType: "contact" }),
+    }).returning();
+
+    // Add contact hero translations
+    await db.insert(blockTranslations).values([
+      {
+        blockId: contactHero[0].id,
+        locale: "en",
+        content: JSON.stringify({
+          title: "Contact Us",
+          subtitle: "We're here to help! Reach out to us for support, questions, or feedback",
+          backgroundImage: "https://images.unsplash.com/photo-1423666639041-f56000c27a9a?w=1200&q=80"
+        })
+      },
+      {
+        blockId: contactHero[0].id,
+        locale: "ms",
+        content: JSON.stringify({
+          title: "Hubungi Kami",
+          subtitle: "Kami di sini untuk membantu! Hubungi kami untuk sokongan, soalan, atau maklum balas",
+          backgroundImage: "https://images.unsplash.com/photo-1423666639041-f56000c27a9a?w=1200&q=80"
+        })
+      }
+    ]);
+
+    // Create contact info block
+    const contactInfo = await db.insert(contentBlocks).values({
+      layoutId: contactPage[0].id,
+      blockType: "contact",
+      blockKey: "contact-info",
+      displayOrder: 2,
+      isVisible: true,
+      configuration: JSON.stringify({}),
+    }).returning();
+
+    // Add contact info translations
+    await db.insert(blockTranslations).values([
+      {
+        blockId: contactInfo[0].id,
+        locale: "en",
+        content: JSON.stringify({
+          email: "info@n18inanam.gov.my",
+          phone: "+60 88-123 4567",
+          address: "N.18 Inanam Community Office, Jalan Inanam, 88450 Inanam, Sabah"
+        })
+      },
+      {
+        blockId: contactInfo[0].id,
+        locale: "ms",
+        content: JSON.stringify({
+          email: "info@n18inanam.gov.my",
+          phone: "+60 88-123 4567",
+          address: "Pejabat Komuniti N.18 Inanam, Jalan Inanam, 88450 Inanam, Sabah"
+        })
+      }
+    ]);
+
+    // Create content block for contact page
+    const contactContent = await db.insert(contentBlocks).values({
+      layoutId: contactPage[0].id,
+      blockType: "text",
+      blockKey: "contact-content",
+      displayOrder: 3,
+      isVisible: true,
+      configuration: JSON.stringify({}),
+    }).returning();
+
+    // Add contact content translations
+    await db.insert(blockTranslations).values([
+      {
+        blockId: contactContent[0].id,
+        locale: "en",
+        content: JSON.stringify({
+          title: "Get In Touch",
+          content: `# Contact Information
+
+## Office Hours
+
+**Monday - Friday**: 9:00 AM - 5:00 PM  
+**Saturday**: 9:00 AM - 1:00 PM  
+**Sunday**: Closed
+
+## How to Reach Us
+
+- **In Person**: Visit our office during business hours
+- **Phone**: Call us during office hours for immediate assistance
+- **Email**: Send us an email and we'll respond within 24-48 hours
+- **Online**: Submit issues or inquiries through this platform
+
+## Emergency Contacts
+
+For emergencies, please contact:
+
+- **Police**: 999
+- **Fire Department**: 994
+- **Ambulance**: 999
+
+## Staff Directory
+
+You can also contact specific staff members or departments through the platform. Log in to access the staff directory and contact information.
+
+## Feedback
+
+We value your feedback! If you have suggestions, comments, or concerns about our services, don't hesitate to reach out. Your input helps us improve and serve the community better.`
+        })
+      },
+      {
+        blockId: contactContent[0].id,
+        locale: "ms",
+        content: JSON.stringify({
+          title: "Hubungi Kami",
+          content: `# Maklumat Hubungan
+
+## Waktu Pejabat
+
+**Isnin - Jumaat**: 9:00 AM - 5:00 PM  
+**Sabtu**: 9:00 AM - 1:00 PM  
+**Ahad**: Tutup
+
+## Cara Menghubungi Kami
+
+- **Secara Peribadi**: Lawati pejabat kami semasa waktu perniagaan
+- **Telefon**: Hubungi kami semasa waktu pejabat untuk bantuan segera
+- **E-mel**: Hantar e-mel kepada kami dan kami akan membalas dalam masa 24-48 jam
+- **Dalam Talian**: Hantar isu atau pertanyaan melalui platform ini
+
+## Hubungan Kecemasan
+
+Untuk kecemasan, sila hubungi:
+
+- **Polis**: 999
+- **Bomba**: 994
+- **Ambulans**: 999
+
+## Direktori Kakitangan
+
+Anda juga boleh menghubungi kakitangan atau jabatan tertentu melalui platform. Log masuk untuk mengakses direktori kakitangan dan maklumat hubungan.
+
+## Maklum Balas
+
+Kami menghargai maklum balas anda! Jika anda mempunyai cadangan, komen, atau kebimbangan tentang perkhidmatan kami, jangan teragak-agak untuk menghubungi kami. Input anda membantu kami memperbaiki dan berkhidmat kepada komuniti dengan lebih baik.`
+        })
+      }
+    ]);
+
+    console.log("✅ Created Contact Us content blocks");
+
+    console.log("🎉 Successfully seeded dynamic pages!");
+    console.log("\nCreated pages:");
+    console.log("- Terms of Service (/terms-of-service)");
+    console.log("- Privacy Policy (/privacy-policy)");
+    console.log("- How It Works (/how-it-works)");
+    console.log("- About Us (/about)");
+    console.log("- Contact Us (/contact)");
+    console.log("- View Reports (/view-reports)");
+    console.log("\nYou can now manage these pages through the Page Builder admin interface.");
+
+  } catch (error) {
+    console.error("❌ Error seeding dynamic pages:", error);
+    throw error;
+  }
+
+  return { 
+    pageLayouts: createdPages, 
+    contentBlocks: createdBlocks 
+  };
+}
+
+seedFunctions['dynamic_pages'] = seedDynamicPages;
+seedFunctions['dynamic-pages'] = seedDynamicPages; // Also support kebab-case
 
 async function seed() {
   const tableToSeed = getTableToSeed();

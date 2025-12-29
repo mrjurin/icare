@@ -1543,3 +1543,117 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
     references: [staff.id],
   }),
 }));
+
+// Dynamic Page Builder Tables
+
+// Page layouts table - stores different page types and their configurations
+export const pageLayouts = pgTable("page_layouts", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(), // e.g., "landing_page", "about_us", "privacy_policy"
+  pageType: varchar("page_type", { length: 50 }).notNull(), // "landing", "about", "terms", "privacy", "contact", "custom"
+  route: varchar("route", { length: 200 }).notNull(), // "/", "/about", "/privacy-policy", etc.
+  title: varchar("title", { length: 200 }), // Page title for SEO
+  description: text("description"), // Meta description for SEO
+  isActive: boolean("is_active").default(true).notNull(),
+  isPublished: boolean("is_published").default(false).notNull(),
+  createdBy: integer("created_by").references(() => staff.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  unique("unique_page_route").on(table.route),
+  index("page_layouts_page_type_idx").on(table.pageType),
+  index("page_layouts_route_idx").on(table.route),
+  index("page_layouts_is_active_idx").on(table.isActive),
+  index("page_layouts_is_published_idx").on(table.isPublished),
+  index("page_layouts_created_by_idx").on(table.createdBy),
+]);
+
+// Content blocks table - stores individual content components
+export const contentBlocks = pgTable("content_blocks", {
+  id: serial("id").primaryKey(),
+  layoutId: integer("layout_id").references(() => pageLayouts.id, { onDelete: "cascade" }).notNull(),
+  blockType: varchar("block_type", { length: 50 }).notNull(), // hero, text, image, announcements, etc.
+  blockKey: varchar("block_key", { length: 100 }).notNull(), // unique identifier within layout
+  displayOrder: integer("display_order").notNull(),
+  isVisible: boolean("is_visible").default(true).notNull(),
+  configuration: text("configuration"), // JSON configuration for the block
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("content_blocks_layout_idx").on(table.layoutId),
+  index("content_blocks_block_type_idx").on(table.blockType),
+  index("content_blocks_display_order_idx").on(table.displayOrder),
+  index("content_blocks_is_visible_idx").on(table.isVisible),
+  unique("content_blocks_layout_key_unique").on(table.layoutId, table.blockKey),
+]);
+
+// Block translations table - stores localized content
+export const blockTranslations = pgTable("block_translations", {
+  id: serial("id").primaryKey(),
+  blockId: integer("block_id").references(() => contentBlocks.id, { onDelete: "cascade" }).notNull(),
+  locale: varchar("locale", { length: 10 }).notNull(), // en, ms
+  content: text("content"), // JSON content for the specific locale
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("block_translations_block_idx").on(table.blockId),
+  index("block_translations_locale_idx").on(table.locale),
+  unique("block_translations_block_locale_unique").on(table.blockId, table.locale),
+]);
+
+// Page versions table - stores version history
+export const pageVersions = pgTable("page_versions", {
+  id: serial("id").primaryKey(),
+  layoutId: integer("layout_id").references(() => pageLayouts.id, { onDelete: "cascade" }).notNull(),
+  versionNumber: integer("version_number").notNull(),
+  snapshot: text("snapshot").notNull(), // JSON snapshot of the entire page
+  createdBy: integer("created_by").references(() => staff.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  isPublished: boolean("is_published").default(false).notNull(),
+}, (table) => [
+  index("page_versions_layout_idx").on(table.layoutId),
+  index("page_versions_version_number_idx").on(table.versionNumber),
+  index("page_versions_created_by_idx").on(table.createdBy),
+  index("page_versions_is_published_idx").on(table.isPublished),
+  index("page_versions_created_at_idx").on(table.createdAt),
+  unique("page_versions_layout_version_unique").on(table.layoutId, table.versionNumber),
+]);
+
+// Relations for page layouts
+export const pageLayoutsRelations = relations(pageLayouts, ({ one, many }) => ({
+  creator: one(staff, {
+    fields: [pageLayouts.createdBy],
+    references: [staff.id],
+  }),
+  contentBlocks: many(contentBlocks),
+  versions: many(pageVersions),
+}));
+
+// Relations for content blocks
+export const contentBlocksRelations = relations(contentBlocks, ({ one, many }) => ({
+  layout: one(pageLayouts, {
+    fields: [contentBlocks.layoutId],
+    references: [pageLayouts.id],
+  }),
+  translations: many(blockTranslations),
+}));
+
+// Relations for block translations
+export const blockTranslationsRelations = relations(blockTranslations, ({ one }) => ({
+  block: one(contentBlocks, {
+    fields: [blockTranslations.blockId],
+    references: [contentBlocks.id],
+  }),
+}));
+
+// Relations for page versions
+export const pageVersionsRelations = relations(pageVersions, ({ one }) => ({
+  layout: one(pageLayouts, {
+    fields: [pageVersions.layoutId],
+    references: [pageLayouts.id],
+  }),
+  creator: one(staff, {
+    fields: [pageVersions.createdBy],
+    references: [staff.id],
+  }),
+}));

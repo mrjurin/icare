@@ -8,6 +8,31 @@ const handleI18nRouting = createMiddleware(routing);
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // List of routes that should be handled by the dynamic page system
+  const DYNAMIC_ROUTES = [
+    '/terms-of-service',
+    '/privacy-policy',
+    '/how-it-works',
+    '/about',
+    '/contact',
+    '/view-reports'
+  ];
+
+  // Check if this is a dynamic route that needs to be redirected
+  // Extract locale and route from pathname
+  const pathSegments = pathname.split('/').filter(Boolean);
+  if (pathSegments.length >= 2) {
+    const locale = pathSegments[0];
+    const route = '/' + pathSegments.slice(1).join('/');
+    
+    // Check if this is a dynamic route that needs to be redirected
+    if (DYNAMIC_ROUTES.includes(route)) {
+      // Redirect to the dynamic handler
+      const dynamicUrl = new URL(`/${locale}/dynamic${route}`, request.url);
+      return NextResponse.rewrite(dynamicUrl);
+    }
+  }
+
   // 1. Handle i18n routing first (this creates the response with locale)
   const response = handleI18nRouting(request);
 
